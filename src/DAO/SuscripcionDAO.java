@@ -14,7 +14,7 @@ public class SuscripcionDAO {
         try {
             conn = conexion.conectar();
             String sql = "INSERT INTO SUSCRIPCION (FECHA_INICIO, SERVICIO_ID_SERVICIO, INSTALACION_ID_INSTALACION, CLIENTE_ID_CLIENTE, ESTSUSC_ID_ESTADO) " +
-                        "VALUES (SYSDATE, 1, ?, ?, 1)";
+                        "VALUES (NOW(), 1, ?, ?, 1)";
             
             stmt = conn.prepareStatement(sql);
             stmt.setLong(1, idInstalacion);

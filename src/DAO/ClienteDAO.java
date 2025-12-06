@@ -69,7 +69,7 @@ public class ClienteDAO {
         try {
             conn = conexion.conectar();
             String sql = "INSERT INTO CLIENTE (DNI_CLIENTE, NOMBRES, APELLIDOS, DIRECCION, CORREO, FECHA_REGISTRO, ACTIVO, DEUDA) "
-                    + "VALUES (?, ?, ?, ?, ?, SYSDATE, 1, ?)";
+                    + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
 
             stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, cliente.getDniCliente());
