@@ -44,250 +44,27 @@ public class PanelClientes extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabel1 = new javax.swing.JLabel();
-        tf_buscar = new javax.swing.JTextField();
-        btn_buscar = new javax.swing.JButton();
-        jComboBox1 = new javax.swing.JComboBox<>();
-        btn_actualizar = new javax.swing.JButton();
-        btn_agregarCliente = new javax.swing.JButton();
-        btn_eliminar = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        jTable2 = new javax.swing.JTable();
-        jLabel2 = new javax.swing.JLabel();
-        jSeparator1 = new javax.swing.JSeparator();
-        jSeparator2 = new javax.swing.JSeparator();
-        jSeparator3 = new javax.swing.JSeparator();
-        jSeparator4 = new javax.swing.JSeparator();
-        jSeparator5 = new javax.swing.JSeparator();
-        jSeparator6 = new javax.swing.JSeparator();
-        jSeparator7 = new javax.swing.JSeparator();
-        jSeparator8 = new javax.swing.JSeparator();
-        jSeparator9 = new javax.swing.JSeparator();
-        jSeparator10 = new javax.swing.JSeparator();
-        jSeparator11 = new javax.swing.JSeparator();
-        jButton4 = new javax.swing.JButton();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel2 = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jPanel4 = new javax.swing.JPanel();
 
         setBackground(new java.awt.Color(204, 204, 204));
+        setMinimumSize(new java.awt.Dimension(1170, 728));
+        setPreferredSize(new java.awt.Dimension(1214, 728));
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel1.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel1.setFont(new java.awt.Font("Dialog", 0, 36)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel1.setText("Cliente seleccionado:");
-        add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 380, 50));
+        jPanel2.setBackground(new java.awt.Color(204, 204, 204));
+        jTabbedPane1.addTab("Directorio", jPanel2);
 
-        tf_buscar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tf_buscarActionPerformed(evt);
-            }
-        });
-        add(tf_buscar, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 70, 470, 30));
+        jPanel3.setBackground(new java.awt.Color(204, 204, 204));
+        jTabbedPane1.addTab("Nuevo Contrato", jPanel3);
 
-        btn_buscar.setText("Buscar");
-        btn_buscar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_buscarActionPerformed(evt);
-            }
-        });
-        add(btn_buscar, new org.netbeans.lib.awtextra.AbsoluteConstraints(980, 70, 80, 30));
+        jPanel4.setBackground(new java.awt.Color(204, 204, 204));
+        jTabbedPane1.addTab("Gestion de cortes", jPanel4);
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jComboBox1ActionPerformed(evt);
-            }
-        });
-        add(jComboBox1, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 70, 120, 32));
-
-        btn_actualizar.setText("Actualizar");
-        btn_actualizar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_actualizarActionPerformed(evt);
-            }
-        });
-        add(btn_actualizar, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 70, 110, 30));
-
-        btn_agregarCliente.setText("Agregar");
-        btn_agregarCliente.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_agregarClienteActionPerformed(evt);
-            }
-        });
-        add(btn_agregarCliente, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 70, 110, 30));
-
-        btn_eliminar.setText("Eliminar");
-        btn_eliminar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_eliminarActionPerformed(evt);
-            }
-        });
-        add(btn_eliminar, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 70, 110, 30));
-
-        jTable2.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
-        jScrollPane2.setViewportView(jTable2);
-
-        add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 120, 1050, 520));
-
-        jLabel2.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
-        jLabel2.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel2.setText("Nombre del cliente");
-        add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 10, 670, 50));
-        add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 102, 1050, 20));
-        add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1060, 0, 10, 690));
-        add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 680, 1060, 20));
-        add(jSeparator4, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1060, 10));
-        add(jSeparator5, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 10, 680));
-        add(jSeparator6, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, 1050, 10));
-        add(jSeparator7, new org.netbeans.lib.awtextra.AbsoluteConstraints(970, 70, 10, 30));
-        add(jSeparator8, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 70, 10, 30));
-        add(jSeparator9, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 70, 10, 30));
-        add(jSeparator10, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 70, 10, 30));
-        add(jSeparator11, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 70, 10, 30));
-
-        jButton4.setText("Hacer pago");
-        jButton4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton4ActionPerformed(evt);
-            }
-        });
-        add(jButton4, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 650, 270, 30));
+        add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1210, 730));
     }// </editor-fold>//GEN-END:initComponents
-
-    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jComboBox1ActionPerformed
-
-    private void tf_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_buscarActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tf_buscarActionPerformed
-
-    private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
-        String criterio = tf_buscar.getText().trim();
-        if (!criterio.isEmpty()) {
-            List<Cliente> clientes = clienteDAO.buscarClientes(criterio);
-            actualizarTablaConClientes(clientes);
-        } else {
-            cargarClientes(); // Cambiar aquí también
-        }
-
-    }//GEN-LAST:event_btn_buscarActionPerformed
-
-    private void btn_actualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_actualizarActionPerformed
-        int filaSeleccionada = jTable2.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            javax.swing.JOptionPane.showMessageDialog(this, "Seleccione un cliente para actualizar");
-            return;
-        }
-
-        Long idCliente = (Long) tableModel.getValueAt(filaSeleccionada, 0);
-        String dniActual = (String) tableModel.getValueAt(filaSeleccionada, 1);
-        String nombresActual = (String) tableModel.getValueAt(filaSeleccionada, 2);
-        String apellidosActual = (String) tableModel.getValueAt(filaSeleccionada, 3);
-        String direccionActual = (String) tableModel.getValueAt(filaSeleccionada, 4);
-        String emailActual = (String) tableModel.getValueAt(filaSeleccionada, 8);
-
-        // Crear formulario de edición con valores actuales
-        javax.swing.JTextField txtDni = new javax.swing.JTextField(dniActual);
-        javax.swing.JTextField txtNombres = new javax.swing.JTextField(nombresActual);
-        javax.swing.JTextField txtApellidos = new javax.swing.JTextField(apellidosActual);
-        javax.swing.JTextField txtDireccion = new javax.swing.JTextField(direccionActual);
-        javax.swing.JTextField txtEmail = new javax.swing.JTextField(emailActual != null ? emailActual : "");
-
-        Object[] message = {
-            "DNI:", txtDni,
-            "Nombres:", txtNombres,
-            "Apellidos:", txtApellidos,
-            "Dirección:", txtDireccion,
-            "Email:", txtEmail
-        };
-
-        int option = javax.swing.JOptionPane.showConfirmDialog(
-                this, message, "Actualizar Cliente",
-                javax.swing.JOptionPane.OK_CANCEL_OPTION
-        );
-
-        if (option == javax.swing.JOptionPane.OK_OPTION) {
-            Cliente clienteActualizado = new Cliente();
-            clienteActualizado.setIdCliente(idCliente);
-            clienteActualizado.setDniCliente(txtDni.getText());
-            clienteActualizado.setNombres(txtNombres.getText());
-            clienteActualizado.setApellidos(txtApellidos.getText());
-            clienteActualizado.setDireccion(txtDireccion.getText());
-            clienteActualizado.setCorreo(txtEmail.getText());
-
-            if (clienteDAO.actualizarCliente(clienteActualizado)) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Cliente actualizado exitosamente");
-                cargarClientes();
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar cliente");
-            }
-        }
-    }//GEN-LAST:event_btn_actualizarActionPerformed
-
-    private void btn_agregarClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarClienteActionPerformed
-      javax.swing.JTextField txtDni = new javax.swing.JTextField();
-    javax.swing.JTextField txtNombres = new javax.swing.JTextField();
-    javax.swing.JTextField txtApellidos = new javax.swing.JTextField();
-    javax.swing.JTextField txtDireccion = new javax.swing.JTextField();
-    javax.swing.JTextField txtEmail = new javax.swing.JTextField();
-    javax.swing.JTextField txtDeuda = new javax.swing.JTextField("0.00");
-
-    Object[] message = {
-        "DNI:", txtDni,
-        "Nombres:", txtNombres,
-        "Apellidos:", txtApellidos,
-        "Dirección:", txtDireccion,
-        "Email:", txtEmail,
-        "Deuda inicial:", txtDeuda
-    };
-
-    int option = javax.swing.JOptionPane.showConfirmDialog(
-            this, message, "Agregar Cliente",
-            javax.swing.JOptionPane.OK_CANCEL_OPTION
-    );
-
-    
-    }//GEN-LAST:event_btn_agregarClienteActionPerformed
-
-    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton4ActionPerformed
-
-    private void btn_eliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarActionPerformed
-        int filaSeleccionada = jTable2.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            javax.swing.JOptionPane.showMessageDialog(this, "Seleccione un cliente para eliminar");
-            return;
-        }
-
-        Long idCliente = (Long) tableModel.getValueAt(filaSeleccionada, 0);
-        String nombreCliente = (String) tableModel.getValueAt(filaSeleccionada, 2) + " "
-                + (String) tableModel.getValueAt(filaSeleccionada, 3);
-
-        int confirmacion = javax.swing.JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de eliminar al cliente: " + nombreCliente + "?",
-                "Confirmar Eliminación",
-                javax.swing.JOptionPane.YES_NO_OPTION);
-
-        if (confirmacion == javax.swing.JOptionPane.YES_OPTION) {
-            if (clienteDAO.eliminarCliente(idCliente)) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Cliente eliminado exitosamente");
-                cargarClientes();
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(this, "Error al eliminar cliente");
-            }
-        }
-    }//GEN-LAST:event_btn_eliminarActionPerformed
 
     private void cargarClientes() {
         tableModel.setRowCount(0);
@@ -322,12 +99,7 @@ public class PanelClientes extends javax.swing.JPanel {
             }
         };
 
-        jTable2.setModel(tableModel);
 
-        // Ocultar columna ID
-        jTable2.getColumnModel().getColumn(0).setMinWidth(0);
-        jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
-        jTable2.getColumnModel().getColumn(0).setWidth(0);
     }
 
     private void cargarClientesConSuscripciones() {
@@ -374,27 +146,9 @@ public class PanelClientes extends javax.swing.JPanel {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btn_actualizar;
-    private javax.swing.JButton btn_agregarCliente;
-    private javax.swing.JButton btn_buscar;
-    private javax.swing.JButton btn_eliminar;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JComboBox<String> jComboBox1;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JSeparator jSeparator10;
-    private javax.swing.JSeparator jSeparator11;
-    private javax.swing.JSeparator jSeparator2;
-    private javax.swing.JSeparator jSeparator3;
-    private javax.swing.JSeparator jSeparator4;
-    private javax.swing.JSeparator jSeparator5;
-    private javax.swing.JSeparator jSeparator6;
-    private javax.swing.JSeparator jSeparator7;
-    private javax.swing.JSeparator jSeparator8;
-    private javax.swing.JSeparator jSeparator9;
-    private javax.swing.JTable jTable2;
-    private javax.swing.JTextField tf_buscar;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JTabbedPane jTabbedPane1;
     // End of variables declaration//GEN-END:variables
 }

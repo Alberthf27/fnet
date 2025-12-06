@@ -6,14 +6,14 @@ package vista;
 
 /**
  *
- * @author ALBERTH
+ * @author HP
  */
-public class PanelPrincipal extends javax.swing.JPanel {
+public class PanelUsuarios extends javax.swing.JPanel {
 
     /**
-     * Creates new form PanelPrincipal
+     * Creates new form PanelUsuarios
      */
-    public PanelPrincipal() {
+    public PanelUsuarios() {
         initComponents();
     }
 
@@ -26,30 +26,19 @@ public class PanelPrincipal extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
-
-        jPanel1.setBackground(new java.awt.Color(255, 153, 153));
-        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
-
-        jLabel1.setText("Panel principal con dashboard");
-        jPanel1.add(jLabel1);
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 970, Short.MAX_VALUE)
+            .addGap(0, 1214, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 586, Short.MAX_VALUE)
+            .addGap(0, 728, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JPanel jPanel1;
     // End of variables declaration//GEN-END:variables
 }

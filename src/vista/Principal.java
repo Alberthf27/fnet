@@ -96,6 +96,11 @@ public class Principal extends javax.swing.JFrame {
         });
 
         btn_servicios.setText("Servicios");
+        btn_servicios.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_serviciosActionPerformed(evt);
+            }
+        });
 
         btn_pagos.setText("Pagos");
         btn_pagos.addActionListener(new java.awt.event.ActionListener() {
@@ -105,17 +110,34 @@ public class Principal extends javax.swing.JFrame {
         });
 
         btn_instalaciones.setText("Instalaciones");
+        btn_instalaciones.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_instalacionesActionPerformed(evt);
+            }
+        });
 
         btn_equipos.setText("Equipos");
+        btn_equipos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_equiposActionPerformed(evt);
+            }
+        });
 
         btn_usuarios.setText("Usuarios");
+        btn_usuarios.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_usuariosActionPerformed(evt);
+            }
+        });
 
         btn_salir.setText("Salir");
 
         jLabel1.setText("logo.png");
 
+        lbl_usuario.setForeground(new java.awt.Color(204, 204, 204));
         lbl_usuario.setText("Usuario: Usuario1");
 
+        lbl_ultimoAcceso.setForeground(new java.awt.Color(204, 204, 204));
         lbl_ultimoAcceso.setText("Ultimo acceso: 10:51");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -165,7 +187,7 @@ public class Principal extends javax.swing.JFrame {
                 .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 196, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 234, Short.MAX_VALUE)
                 .addComponent(lbl_usuario)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lbl_ultimoAcceso)
@@ -196,22 +218,42 @@ public class Principal extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_clientesActionPerformed
-        marcarBotonActivo(btn_clientes); // <--- AGREGA ESTA LÍNEA
-
-        PanelClientes panelClientes = new PanelClientes();
-        MostrarPanel(panelClientes);
+        marcarBotonActivo(btn_clientes);
+        // Carga el panel con pestañas de clientes
+        MostrarPanel(new vista.PanelClientes());
     }//GEN-LAST:event_btn_clientesActionPerformed
 
     private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_principalActionPerformed
-        marcarBotonActivo(btn_principal); // <--- AGREGA ESTA LÍNEA
-
-        PanelPrincipal panelPrincipal = new PanelPrincipal();
-        MostrarPanel(panelPrincipal);
+marcarBotonActivo(btn_principal); 
+    
+    // AQUÍ ESTÁ EL CAMBIO: Llamamos a panel_Gerente
+    MostrarPanel(new vista.panel_Gerente());
     }//GEN-LAST:event_btn_principalActionPerformed
 
     private void btn_pagosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagosActionPerformed
-        // TODO add your handling code here:
+        marcarBotonActivo(btn_pagos);
+        MostrarPanel(new vista.PanelPagos());
     }//GEN-LAST:event_btn_pagosActionPerformed
+
+    private void btn_serviciosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_serviciosActionPerformed
+        marcarBotonActivo(btn_servicios);
+        MostrarPanel(new vista.PanelServicios());
+    }//GEN-LAST:event_btn_serviciosActionPerformed
+
+    private void btn_instalacionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_instalacionesActionPerformed
+        marcarBotonActivo(btn_instalaciones);
+        MostrarPanel(new vista.PanelInstalaciones());
+    }//GEN-LAST:event_btn_instalacionesActionPerformed
+
+    private void btn_equiposActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_equiposActionPerformed
+        marcarBotonActivo(btn_equipos);
+        MostrarPanel(new vista.PanelEquipos());
+    }//GEN-LAST:event_btn_equiposActionPerformed
+
+    private void btn_usuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_usuariosActionPerformed
+        marcarBotonActivo(btn_usuarios);
+        MostrarPanel(new vista.PanelUsuarios());
+    }//GEN-LAST:event_btn_usuariosActionPerformed
 
     /**
      * @param args the command line arguments
@@ -246,63 +288,68 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JLabel lbl_usuario;
     // End of variables declaration//GEN-END:variables
 private void configurarDiseñoModerno() {
-        // 1. Colores exactos del diseño "ISP Manager"
-        java.awt.Color colorSidebar = new java.awt.Color(15, 23, 42);  // Azul Oscuro (Slate 900)
-        java.awt.Color colorBgRight = new java.awt.Color(241, 245, 249); // Gris Claro (Slate 100)
+        // 1. Colores (Iguales que antes)
+        java.awt.Color colorSidebar = new java.awt.Color(15, 23, 42);
+        java.awt.Color colorBgRight = new java.awt.Color(241, 245, 249);
 
-        // 2. Pintar paneles
         jPanel1.setBackground(colorSidebar);
         jPanel2.setBackground(colorBgRight);
 
-        // 3. Configurar botones con ICONOS (Usamos símbolos Unicode para simularlos)
-        // \uD83C\uDFE0 = Casa, \uD83D\uDC65 = Usuarios, etc.
-        configurarBoton(btn_principal, "Dashboard", "🏠");
-        configurarBoton(btn_clientes, "Clientes", "👥");
-        configurarBoton(btn_pagos, "Pagos", "💳");
-        configurarBoton(btn_servicios, "Servicios", "🔌");
-        configurarBoton(btn_instalaciones, "Instalaciones", "🛠️");
-        configurarBoton(btn_equipos, "Equipos", "📡");
-        configurarBoton(btn_usuarios, "Usuarios", "👤");
-        configurarBoton(btn_salir, "Salir", "🚪");
+        // 2. Configurar botones CON TUS IMÁGENES
+        // Asegúrate de que los nombres aquí coincidan con los archivos que pegaste en "img"
+        configurarBoton(btn_principal, "Dashboard", "/img/dashboard.png");
+        configurarBoton(btn_clientes, "Clientes", "/img/clientes.png");
+        configurarBoton(btn_pagos, "Pagos", "/img/pagos.png");
+        configurarBoton(btn_servicios, "Servicios", "/img/servicios.png");
+        configurarBoton(btn_instalaciones, "Instalaciones", "/img/instalaciones.png");
+        configurarBoton(btn_equipos, "Equipos", "/img/equipos.png");
+        configurarBoton(btn_usuarios, "Usuarios", "/img/usuarios.png");
+        configurarBoton(btn_salir, "Salir", "/img/salir.png");
 
-        // 4. Activar el primero por defecto
+        // 3. Activar el primero
         marcarBotonActivo(btn_principal);
     }
 
-    private void configurarBoton(javax.swing.JButton btn, String texto, String icono) {
-        // Texto con espacio para el icono
-        btn.setText(icono + "   " + texto);
+    private void configurarBoton(javax.swing.JButton btn, String texto, String rutaIcono) {
+        // 1. Cargar el Icono desde la carpeta
+        try {
+            // getClass().getResource busca dentro de los paquetes del proyecto
+            javax.swing.ImageIcon icono = new javax.swing.ImageIcon(getClass().getResource(rutaIcono));
+            btn.setIcon(icono);
+        } catch (Exception e) {
+            System.err.println("Error cargando icono: " + rutaIcono);
+        }
 
-        // Fuente moderna
+        // 2. Texto y Espaciado
+        btn.setText("   " + texto); // Espacio entre icono y texto
+        btn.setIconTextGap(5);      // Separación extra
+
+        // 3. Estilo Visual (Igual que antes)
         btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
-        btn.setForeground(new java.awt.Color(148, 163, 184)); // Gris azulado (Inactivo)
+        btn.setForeground(new java.awt.Color(148, 163, 184)); // Gris inactivo
 
-        // QUITAR ESTILOS VIEJOS
+        // Limpieza de bordes
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
-        btn.setContentAreaFilled(true); // ¡IMPORTANTE: TRUE para que se pinte el color!
+        btn.setContentAreaFilled(true);
         btn.setOpaque(true);
         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setBackground(new java.awt.Color(15, 23, 42)); // Fondo oscuro
 
-        // Color base (Mismo que el sidebar para que parezca transparente)
-        btn.setBackground(new java.awt.Color(15, 23, 42));
-
-        // Alineación izquierda
         btn.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        // Margen interno para que no quede pegado al borde (Top, Left, Bottom, Right)
         btn.setMargin(new java.awt.Insets(10, 20, 10, 10));
 
-        // Hover (Pasar el mouse)
+        // 4. Efecto Hover
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                if (btn.getBackground().getBlue() == 42) { // Si es el color oscuro (inactivo)
-                    btn.setBackground(new java.awt.Color(30, 41, 59)); // Aclarar un poco
+                if (btn.getBackground().getBlue() == 42) {
+                    btn.setBackground(new java.awt.Color(30, 41, 59));
                 }
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                if (btn.getBackground().getBlue() == 59) { // Si estaba en hover
-                    btn.setBackground(new java.awt.Color(15, 23, 42)); // Volver a oscuro
+                if (btn.getBackground().getBlue() == 59) {
+                    btn.setBackground(new java.awt.Color(15, 23, 42));
                 }
             }
         });
@@ -373,10 +420,18 @@ private void configurarDiseñoModerno() {
      * Método para cambiar paneles
      */
     private void MostrarPanel(javax.swing.JPanel p) {
+// Configuración básica del panel hijo
         p.setSize(1080, 720);
         p.setLocation(0, 0);
 
+        // Limpiar contenido anterior
         content.removeAll();
+        
+        // --- SOLUCIÓN DEL ERROR ---
+        // Forzamos el Layout a BorderLayout para que acepte el comando .CENTER
+        content.setLayout(new java.awt.BorderLayout()); 
+        // --------------------------
+        
         content.add(p, java.awt.BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
