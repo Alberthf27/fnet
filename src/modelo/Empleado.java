@@ -9,6 +9,7 @@ public class Empleado {
     private String telefono;
     private Long usuarioIdUsuario;
     private Long rolIdRol;
+    private String nombreRol;
 
     // Constructores
     public Empleado() {}

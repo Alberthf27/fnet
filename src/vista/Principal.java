@@ -5,6 +5,7 @@
 package vista;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import vista.PanelClientes;
@@ -15,26 +16,38 @@ import vista.PanelClientes;
  */
 public class Principal extends javax.swing.JFrame {
 
-    /**
-     * Creates new form Principal
-     */
+    private modelo.Empleado empleadoActual;
+
+    // CONSTRUCTOR 1: El que usa NetBeans o pruebas rápidas (Vacío)
     public Principal() {
-        initComponents();
-        
-
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH); 
-
-        PanelPrincipal panelPrincipal = new PanelPrincipal();
-        MostrarPanel(panelPrincipal);
+        // Llama al constructor principal pasando 'null' como empleado
+        this(null);
     }
 
-    private void MostrarPanel(JPanel p) {
-        
-        content.removeAll();
-        content.add(p, BorderLayout.CENTER);
-        content.revalidate();
-        content.repaint();
+    // CONSTRUCTOR 2: El principal, que recibe el usuario del Login
+    public Principal(modelo.Empleado empleado) {
+        // 1. Configuración del Look and Feel (FlatLaf)
+        try {
+            com.formdev.flatlaf.FlatLightLaf.setup();
+        } catch (Exception ex) {
+            System.err.println("Error iniciando FlatLaf");
+        }
 
+        // 2. Iniciar componentes visuales
+        initComponents();
+
+        // 3. Guardar el empleado y configurar interfaz
+        this.empleadoActual = empleado;
+        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH); // Pantalla completa
+
+        // 4. Lógica de permisos (Solo si hay empleado real)
+        if (empleado != null) {
+
+            setTitle("ISP Manager - Usuario: " + empleado.getNombres());
+        }
+
+        // 5. Cargar el diseño del Sidebar y Dashboard (El código que te pasé antes)
+        configurarDiseñoModerno();
     }
 
     /**
@@ -56,10 +69,10 @@ public class Principal extends javax.swing.JFrame {
         btn_equipos = new javax.swing.JButton();
         btn_usuarios = new javax.swing.JButton();
         btn_salir = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        lbl_usuario = new javax.swing.JLabel();
+        lbl_ultimoAcceso = new javax.swing.JLabel();
         content = new javax.swing.JPanel();
-        jMenuBar1 = new javax.swing.JMenuBar();
-        jMenu1 = new javax.swing.JMenu();
-        jMenu2 = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setExtendedState(6);
@@ -99,31 +112,46 @@ public class Principal extends javax.swing.JFrame {
 
         btn_salir.setText("Salir");
 
+        jLabel1.setText("logo.png");
+
+        lbl_usuario.setText("Usuario: Usuario1");
+
+        lbl_ultimoAcceso.setText("Ultimo acceso: 10:51");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btn_clientes, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
-                    .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_usuarios, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
-                    .addContainerGap()))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 154, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_clientes, javax.swing.GroupLayout.PREFERRED_SIZE, 154, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addGap(17, 17, 17)
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(lbl_ultimoAcceso, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addGap(19, 19, 19)
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+                                .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btn_usuarios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
+                .addContainerGap(20, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(138, 138, 138)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(31, 31, 31)
+                .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_clientes, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_pagos, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -137,25 +165,24 @@ public class Principal extends javax.swing.JFrame {
                 .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(211, Short.MAX_VALUE))
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addGap(88, 88, 88)
-                    .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(561, Short.MAX_VALUE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 196, Short.MAX_VALUE)
+                .addComponent(lbl_usuario)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(lbl_ultimoAcceso)
+                .addGap(12, 12, 12))
         );
 
         content.setBackground(new java.awt.Color(255, 255, 255));
-        content.setLayout(new java.awt.BorderLayout());
+        content.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, 0)
-                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1080, Short.MAX_VALUE))
+                .addComponent(content, javax.swing.GroupLayout.PREFERRED_SIZE, 1214, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -165,25 +192,18 @@ public class Principal extends javax.swing.JFrame {
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
 
-        jMenu1.setText("File");
-        jMenuBar1.add(jMenu1);
-
-        jMenu2.setText("Edit");
-        jMenuBar1.add(jMenu2);
-
-        setJMenuBar(jMenuBar1);
-
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_clientesActionPerformed
-              
+        marcarBotonActivo(btn_clientes); // <--- AGREGA ESTA LÍNEA
 
         PanelClientes panelClientes = new PanelClientes();
         MostrarPanel(panelClientes);
     }//GEN-LAST:event_btn_clientesActionPerformed
 
     private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_principalActionPerformed
+        marcarBotonActivo(btn_principal); // <--- AGREGA ESTA LÍNEA
 
         PanelPrincipal panelPrincipal = new PanelPrincipal();
         MostrarPanel(panelPrincipal);
@@ -197,34 +217,15 @@ public class Principal extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            // Poner esto ANTES de iniciar la ventana
+            com.formdev.flatlaf.FlatLightLaf.setup();
+        } catch (Exception ex) {
+            System.err.println("Fallo al iniciar FlatLaf");
         }
-        //</editor-fold>
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Principal().setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new Principal(null).setVisible(true); // O tu constructor correspondiente
         });
     }
 
@@ -238,10 +239,147 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JButton btn_servicios;
     private javax.swing.JButton btn_usuarios;
     private javax.swing.JPanel content;
-    private javax.swing.JMenu jMenu1;
-    private javax.swing.JMenu jMenu2;
-    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JLabel lbl_ultimoAcceso;
+    private javax.swing.JLabel lbl_usuario;
     // End of variables declaration//GEN-END:variables
+private void configurarDiseñoModerno() {
+        // 1. Colores exactos del diseño "ISP Manager"
+        java.awt.Color colorSidebar = new java.awt.Color(15, 23, 42);  // Azul Oscuro (Slate 900)
+        java.awt.Color colorBgRight = new java.awt.Color(241, 245, 249); // Gris Claro (Slate 100)
+
+        // 2. Pintar paneles
+        jPanel1.setBackground(colorSidebar);
+        jPanel2.setBackground(colorBgRight);
+
+        // 3. Configurar botones con ICONOS (Usamos símbolos Unicode para simularlos)
+        // \uD83C\uDFE0 = Casa, \uD83D\uDC65 = Usuarios, etc.
+        configurarBoton(btn_principal, "Dashboard", "🏠");
+        configurarBoton(btn_clientes, "Clientes", "👥");
+        configurarBoton(btn_pagos, "Pagos", "💳");
+        configurarBoton(btn_servicios, "Servicios", "🔌");
+        configurarBoton(btn_instalaciones, "Instalaciones", "🛠️");
+        configurarBoton(btn_equipos, "Equipos", "📡");
+        configurarBoton(btn_usuarios, "Usuarios", "👤");
+        configurarBoton(btn_salir, "Salir", "🚪");
+
+        // 4. Activar el primero por defecto
+        marcarBotonActivo(btn_principal);
+    }
+
+    private void configurarBoton(javax.swing.JButton btn, String texto, String icono) {
+        // Texto con espacio para el icono
+        btn.setText(icono + "   " + texto);
+
+        // Fuente moderna
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        btn.setForeground(new java.awt.Color(148, 163, 184)); // Gris azulado (Inactivo)
+
+        // QUITAR ESTILOS VIEJOS
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setContentAreaFilled(true); // ¡IMPORTANTE: TRUE para que se pinte el color!
+        btn.setOpaque(true);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        // Color base (Mismo que el sidebar para que parezca transparente)
+        btn.setBackground(new java.awt.Color(15, 23, 42));
+
+        // Alineación izquierda
+        btn.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        // Margen interno para que no quede pegado al borde (Top, Left, Bottom, Right)
+        btn.setMargin(new java.awt.Insets(10, 20, 10, 10));
+
+        // Hover (Pasar el mouse)
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (btn.getBackground().getBlue() == 42) { // Si es el color oscuro (inactivo)
+                    btn.setBackground(new java.awt.Color(30, 41, 59)); // Aclarar un poco
+                }
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (btn.getBackground().getBlue() == 59) { // Si estaba en hover
+                    btn.setBackground(new java.awt.Color(15, 23, 42)); // Volver a oscuro
+                }
+            }
+        });
+    }
+
+    /**
+     * Transforma un botón normal en uno estilo Dashboard moderno.
+     */
+    private void estilarBotonMenu(javax.swing.JButton btn) {
+        btn.setForeground(new Color(148, 163, 184)); // Texto gris claro (inactivo)
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+
+        // Quitar bordes y fondos por defecto de Java
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 10)); // Espaciado interno
+        btn.setFocusPainted(false);
+        btn.setContentAreaFilled(false); // Transparente por defecto
+        btn.setOpaque(true);
+        btn.setBackground(new Color(15, 23, 42)); // Fondo igual al menú (invisible)
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        // Alineación a la izquierda para que parezca menú
+        btn.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+
+        // Efecto Hover (pasar el mouse)
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                // Solo cambia de color si NO está activo actualmente
+                if (btn.getForeground().equals(new Color(148, 163, 184))) {
+                    btn.setBackground(new Color(30, 41, 59)); // Un poco más claro al pasar mouse
+                }
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                // Si no es el activo, vuelve a transparente
+                if (btn.getForeground().equals(new Color(148, 163, 184))) {
+                    btn.setBackground(new Color(15, 23, 42));
+                }
+            }
+        });
+    }
+
+    /**
+     * Método MÁGICO: Pinta el botón clickeado de azul brillante y apaga los
+     * demás.
+     */
+    private void marcarBotonActivo(javax.swing.JButton btnActivo) {
+        // Lista de todos tus botones
+        javax.swing.JButton[] todos = {
+            btn_principal, btn_clientes, btn_pagos, btn_servicios,
+            btn_instalaciones, btn_equipos, btn_usuarios, btn_salir
+        };
+
+        java.awt.Color colorActivo = new java.awt.Color(37, 99, 235); // AZUL BRILLANTE (Blue 600)
+        java.awt.Color colorInactivo = new java.awt.Color(15, 23, 42); // AZUL OSCURO
+
+        for (javax.swing.JButton b : todos) {
+            if (b == btnActivo) {
+                b.setBackground(colorActivo);      // Fondo Azul Brillante
+                b.setForeground(java.awt.Color.WHITE); // Texto Blanco
+            } else {
+                b.setBackground(colorInactivo);    // Fondo Oscuro
+                b.setForeground(new java.awt.Color(148, 163, 184)); // Texto Gris
+            }
+        }
+    }
+
+    /**
+     * Método para cambiar paneles
+     */
+    private void MostrarPanel(javax.swing.JPanel p) {
+        p.setSize(1080, 720);
+        p.setLocation(0, 0);
+
+        content.removeAll();
+        content.add(p, java.awt.BorderLayout.CENTER);
+        content.revalidate();
+        content.repaint();
+    }
+
 }
