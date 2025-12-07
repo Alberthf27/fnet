@@ -28,11 +28,15 @@ public class PanelClientes extends javax.swing.JPanel {
      * Creates new form PanelClientes
      */
     public PanelClientes() {
+        initComponents(); // Deja que NetBeans inicie lo básico (el JTabbedPane)
 
-        initComponents();
-        clienteDAO = new ClienteDAO();
-        inicializarTabla();
-        cargarClientes(); // Cambiar a este método básico
+        // AHORA REEMPLAZAMOS LAS PESTAÑAS VACÍAS
+        jTabbedPane1.removeAll(); // Quitamos lo que puso el diseñador por defecto
+
+        // Agregamos nuestros subpaneles potentes
+        jTabbedPane1.addTab("Directorio", new javax.swing.ImageIcon(getClass().getResource("/img/list.png")), new subpanel_DirectorioClientes());
+        jTabbedPane1.addTab("Nuevo Contrato", new javax.swing.ImageIcon(getClass().getResource("/img/add.png")), new subpanel_NuevoCliente());
+        jTabbedPane1.addTab("Gestión de Cortes", new javax.swing.ImageIcon(getClass().getResource("/img/warning.png")), new javax.swing.JPanel()); // Pendiente
     }
 
     /**
@@ -98,7 +102,6 @@ public class PanelClientes extends javax.swing.JPanel {
                 return false;
             }
         };
-
 
     }
 

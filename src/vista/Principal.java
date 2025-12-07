@@ -24,7 +24,7 @@ public class Principal extends javax.swing.JFrame {
         this(null);
     }
 
-    // CONSTRUCTOR 2: El principal, que recibe el usuario del Login
+// CONSTRUCTOR 2: El principal
     public Principal(modelo.Empleado empleado) {
         // 1. Configuración del Look and Feel (FlatLaf)
         try {
@@ -36,18 +36,30 @@ public class Principal extends javax.swing.JFrame {
         // 2. Iniciar componentes visuales
         initComponents();
 
-        // 3. Guardar el empleado y configurar interfaz
+        // 3. Guardar el empleado
         this.empleadoActual = empleado;
-        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH); // Pantalla completa
 
-        // 4. Lógica de permisos (Solo si hay empleado real)
+        // --- CAMBIOS AQUÍ ---
+        // A. BORRA o COMENTA esta línea que forzaba pantalla completa:
+        // this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH); 
+        // B. AGREGA esta línea para que la ventana aparezca al CENTRO de la pantalla:
+        this.setLocationRelativeTo(null);
+        // --------------------
+
+        // 4. Lógica de permisos
         if (empleado != null) {
-
+            // Usamos String.valueOf para evitar el error de tipos si usas el ID
+            if (empleado.getRolIdRol() != null) {
+                // Asegúrate que configurarPermisos reciba String si así lo definiste
+                // configurarPermisos(String.valueOf(empleado.getRolIdRol()));
+            }
             setTitle("ISP Manager - Usuario: " + empleado.getNombres());
         }
+        btn_principal.doClick();
 
-        // 5. Cargar el diseño del Sidebar y Dashboard (El código que te pasé antes)
+        // 5. Cargar el diseño del Sidebar
         configurarDiseñoModerno();
+
     }
 
     /**
@@ -187,7 +199,7 @@ public class Principal extends javax.swing.JFrame {
                 .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 234, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 259, Short.MAX_VALUE)
                 .addComponent(lbl_usuario)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lbl_ultimoAcceso)
@@ -224,10 +236,10 @@ public class Principal extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_clientesActionPerformed
 
     private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_principalActionPerformed
-marcarBotonActivo(btn_principal); 
-    
-    // AQUÍ ESTÁ EL CAMBIO: Llamamos a panel_Gerente
-    MostrarPanel(new vista.panel_Gerente());
+        marcarBotonActivo(btn_principal);
+
+        // AQUÍ ESTÁ EL CAMBIO: Llamamos a panel_Gerente
+        MostrarPanel(new vista.panel_Gerente());
     }//GEN-LAST:event_btn_principalActionPerformed
 
     private void btn_pagosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagosActionPerformed
@@ -426,12 +438,12 @@ private void configurarDiseñoModerno() {
 
         // Limpiar contenido anterior
         content.removeAll();
-        
+
         // --- SOLUCIÓN DEL ERROR ---
         // Forzamos el Layout a BorderLayout para que acepte el comando .CENTER
-        content.setLayout(new java.awt.BorderLayout()); 
+        content.setLayout(new java.awt.BorderLayout());
         // --------------------------
-        
+
         content.add(p, java.awt.BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
