@@ -7,16 +7,23 @@ import javax.swing.JOptionPane;
 
 public class Conexion {
 
-    // CAMBIO 1: Driver para MySQL 8+
+    // --- CREDENCIALES DE RAILWAY (NOZOMI) ---
     private final String DRIVER = "com.mysql.cj.jdbc.Driver";
-
-    // CAMBIO 2: URL de conexión (Reemplaza 'nombre_de_tu_bd' por el real)
-    // El parámetro serverTimezone es importante para evitar errores de hora
-    private final String URL = "jdbc:mysql://127.0.0.1:3306/fibranet?serverTimezone=America/Lima&useSSL=false";
-
-    // CAMBIO 3: Tus credenciales locales
+    
+    // Datos extraídos de tu conexión anterior exitosa
+    private final String HOST = "nozomi.proxy.rlwy.net";
+    private final String PORT = "20409";
+    private final String DB = "railway";
     private final String USER = "root";
-    private final String PASSWORD = "alberth789"; // <--- ¡Pon aquí tu clave de Workbench!
+    private final String PASSWORD = "MUjBYtfwVPnAMAoHGDXbHqsIXYDTZnWs"; // Tu contraseña de Railway
+
+    // URL Optimizada para evitar latencia
+    private final String URL = "jdbc:mysql://" + HOST + ":" + PORT + "/" + DB
+            + "?useSSL=false"
+            + "&allowPublicKeyRetrieval=true"
+            + "&serverTimezone=America/Lima"
+            + "&useLegacyDatetimeCode=false"
+            + "&autoReconnect=true";
 
     public Connection cadena;
 
@@ -24,17 +31,17 @@ public class Conexion {
         this.cadena = null;
     }
 
+    // Método de instancia (usado por código antiguo)
     public Connection conectar() {
         try {
             Class.forName(DRIVER);
             this.cadena = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("✅ CONECTADO A MYSQL EXITOSAMENTE");
+            // System.out.println("✅ Conectado a Railway"); // Descomentar para probar
         } catch (ClassNotFoundException e) {
-            JOptionPane.showMessageDialog(null, "Error: No se encontró el Driver MySQL. \n¿Añadiste el .jar a Libraries?");
-            System.exit(0);
+            JOptionPane.showMessageDialog(null, "Falta el Driver MySQL (jar).");
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error de conexión: " + e.getMessage());
-            System.out.println("❌ Error SQL: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error Conexión Nube: " + e.getMessage());
+            System.err.println("SQL State: " + e.getSQLState());
         }
         return this.cadena;
     }
@@ -43,16 +50,24 @@ public class Conexion {
         try {
             if (this.cadena != null && !this.cadena.isClosed()) {
                 this.cadena.close();
-                System.out.println("Conexión cerrada");
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al cerrar: " + e.getMessage());
+            System.err.println("Error al cerrar: " + e.getMessage());
         }
     }
 
+    // --- IMPORTANTE: Método Estático para los nuevos DAOs Optimizados ---
+    // Esto permite llamar a Conexion.getConexion() sin crear una instancia manual
+    public static Connection getConexion() {
+        return new Conexion().conectar();
+    }
+
+    // Método main para probar conexión rápida (Run File aquí para testear)
     public static void main(String[] args) {
         Conexion c = new Conexion();
-        c.conectar();
-        // c.desconectar(); // Déjalo comentado para ver si conecta y se mantiene
+        if (c.conectar() != null) {
+            System.out.println("¡TEST DE CONEXIÓN A NUBE EXITOSO!");
+            c.desconectar();
+        }
     }
 }

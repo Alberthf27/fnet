@@ -8,70 +8,106 @@ import java.util.List;
 
 public class ClienteDAO {
 
-    public List<Cliente> obtenerTodosClientes() {
+    // ----------------------------------------------------------------------------------
+    // 🚀 MÉTODOS OPTIMIZADOS PARA VELOCIDAD (Paginación)
+    // ----------------------------------------------------------------------------------
+
+    /**
+     * Obtiene una página de clientes activos, usando LIMIT y OFFSET para velocidad.
+     * @param limit Cantidad máxima de registros a devolver (e.g., 50)
+     * @param offset Posición de inicio (página * limit)
+     * @return Lista de objetos Cliente
+     */
+    public List<Cliente> obtenerClientesPaginados(int limit, int offset) {
         List<Cliente> clientes = new ArrayList<>();
-        Conexion conexion = new Conexion(); // Crear instancia
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
+        String sql = "SELECT id_cliente, dni_cliente, nombres, apellidos, direccion, correo, fecha_registro, activo, deuda "
+                    + "FROM cliente "
+                    + "WHERE activo = 1 "
+                    + "ORDER BY apellidos, nombres "
+                    + "LIMIT ? OFFSET ?";
+        
+        // Uso del try-with-resources para el manejo automático de la conexión y recursos (Mejor práctica en Java)
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        try {
-            conn = conexion.conectar(); // Usar método de instancia
-            String sql = "SELECT ID_CLIENTE, DNI_CLIENTE, NOMBRES, APELLIDOS, DIRECCION, CORREO, FECHA_REGISTRO, ACTIVO, DEUDA FROM CLIENTE WHERE ACTIVO = 1 ORDER BY APELLIDOS, NOMBRES";
-            stmt = conn.prepareStatement(sql);
-            rs = stmt.executeQuery();
-
-            int count = 0;
-
-            while (rs.next()) {
-                Cliente cliente = new Cliente();
-                cliente.setIdCliente(rs.getLong("ID_CLIENTE"));
-                cliente.setDniCliente(rs.getString("DNI_CLIENTE"));
-                cliente.setNombres(rs.getString("NOMBRES"));
-                cliente.setApellidos(rs.getString("APELLIDOS"));
-                cliente.setDireccion(rs.getString("DIRECCION"));
-                cliente.setCorreo(rs.getString("CORREO"));
-                cliente.setFechaRegistro(rs.getDate("FECHA_REGISTRO"));
-                cliente.setActivo(rs.getInt("ACTIVO"));
-                clientes.add(cliente);
-                cliente.setDeuda(rs.getDouble("DEUDA"));
-                System.out.println("Cliente " + count + ": " + cliente.getNombres() + " " + cliente.getApellidos());
+            stmt.setInt(1, limit);
+            stmt.setInt(2, offset);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    clientes.add(mapearCliente(rs));
+                }
             }
         } catch (SQLException e) {
+            System.err.println("❌ Error en obtenerClientesPaginados: " + e.getMessage());
             e.printStackTrace();
-            System.out.println("Error en obtenerTodosClientes: " + e.getMessage());
-        } finally {
-            // Cerrar recursos en orden inverso
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar(); // Usar método de instancia
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
+        }
+        return clientes;
+    }
+    
+    /**
+     * Obtiene el número total de clientes activos.
+     * Es necesario para calcular el número total de páginas.
+     */
+    public int obtenerTotalClientesActivos() {
+        String sql = "SELECT COUNT(id_cliente) FROM cliente WHERE activo = 1";
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                return rs.getInt(1);
             }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener total de clientes: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
+     * ✅ MEJORADO: Búsqueda de clientes (Activo=1)
+     * Utiliza los índices creados (dni_cliente, apellidos, nombres)
+     */
+    public List<Cliente> buscarClientes(String criterio) {
+        List<Cliente> clientes = new ArrayList<>();
+        // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
+        String sql = "SELECT * FROM cliente WHERE (nombres LIKE ? OR apellidos LIKE ? OR dni_cliente LIKE ?) AND activo = 1 ORDER BY apellidos, nombres";
+        
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            String likeCriterio = "%" + criterio + "%";
+            stmt.setString(1, likeCriterio);
+            stmt.setString(2, likeCriterio);
+            stmt.setString(3, likeCriterio);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    clientes.add(mapearCliente(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al buscar clientes: " + e.getMessage());
+            e.printStackTrace();
         }
         return clientes;
     }
 
+
+    // ----------------------------------------------------------------------------------
+    // ⚙️ MÉTODOS CRUD (Corregidos y con Try-with-resources)
+    // ----------------------------------------------------------------------------------
+
     public Long insertarCliente(Cliente cliente) {
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet generatedKeys = null;
         Long generatedId = null;
+        // ✅ Corregido: Uso de minúsculas y la función NOW()
+        String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, correo, fecha_registro, activo, deuda) "
+                   + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
 
-        try {
-            conn = conexion.conectar();
-            String sql = "INSERT INTO CLIENTE (DNI_CLIENTE, NOMBRES, APELLIDOS, DIRECCION, CORREO, FECHA_REGISTRO, ACTIVO, DEUDA) "
-                    + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
-
-            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
             stmt.setString(1, cliente.getDniCliente());
             stmt.setString(2, cliente.getNombres());
             stmt.setString(3, cliente.getApellidos());
@@ -81,229 +117,29 @@ public class ClienteDAO {
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows > 0) {
-                generatedKeys = stmt.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    generatedId = generatedKeys.getLong(1);
-                    System.out.println("Cliente insertado con ID: " + generatedId);
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        generatedId = generatedKeys.getLong(1);
+                        System.out.println("Cliente insertado con ID: " + generatedId);
+                    }
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al insertar cliente: " + e.getMessage());
+            System.err.println("❌ Error al insertar cliente: " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            try {
-                if (generatedKeys != null) {
-                    generatedKeys.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar recursos: " + e.getMessage());
-            }
         }
         return generatedId;
     }
-
-    public List<Cliente> buscarClientes(String criterio) {
-        List<Cliente> clientes = new ArrayList<>();
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-            conn = conexion.conectar();
-            String sql = "SELECT * FROM CLIENTE WHERE (NOMBRES LIKE ? OR APELLIDOS LIKE ? OR DNI_CLIENTE LIKE ?) AND ACTIVO = 1 ORDER BY APELLIDOS, NOMBRES";
-            stmt = conn.prepareStatement(sql);
-            String likeCriterio = "%" + criterio + "%";
-            stmt.setString(1, likeCriterio);
-            stmt.setString(2, likeCriterio);
-            stmt.setString(3, likeCriterio);
-            rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                Cliente cliente = new Cliente();
-                cliente.setIdCliente(rs.getLong("ID_CLIENTE"));
-                cliente.setDniCliente(rs.getString("DNI_CLIENTE"));
-                cliente.setNombres(rs.getString("NOMBRES"));
-                cliente.setApellidos(rs.getString("APELLIDOS"));
-                cliente.setDireccion(rs.getString("DIRECCION"));
-                cliente.setCorreo(rs.getString("CORREO"));
-                cliente.setFechaRegistro(rs.getDate("FECHA_REGISTRO"));
-                cliente.setActivo(rs.getInt("ACTIVO"));
-                clientes.add(cliente);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return clientes;
-    }
-
-    public boolean actualizarDeuda(Long idCliente, Double nuevaDeuda) {
-        if (idCliente == null || nuevaDeuda == null) {
-            System.err.println("Error: ID cliente o deuda no pueden ser nulos");
-            return false;
-        }
-
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        boolean resultado = false;
-
-        try {
-            conn = conexion.conectar();
-            String sql = "UPDATE CLIENTE SET DEUDA = ? WHERE ID_CLIENTE = ?";
-            stmt = conn.prepareStatement(sql);
-            stmt.setDouble(1, nuevaDeuda);
-            stmt.setLong(2, idCliente);
-
-            int filasAfectadas = stmt.executeUpdate();
-            resultado = filasAfectadas > 0;
-
-            if (resultado) {
-                System.out.println("Deuda actualizada correctamente para cliente ID: " + idCliente);
-            } else {
-                System.out.println("No se encontró el cliente con ID: " + idCliente);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error SQL al actualizar deuda: " + e.getMessage());
-            System.err.println("Código error: " + e.getErrorCode());
-            e.printStackTrace();
-        } finally {
-            // Cerrar recursos en orden inverso
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar Statement: " + e.getMessage());
-            }
-            try {
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (Exception e) {
-                System.err.println("Error al cerrar Conexión: " + e.getMessage());
-            }
-        }
-        return resultado;
-    }
-
-    public boolean agregarDeuda(Long idCliente, Double montoAAgregar) {
-        if (idCliente == null || montoAAgregar == null || montoAAgregar <= 0) {
-            System.err.println("Error: Parámetros inválidos");
-            return false;
-        }
-
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        boolean resultado = false;
-
-        try {
-            conn = conexion.conectar();
-            // Sumar al valor existente de DEUDA
-            String sql = "UPDATE CLIENTE SET DEUDA = DEUDA + ? WHERE ID_CLIENTE = ?";
-            stmt = conn.prepareStatement(sql);
-            stmt.setDouble(1, montoAAgregar);
-            stmt.setLong(2, idCliente);
-
-            int filasAfectadas = stmt.executeUpdate();
-            resultado = filasAfectadas > 0;
-
-            if (resultado) {
-                System.out.println("Se agregó " + montoAAgregar + " a la deuda del cliente ID: " + idCliente);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error SQL al agregar deuda: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar recursos: " + e.getMessage());
-            }
-        }
-        return resultado;
-    }
-
-    public boolean eliminarCliente(Long idCliente) {
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        boolean resultado = false;
-
-        try {
-            conn = conexion.conectar();
-            String sql = "UPDATE CLIENTE SET ACTIVO = 0 WHERE ID_CLIENTE = ?";
-            stmt = conn.prepareStatement(sql);
-            stmt.setLong(1, idCliente);
-
-            int filasAfectadas = stmt.executeUpdate();
-            resultado = filasAfectadas > 0;
-
-            if (resultado) {
-                System.out.println("Cliente eliminado (ACTIVO=0) - ID: " + idCliente);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al eliminar cliente: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar recursos: " + e.getMessage());
-            }
-        }
-        return resultado;
-    }
-
+    
     public boolean actualizarCliente(Cliente cliente) {
-        if (cliente == null || cliente.getIdCliente() == null) {
-            System.err.println("Error: Cliente o ID no pueden ser nulos");
-            return false;
-        }
-
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
+        // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
+        String sql = "UPDATE cliente SET dni_cliente = ?, nombres = ?, apellidos = ?, direccion = ?, correo = ? WHERE id_cliente = ?";
         boolean resultado = false;
 
-        try {
-            conn = conexion.conectar();
-            String sql = "UPDATE CLIENTE SET DNI_CLIENTE = ?, NOMBRES = ?, APELLIDOS = ?, DIRECCION = ?, CORREO = ? WHERE ID_CLIENTE = ?";
-            stmt = conn.prepareStatement(sql);
+        if (cliente == null || cliente.getIdCliente() == null) { return false; }
+
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, cliente.getDniCliente());
             stmt.setString(2, cliente.getNombres());
@@ -312,28 +148,109 @@ public class ClienteDAO {
             stmt.setString(5, cliente.getCorreo());
             stmt.setLong(6, cliente.getIdCliente());
 
-            int filasAfectadas = stmt.executeUpdate();
-            resultado = filasAfectadas > 0;
-
+            resultado = stmt.executeUpdate() > 0;
             if (resultado) {
                 System.out.println("Cliente actualizado - ID: " + cliente.getIdCliente());
             }
-
         } catch (SQLException e) {
-            System.err.println("Error al actualizar cliente: " + e.getMessage());
+            System.err.println("❌ Error al actualizar cliente: " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    conexion.desconectar();
-                }
-            } catch (SQLException e) {
-                System.err.println("Error al cerrar recursos: " + e.getMessage());
-            }
         }
         return resultado;
     }
+
+    public boolean eliminarCliente(Long idCliente) {
+        // En tu BD, eliminar es poner ACTIVO = 0
+        String sql = "UPDATE cliente SET activo = 0 WHERE id_cliente = ?";
+        boolean resultado = false;
+
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setLong(1, idCliente);
+            resultado = stmt.executeUpdate() > 0;
+            
+            if (resultado) {
+                System.out.println("Cliente eliminado (ACTIVO=0) - ID: " + idCliente);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al eliminar (desactivar) cliente: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return resultado;
+    }
+
+    public boolean actualizarDeuda(Long idCliente, Double nuevaDeuda) {
+        String sql = "UPDATE cliente SET deuda = ? WHERE id_cliente = ?";
+        boolean resultado = false;
+
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setDouble(1, nuevaDeuda);
+            stmt.setLong(2, idCliente);
+            resultado = stmt.executeUpdate() > 0;
+            
+            if (resultado) {
+                System.out.println("Deuda actualizada correctamente para cliente ID: " + idCliente);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error SQL al actualizar deuda: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return resultado;
+    }
+    
+    public boolean agregarDeuda(Long idCliente, Double montoAAgregar) {
+        String sql = "UPDATE cliente SET deuda = deuda + ? WHERE id_cliente = ?";
+        boolean resultado = false;
+
+        if (montoAAgregar == null || montoAAgregar <= 0) { return false; }
+        
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setDouble(1, montoAAgregar);
+            stmt.setLong(2, idCliente);
+            resultado = stmt.executeUpdate() > 0;
+
+            if (resultado) {
+                System.out.println("Se agregó " + montoAAgregar + " a la deuda del cliente ID: " + idCliente);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error SQL al agregar deuda: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return resultado;
+    }
+
+    // ----------------------------------------------------------------------------------
+    // 🧰 HELPER (Ayudante)
+    // ----------------------------------------------------------------------------------
+
+    /** Mapea un ResultSet a un objeto Cliente (Evita repetir código) */
+    private Cliente mapearCliente(ResultSet rs) throws SQLException {
+        Cliente cliente = new Cliente();
+        // ✅ Uso de nombres de columna exactos: id_cliente, dni_cliente, fecha_registro, activo, deuda
+        cliente.setIdCliente(rs.getLong("id_cliente"));
+        cliente.setDniCliente(rs.getString("dni_cliente"));
+        cliente.setNombres(rs.getString("nombres"));
+        cliente.setApellidos(rs.getString("apellidos"));
+        cliente.setDireccion(rs.getString("direccion"));
+        cliente.setCorreo(rs.getString("correo"));
+        cliente.setFechaRegistro(rs.getTimestamp("fecha_registro")); // Es datetime, mejor usar Timestamp o Date
+        cliente.setActivo(rs.getInt("activo"));
+        cliente.setDeuda(rs.getDouble("deuda"));
+        return cliente;
+    }
+    
+    /**
+     * NOTA: Este método original ha sido reemplazado por obtenerClientesPaginados()
+     * para mejorar el rendimiento. Se mantiene comentado si necesitas el patrón antiguo.
+     */
+    /*
+    public List<Cliente> obtenerTodosClientes() {
+         return obtenerClientesPaginados(1000000, 0); // Limitarlo a un número gigante, pero forzar el LIMIT/OFFSET
+    }
+    */
 }

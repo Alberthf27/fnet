@@ -1,5 +1,6 @@
 package modelo;
 
+import java.sql.Timestamp; 
 import java.sql.Date;
 
 public class Cliente {
@@ -10,7 +11,7 @@ public class Cliente {
     private String apellidos;
     private String direccion;
     private String correo;
-    private Date fechaRegistro;
+    private Timestamp fechaRegistro; // Antes era Date
     private Integer activo;
     private Double deuda;
 
@@ -77,11 +78,11 @@ public class Cliente {
         this.correo = correo;
     }
 
-    public Date getFechaRegistro() {
+    public Timestamp getFechaRegistro() {
         return fechaRegistro;
     }
 
-    public void setFechaRegistro(Date fechaRegistro) {
+    public void setFechaRegistro(Timestamp fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
     }
 

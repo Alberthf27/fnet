@@ -3,8 +3,16 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Fibranet/fnet/src/modelo/Empleado.java</file>
-            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Fibranet/fnet/src/vista/Principal.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/modelo/PagoFactura.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/Login.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/PanelClientes.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/DAO/ClienteDAO.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/DAO/SuscripcionDAO.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/modelo/Suscripcion.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/bd/Conexion.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/DAO/ServicioDAO.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/DAO/FacturacionDAO.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/Principal.java</file>
         </group>
     </open-files>
 </project-private>

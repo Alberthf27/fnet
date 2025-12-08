@@ -64,31 +64,19 @@
           <Layout>
             <DimensionLayout dim="0">
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Group type="102" attributes="0">
-                      <Group type="103" groupAlignment="1" attributes="0">
-                          <Component id="btn_principal" alignment="1" min="-2" pref="154" max="-2" attributes="0"/>
-                          <Component id="btn_clientes" alignment="1" min="-2" pref="154" max="-2" attributes="0"/>
-                          <Group type="103" groupAlignment="0" attributes="0">
-                              <Group type="102" alignment="0" attributes="0">
-                                  <EmptySpace min="-2" pref="17" max="-2" attributes="0"/>
-                                  <Group type="103" groupAlignment="0" attributes="0">
-                                      <Component id="lbl_ultimoAcceso" min="-2" pref="141" max="-2" attributes="0"/>
-                                      <Component id="lbl_usuario" min="-2" pref="141" max="-2" attributes="0"/>
-                                  </Group>
-                              </Group>
-                              <Group type="102" alignment="0" attributes="0">
-                                  <EmptySpace min="-2" pref="19" max="-2" attributes="0"/>
-                                  <Group type="103" groupAlignment="0" max="-2" attributes="0">
-                                      <Component id="jLabel1" alignment="0" min="-2" pref="140" max="-2" attributes="0"/>
-                                      <Component id="btn_pagos" max="32767" attributes="0"/>
-                                      <Component id="btn_servicios" alignment="0" max="32767" attributes="0"/>
-                                      <Component id="btn_instalaciones" alignment="0" pref="154" max="32767" attributes="0"/>
-                                      <Component id="btn_equipos" alignment="0" max="32767" attributes="0"/>
-                                      <Component id="btn_usuarios" alignment="0" max="32767" attributes="0"/>
-                                      <Component id="btn_salir" alignment="0" max="32767" attributes="0"/>
-                                  </Group>
-                              </Group>
-                          </Group>
+                  <Group type="102" alignment="0" attributes="0">
+                      <EmptySpace min="-2" pref="19" max="-2" attributes="0"/>
+                      <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                          <Component id="btn_principal" alignment="0" pref="154" max="32767" attributes="0"/>
+                          <Component id="btn_clientes" alignment="0" pref="154" max="32767" attributes="0"/>
+                          <Component id="jLabel1" alignment="0" min="-2" pref="140" max="-2" attributes="0"/>
+                          <Component id="btn_pagos" max="32767" attributes="0"/>
+                          <Component id="btn_servicios" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_instalaciones" alignment="0" pref="154" max="32767" attributes="0"/>
+                          <Component id="btn_equipos" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_usuarios" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_salir" alignment="0" max="32767" attributes="0"/>
+                          <Component id="lbl_usuario" alignment="1" min="-2" pref="145" max="-2" attributes="0"/>
                       </Group>
                       <EmptySpace pref="20" max="32767" attributes="0"/>
                   </Group>
@@ -115,11 +103,9 @@
                       <Component id="btn_usuarios" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
                       <Component id="btn_salir" min="-2" pref="38" max="-2" attributes="0"/>
-                      <EmptySpace pref="259" max="32767" attributes="0"/>
-                      <Component id="lbl_usuario" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="lbl_ultimoAcceso" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace min="-2" pref="12" max="-2" attributes="0"/>
+                      <EmptySpace pref="267" max="32767" attributes="0"/>
+                      <Component id="lbl_usuario" min="-2" pref="30" max="-2" attributes="0"/>
+                      <EmptySpace min="-2" pref="18" max="-2" attributes="0"/>
                   </Group>
               </Group>
             </DimensionLayout>
@@ -185,6 +171,9 @@
               <Properties>
                 <Property name="text" type="java.lang.String" value="Salir"/>
               </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_salirActionPerformed"/>
+              </Events>
             </Component>
             <Component class="javax.swing.JLabel" name="jLabel1">
               <Properties>
@@ -197,14 +186,6 @@
                   <Color blue="cc" green="cc" red="cc" type="rgb"/>
                 </Property>
                 <Property name="text" type="java.lang.String" value="Usuario: Usuario1"/>
-              </Properties>
-            </Component>
-            <Component class="javax.swing.JLabel" name="lbl_ultimoAcceso">
-              <Properties>
-                <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-                  <Color blue="cc" green="cc" red="cc" type="rgb"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="Ultimo acceso: 10:51"/>
               </Properties>
             </Component>
           </SubComponents>

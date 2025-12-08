@@ -1,65 +1,57 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package vista;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
+import modelo.Empleado;
 import vista.PanelClientes;
 
-/**
- *
- * @author ALBERTH
- */
 public class Principal extends javax.swing.JFrame {
 
     private modelo.Empleado empleadoActual;
+    public static Principal instancia;
+    private JProgressBar barraCarga;
+    private Empleado empleadoLogueado;
 
     // CONSTRUCTOR 1: El que usa NetBeans o pruebas rápidas (Vacío)
     public Principal() {
-        // Llama al constructor principal pasando 'null' como empleado
-        this(null);
+        this.empleadoLogueado = null; // Pon null si no hay usuario
+        instancia = this;
+        initComponents();
+        personalizarInterfaz();
+
+        // Cargar diseño por defecto para pruebas
+        configurarDiseñoModerno();
     }
 
-// CONSTRUCTOR 2: El principal
     public Principal(modelo.Empleado empleado) {
-        // 1. Configuración del Look and Feel (FlatLaf)
+        // 1. Configuración visual
         try {
             com.formdev.flatlaf.FlatLightLaf.setup();
         } catch (Exception ex) {
             System.err.println("Error iniciando FlatLaf");
         }
 
-        // 2. Iniciar componentes visuales
+        // 2. Iniciar componentes
         initComponents();
 
-        // 3. Guardar el empleado
-        this.empleadoActual = empleado;
+        // --- CORRECCIÓN CRÍTICA AQUÍ ---
+        // Guardamos el usuario en la variable CORRECTA que usa la interfaz
+        this.empleadoLogueado = empleado;
+        // -------------------------------
 
-        // --- CAMBIOS AQUÍ ---
-        // A. BORRA o COMENTA esta línea que forzaba pantalla completa:
-        // this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH); 
-        // B. AGREGA esta línea para que la ventana aparezca al CENTRO de la pantalla:
         this.setLocationRelativeTo(null);
-        // --------------------
 
-        // 4. Lógica de permisos
-        if (empleado != null) {
-            // Usamos String.valueOf para evitar el error de tipos si usas el ID
-            if (empleado.getRolIdRol() != null) {
-                // Asegúrate que configurarPermisos reciba String si así lo definiste
-                // configurarPermisos(String.valueOf(empleado.getRolIdRol()));
-            }
-            setTitle("ISP Manager - Usuario: " + empleado.getNombres());
-        }
+        // 3. Configurar la interfaz (Barra de carga y Textos)
+        personalizarInterfaz(); // <--- Aquí es donde se llena el lbl_usuario
+
+        // 4. Iniciar Dashboard
         btn_principal.doClick();
-
-        // 5. Cargar el diseño del Sidebar
         configurarDiseñoModerno();
-
     }
 
     /**
@@ -83,7 +75,6 @@ public class Principal extends javax.swing.JFrame {
         btn_salir = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         lbl_usuario = new javax.swing.JLabel();
-        lbl_ultimoAcceso = new javax.swing.JLabel();
         content = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -143,39 +134,34 @@ public class Principal extends javax.swing.JFrame {
         });
 
         btn_salir.setText("Salir");
+        btn_salir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_salirActionPerformed(evt);
+            }
+        });
 
         jLabel1.setText("logo.png");
 
         lbl_usuario.setForeground(new java.awt.Color(204, 204, 204));
         lbl_usuario.setText("Usuario: Usuario1");
 
-        lbl_ultimoAcceso.setForeground(new java.awt.Color(204, 204, 204));
-        lbl_ultimoAcceso.setText("Ultimo acceso: 10:51");
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 154, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_clientes, javax.swing.GroupLayout.PREFERRED_SIZE, 154, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                            .addGap(17, 17, 17)
-                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(lbl_ultimoAcceso, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                            .addGap(19, 19, 19)
-                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
-                                .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btn_usuarios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
+                .addGap(19, 19, 19)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+                    .addComponent(btn_clientes, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+                    .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_usuarios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lbl_usuario, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(20, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
@@ -199,11 +185,9 @@ public class Principal extends javax.swing.JFrame {
                 .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 259, Short.MAX_VALUE)
-                .addComponent(lbl_usuario)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(lbl_ultimoAcceso)
-                .addGap(12, 12, 12))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 267, Short.MAX_VALUE)
+                .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18))
         );
 
         content.setBackground(new java.awt.Color(255, 255, 255));
@@ -229,6 +213,57 @@ public class Principal extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void personalizarInterfaz() {
+        // 1. CONFIGURACIÓN DE LA BARRA DE CARGA (Estilo "Youtube" sobre el menú)
+        barraCarga = new JProgressBar();
+        barraCarga.setIndeterminate(true); // Activa la animación
+
+        // --- ESTILO VISUAL ---
+        // Quitamos bordes y fondos para que parezca una línea flotante
+        barraCarga.setBorderPainted(false);
+        barraCarga.setOpaque(false); // Fondo transparente
+
+        // Color de la línea que se mueve (Naranja brillante)
+        barraCarga.setForeground(new java.awt.Color(255, 102, 0));
+        // Color del fondo de la barra (Azul oscuro para que se funda con el menú)
+        barraCarga.setBackground(new java.awt.Color(15, 23, 42));
+
+        // --- POSICIONAMIENTO MANUAL (Fuerza Bruta) ---
+        // x = 0 (Izquierda)
+        // y = 0 (Arriba del todo)
+        // ancho = 220 (Un poco más que el botón para cubrir todo el ancho del menú azul)
+        // alto = 6 (Grosor visible)
+        barraCarga.setBounds(0, 0, 220, 6);
+
+        barraCarga.setVisible(false); // Oculta al inicio
+
+        // --- TRUCO FINAL: AGREGAR A LA CAPA MÁS ALTA ---
+        // Usamos DRAG_LAYER para asegurar que esté ENCIMA de todo, incluso del panel azul
+        getLayeredPane().add(barraCarga, javax.swing.JLayeredPane.DRAG_LAYER);
+
+        // 2. MOSTRAR DATOS DEL USUARIO
+        if (empleadoLogueado != null) {
+            String nombre = empleadoLogueado.getNombres();
+            String rol = empleadoLogueado.getCargo();
+
+            if (rol == null || rol.isEmpty()) {
+                rol = "Sin Cargo";
+            }
+
+            // Usamos HTML para dar formato (Negrita al nombre)
+            lbl_usuario.setText("<html><div style='text-align: right;'><b>" + nombre + "</b><br>" + rol + "</div></html>");
+            this.setTitle("ISP Manager - " + nombre);
+        } else {
+            lbl_usuario.setText("Modo Prueba");
+        }
+    }
+
+    public void mostrarCarga(boolean estado) {
+        SwingUtilities.invokeLater(() -> {
+            barraCarga.setVisible(estado);
+        });
+    }
+
     private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_clientesActionPerformed
         marcarBotonActivo(btn_clientes);
         // Carga el panel con pestañas de clientes
@@ -243,13 +278,15 @@ public class Principal extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_principalActionPerformed
 
     private void btn_pagosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagosActionPerformed
+
         marcarBotonActivo(btn_pagos);
-        MostrarPanel(new vista.PanelPagos());
+        MostrarPanel(new vista.PanelPagos()); // <--- Llamada al nuevo panel
+
     }//GEN-LAST:event_btn_pagosActionPerformed
 
     private void btn_serviciosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_serviciosActionPerformed
         marcarBotonActivo(btn_servicios);
-        MostrarPanel(new vista.PanelServicios());
+        MostrarPanel(new vista.panel_Servicios());
     }//GEN-LAST:event_btn_serviciosActionPerformed
 
     private void btn_instalacionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_instalacionesActionPerformed
@@ -266,6 +303,25 @@ public class Principal extends javax.swing.JFrame {
         marcarBotonActivo(btn_usuarios);
         MostrarPanel(new vista.PanelUsuarios());
     }//GEN-LAST:event_btn_usuariosActionPerformed
+
+    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
+        int confirmacion = javax.swing.JOptionPane.showConfirmDialog(
+                this,
+                "¿Estás seguro de que deseas cerrar sesión?",
+                "Cerrar Sesión",
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                javax.swing.JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirmacion == javax.swing.JOptionPane.YES_OPTION) {
+            // 2. Cerrar la ventana actual (Principal)
+            this.dispose();
+
+            // 3. Abrir la ventana de Login
+            // Asegúrate de que "vista.Login" sea la ruta correcta a tu clase Login
+            new vista.Login().setVisible(true);
+        }
+    }//GEN-LAST:event_btn_salirActionPerformed
 
     /**
      * @param args the command line arguments
@@ -296,7 +352,6 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JLabel lbl_ultimoAcceso;
     private javax.swing.JLabel lbl_usuario;
     // End of variables declaration//GEN-END:variables
 private void configurarDiseñoModerno() {

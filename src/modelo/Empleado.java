@@ -1,4 +1,3 @@
-
 package modelo;
 
 public class Empleado {
@@ -9,8 +8,10 @@ public class Empleado {
     private String telefono;
     private Long usuarioIdUsuario;
     private Long rolIdRol;
-    private String nombreRol;
-
+    
+    // ESTE ERA EL CAMPO QUE FALTABA PARA QUE FUNCIONE PRINCIPAL.JAVA
+    private String cargo; 
+    
     // Constructores
     public Empleado() {}
 
@@ -42,6 +43,10 @@ public class Empleado {
 
     public Long getRolIdRol() { return rolIdRol; }
     public void setRolIdRol(Long rolIdRol) { this.rolIdRol = rolIdRol; }
+
+    // GETTER Y SETTER PARA 'CARGO' (EL ROL EN TEXTO)
+    public String getCargo() { return cargo; }
+    public void setCargo(String cargo) { this.cargo = cargo; }
 
     public String getNombreCompleto() {
         return nombres + " " + apellidos;
