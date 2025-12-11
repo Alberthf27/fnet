@@ -8,83 +8,30 @@ import java.util.List;
 
 public class ServicioDAO {
     
-    public Servicio obtenerServicioPorId(Long idServicio) {
-        Servicio servicio = null;
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+    public List<Servicio> obtenerServiciosActivos() {
+        List<Servicio> lista = new ArrayList<>();
+        // Ajustado a los nombres reales de tu BD (ver imagen anterior: id_servicio, descripcion, mensualidad)
+        String sql = "SELECT id_servicio, descripcion, mensualidad FROM servicio"; 
         
-        try {
-            conn = conexion.conectar();
-            String sql = "SELECT * FROM SERVICIO WHERE ID_SERVICIO = ?";
-            stmt = conn.prepareStatement(sql);
-            stmt.setLong(1, idServicio);
-            rs = stmt.executeQuery();
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
             
-            if (rs.next()) {
-                servicio = new Servicio();
-                servicio.setIdServicio(rs.getLong("ID_SERVICIO"));
-                servicio.setDescripcion(rs.getString("DESCRIPCION"));
-                servicio.setMensualidad(rs.getBigDecimal("MENSUALIDAD"));
-                servicio.setAnchoBanda(rs.getBigDecimal("ANCHO_BANDA"));
-                servicio.setCanales(rs.getLong("CANALES"));
-                servicio.setUsuarioIdUsuario(rs.getLong("USUARIO_ID_USUARIO"));
-                servicio.setProveedorIdProveedor(rs.getLong("PROVEEDOR_ID_PROVEEDOR"));
-                servicio.setTiposervicioIdTipoServicio(rs.getLong("TIPOSERVICIO_ID_TIPO_SERVICIO"));
-                servicio.setNombre(rs.getString("NOMBRE"));
+            while(rs.next()) {
+                Servicio s = new Servicio();
+                // AQUÍ ESTABA EL ERROR: Usamos getInt, no getLong
+                s.setIdServicio(rs.getInt("id_servicio")); 
+                s.setDescripcion(rs.getString("descripcion"));
+                s.setMensualidad(rs.getDouble("mensualidad"));
+                lista.add(s);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conexion.desconectar();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        } catch (Exception e) { 
+            System.err.println("Error cargando servicios: " + e.getMessage());
         }
-        return servicio;
+        return lista;
     }
     
-    public List<Servicio> obtenerTodosServicios() {
-        List<Servicio> servicios = new ArrayList<>();
-        Conexion conexion = new Conexion();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        
-        try {
-            conn = conexion.conectar();
-            String sql = "SELECT * FROM SERVICIO ORDER BY NOMBRE";
-            stmt = conn.prepareStatement(sql);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                Servicio servicio = new Servicio();
-                servicio.setIdServicio(rs.getLong("ID_SERVICIO"));
-                servicio.setDescripcion(rs.getString("DESCRIPCION"));
-                servicio.setMensualidad(rs.getBigDecimal("MENSUALIDAD"));
-                servicio.setAnchoBanda(rs.getBigDecimal("ANCHO_BANDA"));
-                servicio.setCanales(rs.getLong("CANALES"));
-                servicio.setUsuarioIdUsuario(rs.getLong("USUARIO_ID_USUARIO"));
-                servicio.setProveedorIdProveedor(rs.getLong("PROVEEDOR_ID_PROVEEDOR"));
-                servicio.setTiposervicioIdTipoServicio(rs.getLong("TIPOSERVICIO_ID_TIPO_SERVICIO"));
-                servicio.setNombre(rs.getString("NOMBRE"));
-                servicios.add(servicio);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conexion.desconectar();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return servicios;
-    }
+    
+    
+    
 }

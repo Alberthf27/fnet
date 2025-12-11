@@ -6,7 +6,6 @@ public class Empleado {
     private String apellidos;
     private String dni;
     private String telefono;
-    private Long usuarioIdUsuario;
     private Long rolIdRol;
     
     // ESTE ERA EL CAMPO QUE FALTABA PARA QUE FUNCIONE PRINCIPAL.JAVA
@@ -34,12 +33,9 @@ public class Empleado {
 
     public String getDni() { return dni; }
     public void setDni(String dni) { this.dni = dni; }
-
+    
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
-
-    public Long getUsuarioIdUsuario() { return usuarioIdUsuario; }
-    public void setUsuarioIdUsuario(Long usuarioIdUsuario) { this.usuarioIdUsuario = usuarioIdUsuario; }
 
     public Long getRolIdRol() { return rolIdRol; }
     public void setRolIdRol(Long rolIdRol) { this.rolIdRol = rolIdRol; }

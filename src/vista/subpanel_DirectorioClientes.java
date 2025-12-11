@@ -66,6 +66,17 @@ public class subpanel_DirectorioClientes extends JPanel {
         estilarBoton(btnEliminar, new Color(220, 38, 38), Color.WHITE); // Rojo
         btnEliminar.setBounds(980, 70, 130, 35);
         add(btnEliminar);
+        
+        // ... junto a los otros botones ...
+        JButton btnNuevo = new JButton("+ Nuevo Cliente");
+        estilarBoton(btnNuevo, new Color(15, 23, 42), Color.WHITE); // Oscuro
+        btnNuevo.setBounds(650, 70, 150, 35); // Ajusta la X según tu espacio
+        btnNuevo.addActionListener(e -> abrirFormulario(null));
+        add(btnNuevo);
+        
+        // Conectar los otros botones existentes
+        btnEditar.addActionListener(e -> editarSeleccionado());
+        btnEliminar.addActionListener(e -> eliminarSeleccionado());
 
         // TABLA
         String[] cols = {"ID", "DNI", "Nombres", "Apellidos", "Dirección", "Correo", "Estado"};
@@ -210,5 +221,65 @@ public class subpanel_DirectorioClientes extends JPanel {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+    
+    // ABRE EL FORMULARIO (Crear o Editar)
+    private void abrirFormulario(Cliente cliente) {
+        // Obtenemos la ventana padre (Principal) para bloquearla mientras se edita
+        java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
+        java.awt.Frame parentFrame = (parentWindow instanceof java.awt.Frame) ? (java.awt.Frame) parentWindow : null;
+
+        FormularioCliente form = new FormularioCliente(parentFrame, cliente);
+        form.setVisible(true); // Se detiene aquí hasta que cierren el formulario
+        
+        if (form.isGuardado()) {
+            cargarClientes(); // Refrescar la tabla si guardaron algo
+        }
+    }
+
+    private void editarSeleccionado() {
+        int fila = tablaClientes.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un cliente de la tabla.");
+            return;
+        }
+        
+        // Recuperar datos de la tabla para llenar el objeto
+        // NOTA: Lo ideal es buscar por ID en BD para tener datos frescos, pero por rapidez usamos la tabla
+        Cliente c = new Cliente();
+        c.setIdCliente(Long.parseLong(tableModel.getValueAt(fila, 0).toString()));
+        c.setDniCliente(tableModel.getValueAt(fila, 1).toString());
+        c.setNombres(tableModel.getValueAt(fila, 2).toString());
+        c.setApellidos(tableModel.getValueAt(fila, 3).toString());
+        c.setDireccion(tableModel.getValueAt(fila, 4).toString());
+        c.setCorreo(tableModel.getValueAt(fila, 5).toString());
+        // El teléfono no lo mostramos en la tabla, deberías agregarlo al modelo o buscarlo en BD
+        
+        abrirFormulario(c);
+    }
+
+    private void eliminarSeleccionado() {
+        int fila = tablaClientes.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un cliente para eliminar.");
+            return;
+        }
+        
+        String nombre = tableModel.getValueAt(fila, 2) + " " + tableModel.getValueAt(fila, 3);
+        Long id = Long.parseLong(tableModel.getValueAt(fila, 0).toString());
+
+        int confirm = JOptionPane.showConfirmDialog(this, 
+                "¿Seguro que desea dar de baja a: " + nombre + "?\nEsto podría afectar sus contratos activos.",
+                "Confirmar Eliminación", 
+                JOptionPane.YES_NO_OPTION);
+                
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (clienteDAO.eliminarCliente(id)) {
+                JOptionPane.showMessageDialog(this, "Cliente dado de baja.");
+                cargarClientes();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al eliminar.");
+            }
+        }
     }
 }

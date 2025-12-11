@@ -8,16 +8,6 @@ import java.util.List;
 
 public class ClienteDAO {
 
-    // ----------------------------------------------------------------------------------
-    // 🚀 MÉTODOS OPTIMIZADOS PARA VELOCIDAD (Paginación)
-    // ----------------------------------------------------------------------------------
-
-    /**
-     * Obtiene una página de clientes activos, usando LIMIT y OFFSET para velocidad.
-     * @param limit Cantidad máxima de registros a devolver (e.g., 50)
-     * @param offset Posición de inicio (página * limit)
-     * @return Lista de objetos Cliente
-     */
     public List<Cliente> obtenerClientesPaginados(int limit, int offset) {
         List<Cliente> clientes = new ArrayList<>();
         // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
@@ -44,6 +34,27 @@ public class ClienteDAO {
             e.printStackTrace();
         }
         return clientes;
+    }
+    
+    // Método optimizado para llenar la lista de autocompletado
+    public List<String[]> obtenerListaSimpleClientes() {
+        List<String[]> lista = new ArrayList<>();
+        // Traemos solo lo necesario para buscar
+        String sql = "SELECT dni_cliente, nombres, apellidos FROM cliente WHERE activo = 1";
+        
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
+             java.sql.ResultSet rs = ps.executeQuery()) {
+            
+            while(rs.next()) {
+                // Guardamos: [0]=DNI, [1]=Nombre Completo
+                lista.add(new String[]{
+                    rs.getString("dni_cliente"),
+                    rs.getString("nombres") + " " + rs.getString("apellidos")
+                });
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return lista;
     }
     
     /**
@@ -92,6 +103,75 @@ public class ClienteDAO {
             e.printStackTrace();
         }
         return clientes;
+    }
+    
+    
+    // ... dentro de ClienteDAO ...
+
+    /**
+     * Registra Cliente y (Opcional) su primer Contrato en una sola transacción segura.
+     */
+    public boolean registrarClienteCompleto(Cliente c, int idServicio, boolean incluirContrato) {
+        Connection conn = null;
+        PreparedStatement psCliente = null;
+        PreparedStatement psContrato = null;
+        boolean exito = false;
+        
+        try {
+            conn = Conexion.getConexion();
+            conn.setAutoCommit(false); // 🛑 INICIO TRANSACCIÓN (Nada se guarda real hasta el commit)
+
+            // 1. INSERTAR CLIENTE
+            String sqlC = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, correo, telefono, fecha_registro, activo, deuda) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, 0.0)";
+            
+            psCliente = conn.prepareStatement(sqlC, Statement.RETURN_GENERATED_KEYS);
+            psCliente.setString(1, c.getDniCliente());
+            psCliente.setString(2, c.getNombres());
+            psCliente.setString(3, c.getApellidos());
+            psCliente.setString(4, c.getDireccion());
+            psCliente.setString(5, c.getCorreo());
+            psCliente.setString(6, c.getTelefono()); // Asegúrate de tener este campo en Cliente.java
+            
+            int rows = psCliente.executeUpdate();
+            if (rows == 0) throw new SQLException("Fallo al crear cliente");
+
+            // Obtener ID generado
+            long idClienteGenerado = 0;
+            try (ResultSet rs = psCliente.getGeneratedKeys()) {
+                if (rs.next()) idClienteGenerado = rs.getLong(1);
+            }
+
+            // 2. INSERTAR CONTRATO (Si se seleccionó la opción)
+            if (incluirContrato && idClienteGenerado > 0) {
+                // Ajusta nombres de columnas según tu tabla 'suscripcion'
+                String sqlS = "INSERT INTO suscripcion (id_cliente, id_servicio, fecha_inicio, activo, direccion_instalacion) "
+                            + "VALUES (?, ?, NOW(), 1, ?)";
+                
+                psContrato = conn.prepareStatement(sqlS);
+                psContrato.setLong(1, idClienteGenerado);
+                psContrato.setInt(2, idServicio);
+                psContrato.setString(3, c.getDireccion()); // Asumimos misma dirección
+                
+                psContrato.executeUpdate();
+            }
+
+            conn.commit(); // ✅ CONFIRMAR CAMBIOS
+            exito = true;
+            System.out.println("Transacción exitosa: Cliente " + idClienteGenerado);
+
+        } catch (Exception e) {
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {} // ↩️ DESHACER SI FALLA
+            System.err.println("Error transacción cliente: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (psCliente != null) psCliente.close();
+                if (psContrato != null) psContrato.close();
+                if (conn != null) conn.close();
+            } catch (Exception e) {}
+        }
+        return exito;
     }
 
 

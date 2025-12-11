@@ -9,6 +9,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
 import vista.componentes.CardPanel;
 
 public class panel_Gerente extends javax.swing.JPanel {
@@ -19,13 +24,15 @@ public class panel_Gerente extends javax.swing.JPanel {
     private JScrollPane scrollPane;
     private JLabel lblTableTitle;
 
-    public panel_Gerente() {
+public panel_Gerente() {
         setBackground(new Color(241, 245, 249)); 
         setLayout(null); 
         
         initContenido();
         
-        // ESTO ES LO NUEVO: Escuchar cuando cambia el tamaño
+        cargarGraficoIngresos(); // <--- LLAMADA PARA PINTAR EL GRÁFICO
+        // --------------------------------
+
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -172,5 +179,71 @@ public class panel_Gerente extends javax.swing.JPanel {
         sep.setForeground(new Color(240,240,240));
         sep.setBounds(20, y+30, 280, 10);
         panel.add(sep);
+    }
+    
+    // Importaciones necesarias al inicio del archivo:
+    // import org.jfree.chart.ChartFactory;
+    // import org.jfree.chart.ChartPanel;
+    // import org.jfree.chart.JFreeChart;
+    // import org.jfree.chart.plot.PlotOrientation;
+    // import org.jfree.data.category.DefaultCategoryDataset;
+    // import java.awt.BorderLayout;
+
+    private void cargarGraficoIngresos() {
+        // 1. Obtener datos reales (Usando FinanzasDAO)
+        // Usamos un hilo para no congelar la UI
+        new Thread(() -> {
+            DAO.FinanzasDAO dao = new DAO.FinanzasDAO();
+            java.util.List<Object[]> historial = dao.obtenerHistorialMRR(); // [Mes, Monto]
+
+            // 2. Crear Dataset para el gráfico
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            for (Object[] dato : historial) {
+                dataset.addValue((Number) dato[1], "Ingresos", dato[0].toString());
+            }
+
+            // 3. Crear el Gráfico (Estilo Plano)
+            JFreeChart chart = ChartFactory.createAreaChart(
+                "",                 // Título (Ya tienes un JLabel fuera)
+                "",                 // Eje X
+                "",                 // Eje Y
+                dataset,            // Datos
+                PlotOrientation.VERTICAL,
+                false,              // Leyenda
+                true,               // Tooltips
+                false               // URLs
+            );
+
+            // Personalización Visual (Flat Design)
+            chart.setBackgroundPaint(Color.WHITE);
+            org.jfree.chart.plot.CategoryPlot plot = chart.getCategoryPlot();
+            plot.setBackgroundPaint(Color.WHITE);
+            plot.setOutlineVisible(false);
+            plot.setRangeGridlinePaint(new Color(230, 230, 230)); // Líneas guía suaves
+            
+            // Color del Área (Azul corporativo con transparencia)
+            org.jfree.chart.renderer.category.AreaRenderer renderer = (org.jfree.chart.renderer.category.AreaRenderer) plot.getRenderer();
+            renderer.setSeriesPaint(0, new Color(37, 99, 235, 180)); // Azul #2563EB
+            renderer.setSeriesOutlinePaint(0, new Color(37, 99, 235));
+
+            // 4. Insertar en el panel existente (chartPanel)
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                chartPanel.removeAll(); // Limpiar el texto "[ AQUI VA EL GRAFICO ]"
+                chartPanel.setLayout(new java.awt.BorderLayout()); // Necesario para que el chart se expanda
+                
+                // Agregamos el título que ya tenías para no perderlo
+                JLabel lblChartTitle = new JLabel(" Ingresos Mensuales");
+                lblChartTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+                lblChartTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                chartPanel.add(lblChartTitle, java.awt.BorderLayout.NORTH);
+
+                ChartPanel cp = new ChartPanel(chart);
+                cp.setMouseWheelEnabled(false);
+                chartPanel.add(cp, java.awt.BorderLayout.CENTER);
+                
+                chartPanel.revalidate();
+                chartPanel.repaint();
+            });
+        }).start();
     }
 }

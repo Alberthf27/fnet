@@ -1,16 +1,19 @@
 package vista;
 
+import DAO.SuscripcionDAO;
+import modelo.Suscripcion;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Font;
+import java.util.List;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
@@ -18,94 +21,88 @@ public class subpanel_Suscripciones extends JPanel {
 
     private JTable tabla;
     private DefaultTableModel modelo;
-    private JComboBox<String> cmbEstadoRapido;
+    private SuscripcionDAO susDAO;
+
+    // Paginación
+    private int paginaActual = 0;
+    private final int FILAS = 20;
+    private JLabel lblPagina;
+    private JButton btnAnt, btnSig;
 
     public subpanel_Suscripciones() {
         setBackground(Color.WHITE);
         setLayout(null);
-        initContenido();
+        susDAO = new SuscripcionDAO();
+        initUI();
+        cargarDatos(); // Primera carga automática
     }
 
-    private void initContenido() {
-        // Título y Buscador (Igual que antes)
-        JLabel lblTitulo = new JLabel("Gestión de Contratos y Deudas");
+    private void initUI() {
+        // Título
+        JLabel lblTitulo = new JLabel("Gestión de Contratos y Cortes");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitulo.setForeground(new Color(15, 23, 42));
         lblTitulo.setBounds(30, 20, 400, 30);
         add(lblTitulo);
 
-        JTextField txtBuscar = new JTextField();
-        txtBuscar.setBounds(30, 70, 300, 35);
-        add(txtBuscar);
-        
-        JButton btnBuscar = new JButton("🔍");
-        btnBuscar.setBounds(330, 70, 50, 35);
-        add(btnBuscar);
+        // Botones Globales
+        JButton btnRefrescar = new JButton("🔄 Refrescar");
+        estilarBoton(btnRefrescar, new Color(241, 245, 249), new Color(15, 23, 42));
+        btnRefrescar.setBounds(30, 70, 120, 35);
+        btnRefrescar.addActionListener(e -> cargarDatos());
+        add(btnRefrescar);
 
-        // --- ACCIONES RÁPIDAS ---
-        JLabel lblEstado = new JLabel("Estado:");
-        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblEstado.setBounds(420, 70, 60, 35);
-        add(lblEstado);
-
-        cmbEstadoRapido = new JComboBox<>(new String[]{"ACTIVO", "SUSPENDIDO", "BAJA"});
-        cmbEstadoRapido.setBounds(480, 70, 120, 35);
-        add(cmbEstadoRapido);
-
-        JButton btnAplicar = new JButton("✔");
-        btnAplicar.setBackground(new Color(22, 163, 74));
-        btnAplicar.setForeground(Color.WHITE);
-        btnAplicar.setBounds(610, 70, 40, 35);
-        add(btnAplicar);
-
-        JButton btnEditar = new JButton("📝 Editar Detalles");
-        btnEditar.setBackground(new Color(37, 99, 235));
-        btnEditar.setForeground(Color.WHITE);
-        btnEditar.setBounds(670, 70, 150, 35);
+        // Botones de Acción
+        JButton btnEditar = new JButton("✐ Modificar Plan");
+        estilarBoton(btnEditar, new Color(234, 179, 8), Color.WHITE); // Amarillo
+        btnEditar.setBounds(600, 70, 160, 35);
+        btnEditar.addActionListener(e -> abrirEdicion());
         add(btnEditar);
-        
-        JButton btnNuevo = new JButton("+ Nuevo");
-        btnNuevo.setBackground(new Color(15, 23, 42));
-        btnNuevo.setForeground(Color.WHITE);
-        btnNuevo.setBounds(980, 70, 130, 35);
-        add(btnNuevo);
 
-        // --- TABLA CON INFORMACIÓN FINANCIERA ---
-        // Nuevas Columnas: Vencimiento, Deuda Total, Meses
-        String[] cols = {"ID", "Cliente", "Plan", "Dirección", "Vencimiento", "Deuda Total", "Meses", "Estado"};
-        
+        JButton btnCortar = new JButton("✂ CORTAR SERVICIO");
+        estilarBoton(btnCortar, new Color(220, 38, 38), Color.WHITE); // Rojo
+        btnCortar.setBounds(780, 70, 180, 35);
+        btnCortar.addActionListener(e -> cambiarEstadoServicio(0)); // 0 = Cortar
+        add(btnCortar);
+
+        JButton btnActivar = new JButton("⚡ RECONECTAR");
+        estilarBoton(btnActivar, new Color(22, 163, 74), Color.WHITE); // Verde
+        btnActivar.setBounds(970, 70, 150, 35);
+        btnActivar.addActionListener(e -> cambiarEstadoServicio(1)); // 1 = Activar
+        add(btnActivar);
+
+        // Configuración de Tabla
+        String[] cols = {"ID", "Contrato", "Cliente", "Plan", "Dirección", "Inicio", "Estado"};
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
-        
+
         tabla = new JTable(modelo);
         tabla.setRowHeight(35);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         tabla.getTableHeader().setBackground(new Color(248, 250, 252));
         tabla.setShowVerticalLines(false);
-        
-        // RENDERER PERSONALIZADO: Pinta de ROJO si hay deuda
+
+        // Colorear filas según estado (ROJO = Suspendido)
         tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                
-                // Lógica visual: Si la columna "Deuda" (índice 5) tiene valor > 0, pintar texto rojo
-                String deudaStr = (String) table.getValueAt(row, 5); // "S/. 50.00"
-                if (deudaStr.contains("S/.") && !deudaStr.equals("S/. 0.00")) {
-                    if (column == 5 || column == 6) { // Columnas Deuda y Meses
-                        setForeground(new Color(220, 38, 38)); // Rojo
-                        setFont(new Font("Segoe UI", Font.BOLD, 14));
-                    } else {
-                        setForeground(Color.BLACK);
-                    }
+                String estado = (String) table.getModel().getValueAt(row, 6);
+
+                if ("SUSPENDIDO".equals(estado)) {
+                    setForeground(Color.RED);
+                    setFont(new Font("Segoe UI", Font.BOLD, 13)); // Negrita para resaltar
                 } else {
                     setForeground(Color.BLACK);
+                    setFont(new Font("Segoe UI", Font.PLAIN, 13));
                 }
-                
+
                 if (isSelected) {
-                    setBackground(new Color(224, 231, 255)); // Azul claro selección
+                    setBackground(new Color(220, 230, 255));
                 } else {
                     setBackground(Color.WHITE);
                 }
@@ -113,15 +110,162 @@ public class subpanel_Suscripciones extends JPanel {
             }
         });
 
-        // Datos de ejemplo con DEUDAS REALES
-        modelo.addRow(new Object[]{"101", "Juan Perez", "Plan 50MB", "Av. España 123", "05/03/2025", "S/. 50.00", "1", "ACTIVO"});
-        modelo.addRow(new Object[]{"102", "Maria Lopez", "TV Cable", "Jr. Lima 44", "05/02/2025", "S/. 100.00", "2", "SUSPENDIDO"});
-        modelo.addRow(new Object[]{"103", "Empresa ABC", "Dedicado", "Centro Civico", "05/03/2025", "S/. 0.00", "0", "ACTIVO"});
-
         JScrollPane scroll = new JScrollPane(tabla);
-        scroll.setBounds(30, 130, 1080, 550);
+        scroll.setBounds(30, 120, 1090, 500);
         scroll.getViewport().setBackground(Color.WHITE);
         scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         add(scroll);
+
+        // Paginación
+        btnAnt = new JButton("<");
+        estilarBoton(btnAnt, Color.WHITE, Color.BLACK);
+        btnAnt.setBounds(30, 640, 50, 30);
+        btnAnt.addActionListener(e -> {
+            if (paginaActual > 0) {
+                paginaActual--;
+                cargarDatos();
+            }
+        });
+        add(btnAnt);
+
+        lblPagina = new JLabel("Página 1");
+        lblPagina.setBounds(90, 640, 100, 30);
+        add(lblPagina);
+
+        btnSig = new JButton(">");
+        estilarBoton(btnSig, Color.WHITE, Color.BLACK);
+        btnSig.setBounds(160, 640, 50, 30);
+        btnSig.addActionListener(e -> {
+            paginaActual++;
+            cargarDatos();
+        });
+        add(btnSig);
+    }
+
+    private void cargarDatos() {
+        if (Principal.instancia != null) {
+            Principal.instancia.mostrarCarga(true);
+        }
+
+        // TRUCO: Limpiar tabla ANTES de iniciar el hilo para que el usuario vea que "algo pasó"
+        modelo.setRowCount(0);
+
+        new Thread(() -> {
+            // Ir a la BD
+            List<Suscripcion> lista = susDAO.listarPaginado(FILAS, paginaActual * FILAS);
+
+            SwingUtilities.invokeLater(() -> {
+                // Verificar que estamos en la UI
+                for (Suscripcion s : lista) {
+                    modelo.addRow(new Object[]{
+                        s.getIdSuscripcion(),
+                        s.getCodigoContrato(),
+                        s.getNombreCliente(), // Esto se actualizará si cambiaste titular
+                        s.getNombreServicio(),
+                        s.getDireccionInstalacion(),
+                        s.getFechaInicio(),
+                        s.getActivo() == 1 ? "ACTIVO" : "SUSPENDIDO"
+                    });
+                }
+                lblPagina.setText("Página " + (paginaActual + 1));
+
+                // Repintar la tabla por si acaso
+                tabla.revalidate();
+                tabla.repaint();
+
+                if (Principal.instancia != null) {
+                    Principal.instancia.mostrarCarga(false);
+                }
+            });
+        }).start();
+    }
+
+    // --- 2. MÉTODO DE CORTE / RECONEXIÓN ---
+    private void cambiarEstadoServicio(int nuevoEstado) {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un contrato de la tabla.");
+            return;
+        }
+
+        int id = (int) modelo.getValueAt(fila, 0);
+        String cliente = (String) modelo.getValueAt(fila, 2);
+        String accion = nuevoEstado == 1 ? "RECONECTAR" : "CORTAR";
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Seguro que desea " + accion + " el servicio de " + cliente + "?",
+                "Confirmar Acción", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+
+            // A) ACTIVAR BARRA
+            if (Principal.instancia != null) {
+                Principal.instancia.mostrarCarga(true);
+            }
+
+            new Thread(() -> {
+                boolean exito = susDAO.cambiarEstado(id, nuevoEstado);
+                SwingUtilities.invokeLater(() -> {
+
+                    // B) APAGAR BARRA
+                    if (Principal.instancia != null) {
+                        Principal.instancia.mostrarCarga(false);
+                    }
+
+                    if (exito) {
+                        cargarDatos(); // Recargar tabla automáticamente
+                        JOptionPane.showMessageDialog(this, "Estado actualizado: " + accion + " EXITOSO.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al actualizar.");
+                    }
+                });
+            }).start();
+        }
+    }
+
+    // --- 3. MÉTODO DE EDICIÓN ---
+    private void abrirEdicion() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un contrato.");
+            return;
+        }
+
+        // Obtener datos de la tabla
+        int idSuscripcion = (int) modelo.getValueAt(fila, 0);
+        String plan = (String) modelo.getValueAt(fila, 3);
+        String dir = (String) modelo.getValueAt(fila, 4);
+        String nombreCliente = (String) modelo.getValueAt(fila, 2);
+
+        // ⚠️ IMPORTANTE: Necesitamos el ID del Cliente actual. 
+        // Como no está visible en la tabla, lo mejor es recuperarlo de la suscripción completa
+        // O por rapidez, lo sacaremos asumiendo que el objeto SuscripcionDAO lo trae.
+        // TRUCO RÁPIDO: Consultar el contrato individualmente o agregarlo oculto en la tabla.
+        // Opción Rápida: Buscar ID del cliente por el ID de suscripción en BD
+        int idClienteOriginal = susDAO.obtenerIdClienteDeContrato(idSuscripcion);
+
+        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        DialogoEditarContrato dialog = new DialogoEditarContrato(
+                (java.awt.Frame) parent,
+                idSuscripcion,
+                plan,
+                dir,
+                idClienteOriginal,
+                nombreCliente
+        );
+
+        dialog.setVisible(true);
+
+        if (dialog.isGuardado()) {
+            cargarDatos(); // Esto refrescará la tabla y mostrará el nuevo dueño
+        }
+    }
+
+    private void estilarBoton(JButton btn, Color bg, Color fg) {
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 }

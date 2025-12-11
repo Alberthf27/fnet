@@ -67,9 +67,9 @@
                   <Group type="102" alignment="0" attributes="0">
                       <EmptySpace min="-2" pref="19" max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                          <Component id="jLabel1" max="32767" attributes="0"/>
                           <Component id="btn_principal" alignment="0" pref="154" max="32767" attributes="0"/>
                           <Component id="btn_clientes" alignment="0" pref="154" max="32767" attributes="0"/>
-                          <Component id="jLabel1" alignment="0" min="-2" pref="140" max="-2" attributes="0"/>
                           <Component id="btn_pagos" max="32767" attributes="0"/>
                           <Component id="btn_servicios" alignment="0" max="32767" attributes="0"/>
                           <Component id="btn_instalaciones" alignment="0" pref="154" max="32767" attributes="0"/>
@@ -77,6 +77,7 @@
                           <Component id="btn_usuarios" alignment="0" max="32767" attributes="0"/>
                           <Component id="btn_salir" alignment="0" max="32767" attributes="0"/>
                           <Component id="lbl_usuario" alignment="1" min="-2" pref="145" max="-2" attributes="0"/>
+                          <Component id="btn_finanzas" alignment="0" pref="154" max="32767" attributes="0"/>
                       </Group>
                       <EmptySpace pref="20" max="32767" attributes="0"/>
                   </Group>
@@ -85,10 +86,12 @@
             <DimensionLayout dim="1">
               <Group type="103" groupAlignment="0" attributes="0">
                   <Group type="102" alignment="0" attributes="0">
-                      <EmptySpace min="-2" pref="18" max="-2" attributes="0"/>
-                      <Component id="jLabel1" min="-2" pref="39" max="-2" attributes="0"/>
-                      <EmptySpace min="-2" pref="31" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="jLabel1" min="-2" pref="90" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
                       <Component id="btn_principal" min="-2" pref="38" max="-2" attributes="0"/>
+                      <EmptySpace min="-2" pref="11" max="-2" attributes="0"/>
+                      <Component id="btn_finanzas" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
                       <Component id="btn_clientes" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
@@ -103,7 +106,7 @@
                       <Component id="btn_usuarios" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
                       <Component id="btn_salir" min="-2" pref="38" max="-2" attributes="0"/>
-                      <EmptySpace pref="267" max="32767" attributes="0"/>
+                      <EmptySpace pref="204" max="32767" attributes="0"/>
                       <Component id="lbl_usuario" min="-2" pref="30" max="-2" attributes="0"/>
                       <EmptySpace min="-2" pref="18" max="-2" attributes="0"/>
                   </Group>
@@ -177,7 +180,10 @@
             </Component>
             <Component class="javax.swing.JLabel" name="jLabel1">
               <Properties>
-                <Property name="text" type="java.lang.String" value="logo.png"/>
+                <Property name="horizontalAlignment" type="int" value="0"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
+                  <Image iconType="3" name="/img/Sin t&#xed;tulo (1)_1.png"/>
+                </Property>
               </Properties>
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_usuario">
@@ -187,6 +193,14 @@
                 </Property>
                 <Property name="text" type="java.lang.String" value="Usuario: Usuario1"/>
               </Properties>
+            </Component>
+            <Component class="javax.swing.JButton" name="btn_finanzas">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Finanzas"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_finanzasActionPerformed"/>
+              </Events>
             </Component>
           </SubComponents>
         </Container>
