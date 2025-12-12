@@ -1,285 +1,281 @@
 package vista;
 
 import DAO.ClienteDAO;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Font;
-import java.util.List;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.table.DefaultTableModel;
 import modelo.Cliente;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.List;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 public class subpanel_DirectorioClientes extends JPanel {
 
-    private DefaultTableModel tableModel;
+    private JTable tabla;
+    private DefaultTableModel modelo;
     private ClienteDAO clienteDAO;
-    private JTable tablaClientes;
     private JTextField txtBuscar;
-
-    // --- VARIABLES PARA PAGINACIÓN (VELOCIDAD) ---
+    
+    // Paginación
     private int paginaActual = 0;
-    private final int FILAS_POR_PAGINA = 50; // Carga de 50 en 50
+    private final int FILAS_POR_PAGINA = 50;
     private JLabel lblPagina;
     private JButton btnAnterior, btnSiguiente;
 
     public subpanel_DirectorioClientes() {
+        setLayout(new BorderLayout());
         setBackground(Color.WHITE);
-        setLayout(null);
+        setBorder(new EmptyBorder(5, 10, 5, 10)); // Margen pequeño
+        
         clienteDAO = new ClienteDAO();
-        initContenido();
+        initUI();
         cargarClientes();
     }
 
-    private void initContenido() {
-        // TÍTULO
-        JLabel lblTitulo = new JLabel("Directorio de Personas (Clientes)");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+    private void initUI() {
+        // --- 1. PANEL SUPERIOR ---
+        JPanel topPanel = new JPanel(null);
+        topPanel.setPreferredSize(new Dimension(100, 50));
+        topPanel.setBackground(Color.WHITE);
+
+        JLabel lblTitulo = new JLabel("DIRECTORIO PERSONAS");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitulo.setForeground(new Color(15, 23, 42));
-        lblTitulo.setBounds(30, 20, 450, 30);
-        add(lblTitulo);
+        lblTitulo.setBounds(0, 10, 250, 30);
+        topPanel.add(lblTitulo);
 
         // BUSCADOR
         txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar por DNI o Apellido...");
-        txtBuscar.setBounds(30, 70, 300, 35);
-        add(txtBuscar);
+        txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtBuscar.setBounds(260, 10, 250, 30);
+        txtBuscar.addActionListener(e -> buscar()); // Enter para buscar
+        topPanel.add(txtBuscar);
 
         JButton btnBuscar = new JButton("🔍");
-        estilarBoton(btnBuscar, new Color(241, 245, 249), new Color(15, 23, 42));
-        btnBuscar.setBounds(340, 70, 50, 35);
+        // Intento cargar icono lupa (opcional)
+        try {
+            ImageIcon icono = new ImageIcon(getClass().getResource("/img/lupa.png"));
+            Image img = icono.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+            btnBuscar.setIcon(new ImageIcon(img));
+            btnBuscar.setText("");
+        } catch (Exception e) { btnBuscar.setText("🔍"); }
+        
+        btnBuscar.setBounds(520, 10, 40, 30);
         btnBuscar.addActionListener(e -> buscar());
-        add(btnBuscar);
+        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
+        topPanel.add(btnBuscar);
 
-        // BOTONES DE ACCIÓN (A la derecha)
-        JButton btnEditar = new JButton("✏ Editar Datos");
-        estilarBoton(btnEditar, new Color(37, 99, 235), Color.WHITE); // Azul
-        btnEditar.setBounds(830, 70, 140, 35);
-        add(btnEditar);
-
-        JButton btnEliminar = new JButton("🗑 Eliminar");
-        estilarBoton(btnEliminar, new Color(220, 38, 38), Color.WHITE); // Rojo
-        btnEliminar.setBounds(980, 70, 130, 35);
-        add(btnEliminar);
-        
-        // ... junto a los otros botones ...
-        JButton btnNuevo = new JButton("+ Nuevo Cliente");
-        estilarBoton(btnNuevo, new Color(15, 23, 42), Color.WHITE); // Oscuro
-        btnNuevo.setBounds(650, 70, 150, 35); // Ajusta la X según tu espacio
+        // BOTONES ACCIÓN
+        int xAccion = 600;
+        JButton btnNuevo = new JButton("+ NUEVO");
+        estilarBoton(btnNuevo, new Color(22, 163, 74), Color.WHITE); // Verde
+        btnNuevo.setBounds(xAccion, 10, 100, 30);
         btnNuevo.addActionListener(e -> abrirFormulario(null));
-        add(btnNuevo);
-        
-        // Conectar los otros botones existentes
-        btnEditar.addActionListener(e -> editarSeleccionado());
-        btnEliminar.addActionListener(e -> eliminarSeleccionado());
+        topPanel.add(btnNuevo);
 
-        // TABLA
-        String[] cols = {"ID", "DNI", "Nombres", "Apellidos", "Dirección", "Correo", "Estado"};
-        tableModel = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+        JButton btnEditar = new JButton("EDITAR");
+        estilarBoton(btnEditar, new Color(37, 99, 235), Color.WHITE); // Azul
+        btnEditar.setBounds(xAccion + 110, 10, 90, 30);
+        btnEditar.addActionListener(e -> editarSeleccionado());
+        topPanel.add(btnEditar);
+
+        JButton btnEliminar = new JButton("ELIMINAR");
+        estilarBoton(btnEliminar, new Color(220, 38, 38), Color.WHITE); // Rojo
+        btnEliminar.setBounds(xAccion + 210, 10, 100, 30);
+        btnEliminar.addActionListener(e -> eliminarSeleccionado());
+        topPanel.add(btnEliminar);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        // --- 2. TABLA ESTILO EXCEL ---
+        String[] cols = {"ID", "DNI", "NOMBRES", "APELLIDOS", "DIRECCIÓN", "TELÉFONO", "ESTADO", "OBJ"};
+        modelo = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int row, int col) { return false; }
         };
 
-        tablaClientes = new JTable(tableModel);
-        tablaClientes.setRowHeight(35);
-        tablaClientes.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tablaClientes.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tablaClientes.getTableHeader().setBackground(new Color(248, 250, 252));
-        tablaClientes.setShowVerticalLines(false);
+        tabla = new JTable(modelo);
+        tabla.setRowHeight(25); // Filas compactas
+        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tabla.setIntercellSpacing(new Dimension(0, 0));
+        tabla.setShowVerticalLines(true);
+        tabla.setShowHorizontalLines(true);
+        tabla.setGridColor(new Color(220, 220, 220));
+        
+        // Ocultar ID y Objeto
+        tabla.getColumnModel().getColumn(0).setMinWidth(0); tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(7).setMinWidth(0); tabla.getColumnModel().getColumn(7).setMaxWidth(0);
+        
+        // Anchos
+        tabla.getColumnModel().getColumn(1).setPreferredWidth(80);  // DNI
+        tabla.getColumnModel().getColumn(2).setPreferredWidth(150); // Nombres
+        tabla.getColumnModel().getColumn(3).setPreferredWidth(150); // Apellidos
+        tabla.getColumnModel().getColumn(4).setPreferredWidth(250); // Dirección (Más espacio)
+        tabla.getColumnModel().getColumn(5).setPreferredWidth(90);  // Teléfono
+        tabla.getColumnModel().getColumn(6).setPreferredWidth(70);  // Estado
 
-        // Ocultar ID visualmente
-        tablaClientes.getColumnModel().getColumn(0).setMinWidth(0);
-        tablaClientes.getColumnModel().getColumn(0).setMaxWidth(0);
-        tablaClientes.getColumnModel().getColumn(0).setWidth(0);
+        // Renderizadores
+        tabla.setDefaultRenderer(Object.class, new GeneralRenderer());
 
-        JScrollPane scroll = new JScrollPane(tablaClientes);
-        scroll.setBounds(30, 130, 1080, 500); // Un poco menos de alto para dar espacio a paginación
+        JScrollPane scroll = new JScrollPane(tabla);
         scroll.getViewport().setBackground(Color.WHITE);
-        scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        add(scroll);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        add(scroll, BorderLayout.CENTER);
 
-        // --- CONTROLES DE PAGINACIÓN (ABAJO) ---
-        btnAnterior = new JButton("🡠 Anterior");
-        estilarBoton(btnAnterior, new Color(241, 245, 249), new Color(15, 23, 42));
-        btnAnterior.setBounds(30, 640, 120, 35);
+        // --- 3. PAGINACIÓN ---
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        bottomPanel.setBackground(Color.WHITE);
+        bottomPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+
+        btnAnterior = new JButton("<");
+        estilarBoton(btnAnterior, Color.WHITE, Color.BLACK);
         btnAnterior.addActionListener(e -> cambiarPagina(-1));
-        add(btnAnterior);
-
+        
         lblPagina = new JLabel("Página 1");
-        lblPagina.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblPagina.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblPagina.setBounds(160, 640, 150, 35);
-        add(lblPagina);
-
-        btnSiguiente = new JButton("Siguiente 🡢");
-        estilarBoton(btnSiguiente, new Color(241, 245, 249), new Color(15, 23, 42));
-        btnSiguiente.setBounds(320, 640, 120, 35);
+        lblPagina.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        btnSiguiente = new JButton(">");
+        estilarBoton(btnSiguiente, Color.WHITE, Color.BLACK);
         btnSiguiente.addActionListener(e -> cambiarPagina(1));
-        add(btnSiguiente);
+
+        bottomPanel.add(btnAnterior);
+        bottomPanel.add(lblPagina);
+        bottomPanel.add(btnSiguiente);
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    // --- LÓGICA DE CARGA DE DATOS ---
+    // --- CARGA DE DATOS ---
     private void cargarClientes() {
-        // 1. Activar la barra de carga en el Principal
-        if (Principal.instancia != null) {
-            Principal.instancia.mostrarCarga(true);
-        }
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        modelo.setRowCount(0);
 
-        // Limpiamos la tabla visualmente para dar feedback de que "algo va a pasar"
-        tableModel.setRowCount(0);
-
-        // 2. INICIAR HILO EN SEGUNDO PLANO (Esto evita que se congele la pantalla)
         new Thread(() -> {
             try {
-                // --- ZONA LENTA (Conexión a Nube) ---
                 int offset = paginaActual * FILAS_POR_PAGINA;
                 List<Cliente> lista = clienteDAO.obtenerClientesPaginados(FILAS_POR_PAGINA, offset);
-                // ------------------------------------
 
-                // 3. VOLVER A LA INTERFAZ GRÁFICA (EDT) PARA PINTAR
-                javax.swing.SwingUtilities.invokeLater(() -> {
+                SwingUtilities.invokeLater(() -> {
                     for (Cliente c : lista) {
                         agregarFila(c);
                     }
-
                     lblPagina.setText("Página " + (paginaActual + 1));
-
-                    // Actualizar botones
                     btnAnterior.setEnabled(paginaActual > 0);
-                    // Si trajo menos de 50, es la última página
-                    btnSiguiente.setEnabled(lista.size() == FILAS_POR_PAGINA);
+                    btnSiguiente.setEnabled(lista.size() == FILAS_POR_PAGINA); // Si llena la pág, hay más
 
-                    // Desactivar barra de carga
-                    if (Principal.instancia != null) {
-                        Principal.instancia.mostrarCarga(false);
-                    }
+                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
                 });
-
-            } catch (Exception e) {
-                // Manejo de errores también en el hilo gráfico
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    if (Principal.instancia != null) {
-                        Principal.instancia.mostrarCarga(false);
-                    }
-                    System.err.println("Error en hilo de carga: " + e.getMessage());
-                });
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
 
     private void buscar() {
         String texto = txtBuscar.getText().trim();
         if (texto.isEmpty()) {
-            cargarClientes(); // Si está vacío, carga normal paginado
+            paginaActual = 0;
+            cargarClientes();
             return;
         }
-
-        tableModel.setRowCount(0);
-        // La búsqueda sí trae todos los coincidentes (normalmente son pocos)
-        List<Cliente> lista = clienteDAO.buscarClientes(texto);
-        for (Cliente c : lista) {
-            agregarFila(c);
-        }
-
-        // En modo búsqueda, desactivamos paginación
-        lblPagina.setText("Resultados Búsqueda");
-        btnAnterior.setEnabled(false);
-        btnSiguiente.setEnabled(false);
+        
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        modelo.setRowCount(0);
+        
+        new Thread(() -> {
+            List<Cliente> lista = clienteDAO.buscarClientes(texto);
+            SwingUtilities.invokeLater(() -> {
+                for (Cliente c : lista) agregarFila(c);
+                lblPagina.setText("Resultados: " + lista.size());
+                btnAnterior.setEnabled(false);
+                btnSiguiente.setEnabled(false);
+                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+            });
+        }).start();
     }
 
-    private void cambiarPagina(int direccion) {
-        paginaActual += direccion;
-        if (paginaActual < 0) {
-            paginaActual = 0;
-        }
+    private void cambiarPagina(int dir) {
+        paginaActual += dir;
+        if(paginaActual < 0) paginaActual = 0;
         cargarClientes();
     }
 
     private void agregarFila(Cliente c) {
-        Object[] row = {
+        modelo.addRow(new Object[]{
             c.getIdCliente(),
-            c.getDniCliente(),
+            c.getDniCliente() != null ? c.getDniCliente() : "---",
             c.getNombres(),
-            c.getApellidos(),
-            c.getDireccion(),
-            c.getCorreo(),
-            (c.getActivo() == 1 ? "ACTIVO" : "INACTIVO")
-        };
-        tableModel.addRow(row);
+            c.getApellidos() != null ? c.getApellidos() : "",
+            c.getDireccion() != null ? c.getDireccion() : "",
+            c.getTelefono() != null ? c.getTelefono() : "---", // Mostramos Teléfono real
+            (c.getActivo() == 1 ? "ACTIVO" : "BAJA"),
+            c // Objeto oculto
+        });
     }
 
-    private void estilarBoton(JButton btn, Color bg, Color fg) {
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    }
-    
-    // ABRE EL FORMULARIO (Crear o Editar)
-    private void abrirFormulario(Cliente cliente) {
-        // Obtenemos la ventana padre (Principal) para bloquearla mientras se edita
-        java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
-        java.awt.Frame parentFrame = (parentWindow instanceof java.awt.Frame) ? (java.awt.Frame) parentWindow : null;
-
-        FormularioCliente form = new FormularioCliente(parentFrame, cliente);
-        form.setVisible(true); // Se detiene aquí hasta que cierren el formulario
-        
-        if (form.isGuardado()) {
-            cargarClientes(); // Refrescar la tabla si guardaron algo
-        }
+    // --- ACCIONES ---
+    private void abrirFormulario(Cliente c) {
+        Window parent = SwingUtilities.getWindowAncestor(this);
+        FormularioCliente form = new FormularioCliente((Frame) parent, c);
+        form.setVisible(true);
+        if (form.isGuardado()) cargarClientes();
     }
 
     private void editarSeleccionado() {
-        int fila = tablaClientes.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un cliente de la tabla.");
-            return;
-        }
-        
-        // Recuperar datos de la tabla para llenar el objeto
-        // NOTA: Lo ideal es buscar por ID en BD para tener datos frescos, pero por rapidez usamos la tabla
-        Cliente c = new Cliente();
-        c.setIdCliente(Long.parseLong(tableModel.getValueAt(fila, 0).toString()));
-        c.setDniCliente(tableModel.getValueAt(fila, 1).toString());
-        c.setNombres(tableModel.getValueAt(fila, 2).toString());
-        c.setApellidos(tableModel.getValueAt(fila, 3).toString());
-        c.setDireccion(tableModel.getValueAt(fila, 4).toString());
-        c.setCorreo(tableModel.getValueAt(fila, 5).toString());
-        // El teléfono no lo mostramos en la tabla, deberías agregarlo al modelo o buscarlo en BD
-        
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) { JOptionPane.showMessageDialog(this, "Seleccione un cliente."); return; }
+        Cliente c = (Cliente) modelo.getValueAt(fila, 7); // Objeto completo
         abrirFormulario(c);
     }
 
     private void eliminarSeleccionado() {
-        int fila = tablaClientes.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un cliente para eliminar.");
-            return;
-        }
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) { JOptionPane.showMessageDialog(this, "Seleccione un cliente."); return; }
+        Cliente c = (Cliente) modelo.getValueAt(fila, 7);
         
-        String nombre = tableModel.getValueAt(fila, 2) + " " + tableModel.getValueAt(fila, 3);
-        Long id = Long.parseLong(tableModel.getValueAt(fila, 0).toString());
-
         int confirm = JOptionPane.showConfirmDialog(this, 
-                "¿Seguro que desea dar de baja a: " + nombre + "?\nEsto podría afectar sus contratos activos.",
-                "Confirmar Eliminación", 
-                JOptionPane.YES_NO_OPTION);
-                
-        if (confirm == JOptionPane.YES_OPTION) {
-            if (clienteDAO.eliminarCliente(id)) {
-                JOptionPane.showMessageDialog(this, "Cliente dado de baja.");
+                "¿Dar de baja a " + c.getNombres() + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        
+        if(confirm == JOptionPane.YES_OPTION) {
+            if(clienteDAO.eliminarCliente(c.getIdCliente())) {
                 cargarClientes();
             } else {
                 JOptionPane.showMessageDialog(this, "Error al eliminar.");
             }
+        }
+    }
+
+    // --- ESTILOS ---
+    private void estilarBoton(JButton btn, Color bg, Color fg) {
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btn.setFocusPainted(false);
+    }
+
+    class GeneralRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
+            super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
+            
+            if (col == 6) { // Estado
+                String estado = (String) value;
+                if ("BAJA".equals(estado)) setForeground(Color.RED);
+                else setForeground(new Color(0, 128, 0));
+                setFont(new Font("Segoe UI", Font.BOLD, 11));
+            } else {
+                setForeground(Color.BLACK);
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            }
+
+            if (isS) {
+                setBackground(new Color(200, 230, 255));
+                setForeground(Color.BLACK);
+            } else {
+                if (row % 2 == 0) setBackground(Color.WHITE);
+                else setBackground(new Color(248, 248, 250));
+            }
+            
+            setBorder(new EmptyBorder(0, 5, 0, 0)); // Padding texto
+            return this;
         }
     }
 }

@@ -31,6 +31,7 @@ public class FormularioCliente extends JDialog {
         
         // Cargar datos en hilo aparte si es edición (aunque es rápido, es buena práctica)
         if (clienteAEditar != null) cargarDatos();
+        
     }
 
     private void initUI() {
@@ -203,7 +204,8 @@ public class FormularioCliente extends JDialog {
         txtDireccion.setText(clienteEdicion.getDireccion());
         txtTelefono.setText(clienteEdicion.getTelefono());
         txtCorreo.setText(clienteEdicion.getCorreo());
-        txtDni.setEditable(false);
+        txtDni.setEditable(true);
+        txtDni.setEnabled(true);
     }
 
     public boolean isGuardado() { return resultado; }

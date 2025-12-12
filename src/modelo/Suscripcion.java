@@ -3,72 +3,122 @@ package modelo;
 import java.sql.Date;
 
 public class Suscripcion {
+
+    // ... (Tus campos privados igual que antes) ...
     private int idSuscripcion;
     private int idCliente;
     private int idServicio;
     private String codigoContrato;
     private Date fechaInicio;
-    private Date fechaFin;
     private String direccionInstalacion;
-    private int activo; // 1 = Activo, 0 = Corte
-    
-    // --- CAMPOS EXTRA (Para mostrar en tabla sin hacer más consultas) ---
+    private int activo;
+    private String sector; // <--- NO OLVIDAR ESTE
+    private int diaPago;
+
+    // Campos visuales
     private String nombreCliente;
     private String nombreServicio;
-    private Double precioServicio;
+    private double montoMensual; // Primitivo double (inicia en 0.0, no null)
+    private int facturasPendientes;
+    private String historialPagos;
 
-    public Suscripcion() {}
+    // --- GETTERS Y SETTERS ---
+    // Getter seguro para monto
+    public double getMontoMensual() {
+        return montoMensual;
+    }
 
-    // Getters y Setters normales
-    public int getIdSuscripcion() { return idSuscripcion; }
-    public void setIdSuscripcion(int idSuscripcion) { this.idSuscripcion = idSuscripcion; }
+    public void setMontoMensual(double montoMensual) {
+        this.montoMensual = montoMensual;
+    }
 
-    public int getIdCliente() { return idCliente; }
-    public void setIdCliente(int idCliente) { this.idCliente = idCliente; }
+    // Getters para Sector y Pendientes
+    public String getSector() {
+        return sector;
+    }
 
-    public int getIdServicio() { return idServicio; }
-    public void setIdServicio(int idServicio) { this.idServicio = idServicio; }
+    public void setSector(String sector) {
+        this.sector = sector;
+    }
 
-    public String getCodigoContrato() { return codigoContrato; }
-    public void setCodigoContrato(String codigoContrato) { this.codigoContrato = codigoContrato; }
+    public int getFacturasPendientes() {
+        return facturasPendientes;
+    }
 
-    public Date getFechaInicio() { return fechaInicio; }
-    public void setFechaInicio(Date fechaInicio) { this.fechaInicio = fechaInicio; }
+    public void setFacturasPendientes(int fp) {
+        this.facturasPendientes = fp;
+    }
 
-    public String getDireccionInstalacion() { return direccionInstalacion; }
-    public void setDireccionInstalacion(String direccionInstalacion) { this.direccionInstalacion = direccionInstalacion; }
+    public String getHistorialPagos() {
+        return historialPagos;
+    }
 
-    public int getActivo() { return activo; }
-    public void setActivo(int activo) { this.activo = activo; }
+    public void setHistorialPagos(String h) {
+        this.historialPagos = h;
+    }
 
-    // Getters y Setters EXTRAS
-    public String getNombreCliente() { return nombreCliente; }
-    public void setNombreCliente(String nombreCliente) { this.nombreCliente = nombreCliente; }
+    // ... (Resto de getters/setters estándar para id, codigo, etc.) ...
+    public int getIdSuscripcion() {
+        return idSuscripcion;
+    }
 
-    public String getNombreServicio() { return nombreServicio; }
-    public void setNombreServicio(String nombreServicio) { this.nombreServicio = nombreServicio; }
-    
-    public Double getPrecioServicio() { return precioServicio; }
-    public void setPrecioServicio(Double precio) { this.precioServicio = precio; }
-    
-    /**
-     * Actualiza el plan y la dirección de un contrato existente.
-     */
-    public boolean actualizarContrato(int idSuscripcion, int idNuevoServicio, String nuevaDireccion) {
-        String sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ? WHERE id_suscripcion = ?";
-        
-        try (java.sql.Connection conn = bd.Conexion.getConexion();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            
-            ps.setInt(1, idNuevoServicio);
-            ps.setString(2, nuevaDireccion);
-            ps.setInt(3, idSuscripcion);
-            
-            return ps.executeUpdate() > 0;
-            
-        } catch (java.sql.SQLException e) {
-            System.err.println("Error actualizando contrato: " + e.getMessage());
-            return false;
-        }
+    public void setIdSuscripcion(int id) {
+        this.idSuscripcion = id;
+    }
+
+    public String getCodigoContrato() {
+        return codigoContrato;
+    }
+
+    public void setCodigoContrato(String c) {
+        this.codigoContrato = c;
+    }
+
+    public String getDireccionInstalacion() {
+        return direccionInstalacion;
+    }
+
+    public void setDireccionInstalacion(String d) {
+        this.direccionInstalacion = d;
+    }
+
+    public Date getFechaInicio() {
+        return fechaInicio;
+    }
+
+    public void setFechaInicio(Date f) {
+        this.fechaInicio = f;
+    }
+
+    public int getActivo() {
+        return activo;
+    }
+
+    public void setActivo(int a) {
+        this.activo = a;
+    }
+
+    public int getDiaPago() {
+        return diaPago;
+    }
+
+    public void setDiaPago(int d) {
+        this.diaPago = d;
+    }
+
+    public String getNombreCliente() {
+        return nombreCliente;
+    }
+
+    public void setNombreCliente(String n) {
+        this.nombreCliente = n;
+    }
+
+    public String getNombreServicio() {
+        return nombreServicio;
+    }
+
+    public void setNombreServicio(String n) {
+        this.nombreServicio = n;
     }
 }
