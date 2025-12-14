@@ -10,6 +10,9 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import modelo.Servicio;     // <--- AGREGAR
+import DAO.ServicioDAO;     // <--- AGREGAR
+import java.util.Date;
 
 public class subpanel_Suscripciones extends JPanel {
 
@@ -25,7 +28,13 @@ public class subpanel_Suscripciones extends JPanel {
     private JPopupMenu menuSugerencias;
     private JList<String> listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
+// ...
     private List<String[]> clientesCache = new ArrayList<>();
+    private List<Suscripcion> listaCache = new ArrayList<>();
+
+    // AGREGA ESTA LÍNEA:
+    private List<Servicio> planesCache = new ArrayList<>();
+    // ...
 
     public subpanel_Suscripciones() {
         setLayout(new BorderLayout());
@@ -35,14 +44,23 @@ public class subpanel_Suscripciones extends JPanel {
         susDAO = new SuscripcionDAO();
         precargarClientes();
         initUI();
-        initAutocompletado();
+        //initAutocompletado();
         cargarDatos("");
     }
 
     private void precargarClientes() {
         new Thread(() -> {
+            // 1. Clientes (Lo que ya tenías)
             DAO.ClienteDAO dao = new DAO.ClienteDAO();
             clientesCache = dao.obtenerListaSimpleClientes();
+
+            // 2. NUEVO: Cargar Planes
+            try {
+                ServicioDAO servDao = new ServicioDAO();
+                planesCache = servDao.obtenerServiciosActivos(); // O .listar()
+            } catch (Exception e) {
+                System.out.println("Error cargando planes: " + e.getMessage());
+            }
         }).start();
     }
 
@@ -51,6 +69,14 @@ public class subpanel_Suscripciones extends JPanel {
         JPanel topPanel = new JPanel(null);
         topPanel.setPreferredSize(new Dimension(100, 50));
         topPanel.setBackground(Color.WHITE);
+
+        JButton btnNuevo = new JButton("+ CONTRATO");
+        estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
+        btnNuevo.setBounds(580, 10, 110, 30); // <--- x=580, ancho=110
+        btnNuevo.addActionListener(e -> {
+            abrirNuevoContrato();
+        });
+        topPanel.add(btnNuevo);
 
         JLabel lblTitulo = new JLabel("CONTRATOS");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -91,12 +117,26 @@ public class subpanel_Suscripciones extends JPanel {
         topPanel.add(btnBuscar);
 
         // BOTONES ACCIÓN
-        int xAccion = 600;
+        int xAccion = 710;
         JButton btnCortar = new JButton("CORTAR");
         estilarBoton(btnCortar, new Color(220, 38, 38), Color.WHITE);
         btnCortar.setBounds(xAccion, 10, 80, 30);
         btnCortar.addActionListener(e -> cambiarEstadoServicio(0));
         topPanel.add(btnCortar);
+
+        // Reemplaza o agrega este KeyListener a tu txtBuscar
+        txtBuscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                // Si presiona ENTER, hacemos búsqueda real a la BD (Refrescar)
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    cargarDatos(txtBuscar.getText());
+                } else {
+                    // Cualquier otra tecla: Filtro LOCAL instantáneo
+                    filtrarLocalmente(txtBuscar.getText());
+                }
+            }
+        });
 
         JButton btnActivar = new JButton("ACTIVAR");
         estilarBoton(btnActivar, new Color(22, 163, 74), Color.WHITE);
@@ -163,11 +203,11 @@ public class subpanel_Suscripciones extends JPanel {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollTabla, panelDetalle);
         split.setBorder(null);
         split.setDividerSize(3); // Borde delgado
-        
+
         // MAGIA PARA QUE NO SE ESTIRE EL DETALLE:
         // 1. Le decimos que TODO el espacio extra (1.0) se lo de a la izquierda (Tabla)
-        split.setResizeWeight(1.0); 
-        
+        split.setResizeWeight(1.0);
+
         // 2. Fijamos el ancho del panel de detalle
         panelDetalle.setMinimumSize(new Dimension(350, 0));
         panelDetalle.setPreferredSize(new Dimension(380, 0));
@@ -185,6 +225,30 @@ public class subpanel_Suscripciones extends JPanel {
         bottomPanel.add(lblTotalContratos);
 
         add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+private void abrirNuevoContrato() {
+        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        
+        // PASAMOS: planesCache, Fecha de hoy, Día 1
+        DialogoEditarContrato dialog = new DialogoEditarContrato(
+            (java.awt.Frame) parent, 
+            -1, "", "", -1, "",      // Datos vacíos
+            planesCache,             // <--- LISTA DE PLANES
+            new Date(),              // <--- FECHA DE HOY
+            1                        // <--- DÍA DE PAGO DEFAULT
+        );
+        
+        dialog.setVisible(true);
+        if (dialog.isGuardado()) {
+            cargarDatos("");
+        }
+    }
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        SwingUtilities.invokeLater(() -> txtBuscar.requestFocusInWindow());
     }
 
     // --- LÓGICA DE AUTOCOMPLETADO ---
@@ -241,12 +305,22 @@ public class subpanel_Suscripciones extends JPanel {
         }
 
         int count = 0;
+// EN: vista/subpanel_Suscripciones.java -> filtrarSugerencias()
+
         for (String[] cli : clientesCache) {
             if (count > 10) {
                 break;
             }
-            if (cli[0].startsWith(texto) || cli[1].toLowerCase().contains(texto)) {
-                modeloSugerencias.addElement(cli[1]);
+
+            String dni = cli[0];
+            String nombre = cli[1];
+
+            // SOLUCIÓN: Validamos que NO sean null antes de usar startsWith o contains
+            boolean matchDni = (dni != null && dni.startsWith(texto));
+            boolean matchNombre = (nombre != null && nombre.toLowerCase().contains(texto));
+
+            if (matchDni || matchNombre) {
+                modeloSugerencias.addElement(nombre);
                 count++;
             }
         }
@@ -269,40 +343,59 @@ public class subpanel_Suscripciones extends JPanel {
         }
     }
 
-    private void cargarDatos(String busqueda) {
+    private void cargarDatos(String busqueda) { // Tu método existente
         if (Principal.instancia != null) {
             Principal.instancia.mostrarCarga(true);
         }
-        int selectedRow = tabla.getSelectedRow();
         modelo.setRowCount(0);
 
         new Thread(() -> {
             String orden = (String) cmbOrden.getSelectedItem();
-            List<Suscripcion> lista = susDAO.listarTodo(busqueda, orden);
+            // Hacemos la consulta REAL a la BD
+            List<Suscripcion> listaTraida = susDAO.listarTodo(busqueda, orden);
+
+            // --- CAMBIO AQUÍ: Guardamos copia en memoria ---
+            listaCache = new ArrayList<>(listaTraida);
+            // -----------------------------------------------
 
             SwingUtilities.invokeLater(() -> {
-                for (Suscripcion s : lista) {
-                    modelo.addRow(new Object[]{
-                        s.getIdSuscripcion(),
-                        s.getNombreCliente(),
-                        s.getNombreServicio(),
-                        "S/. " + s.getMontoMensual(),
-                        s.getDiaPago(),
-                        s.getActivo() == 1 ? "ACTIVO" : "CORTADO",
-                        s.getHistorialPagos(),
-                        s
-                    });
-                }
-                lblTotalContratos.setText("Total Contratos: " + lista.size());
-
-                if (selectedRow != -1 && selectedRow < modelo.getRowCount()) {
-                    tabla.setRowSelectionInterval(selectedRow, selectedRow);
-                }
+                llenarTabla(listaCache); // Usamos un método auxiliar para llenar
                 if (Principal.instancia != null) {
                     Principal.instancia.mostrarCarga(false);
                 }
             });
         }).start();
+    }
+
+    private void filtrarLocalmente(String texto) {
+        String busqueda = texto.trim().toLowerCase();
+        List<Suscripcion> resultados = new ArrayList<>();
+
+        for (Suscripcion s : listaCache) {
+            // Aquí defines tus criterios de búsqueda (Cliente o Servicio)
+            if (s.getNombreCliente().toLowerCase().contains(busqueda)
+                    || s.getNombreServicio().toLowerCase().contains(busqueda)) {
+                resultados.add(s);
+            }
+        }
+        llenarTabla(resultados); // Actualiza la tabla visualmente sin ir a la BD
+    }
+
+    private void llenarTabla(List<Suscripcion> listaParaMostrar) {
+        modelo.setRowCount(0);
+        for (Suscripcion s : listaParaMostrar) {
+            modelo.addRow(new Object[]{
+                s.getIdSuscripcion(),
+                s.getNombreCliente(),
+                s.getNombreServicio(),
+                "S/. " + s.getMontoMensual(),
+                s.getDiaPago(),
+                s.getActivo() == 1 ? "ACTIVO" : "CORTADO",
+                s.getHistorialPagos(),
+                s // Objeto oculto
+            });
+        }
+        lblTotalContratos.setText("Total Contratos: " + listaParaMostrar.size());
     }
 
     // --- ACCIONES ---
@@ -327,23 +420,27 @@ public class subpanel_Suscripciones extends JPanel {
         }
     }
 
-    private void abrirEdicion() {
+private void abrirEdicion() {
         int fila = tabla.getSelectedRow();
-        if (fila == -1) {
-            return;
-        }
+        if (fila == -1) return;
+        
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
         int idCliente = susDAO.obtenerIdClienteDeContrato(s.getIdSuscripcion());
 
         java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        
         DialogoEditarContrato dialog = new DialogoEditarContrato(
-                (java.awt.Frame) parent,
-                s.getIdSuscripcion(),
-                s.getNombreServicio(),
-                s.getDireccionInstalacion(),
-                idCliente,
-                s.getNombreCliente()
+            (java.awt.Frame) parent,
+            s.getIdSuscripcion(),
+            s.getNombreServicio(),
+            s.getDireccionInstalacion(),
+            idCliente,
+            s.getNombreCliente(),
+            planesCache,        // <--- LISTA DE PLANES
+            s.getFechaInicio(), // <--- FECHA DEL CONTRATO
+            s.getDiaPago()      // <--- DÍA DE PAGO DEL CONTRATO
         );
+        
         dialog.setVisible(true);
         if (dialog.isGuardado()) {
             cargarDatos(txtBuscar.getText());

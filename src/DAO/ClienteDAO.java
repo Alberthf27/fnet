@@ -12,18 +12,17 @@ public class ClienteDAO {
         List<Cliente> clientes = new ArrayList<>();
         // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
         String sql = "SELECT id_cliente, dni_cliente, nombres, apellidos, direccion, correo, fecha_registro, activo, deuda "
-                    + "FROM cliente "
-                    + "WHERE activo = 1 "
-                    + "ORDER BY apellidos, nombres "
-                    + "LIMIT ? OFFSET ?";
-        
+                + "FROM cliente "
+                + "WHERE activo = 1 "
+                + "ORDER BY apellidos, nombres "
+                + "LIMIT ? OFFSET ?";
+
         // Uso del try-with-resources para el manejo automático de la conexión y recursos (Mejor práctica en Java)
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, limit);
             stmt.setInt(2, offset);
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     clientes.add(mapearCliente(rs));
@@ -35,38 +34,150 @@ public class ClienteDAO {
         }
         return clientes;
     }
+
+    public List<Cliente> obtenerClientesPaginados(int limite, int offset, String criterio) {
+        List<Cliente> lista = new ArrayList<>();
+        Connection con = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        // 1. Construimos la consulta base
+        String sql = "SELECT * FROM cliente ";
+
+        // 2. Modificamos la consulta según lo que seleccionó en el ComboBox
+        if (criterio != null) {
+            switch (criterio) {
+                case "NOMBRE (A-Z)":
+                    sql += "ORDER BY nombres ASC ";
+                    break;
+                case "APELLIDO (A-Z)":
+                    sql += "ORDER BY apellidos ASC ";
+                    break;
+                case "SOLO ACTIVOS":
+                    sql += "WHERE activo = 1 ORDER BY nombres ASC ";
+                    break;
+                case "SOLO BAJAS":
+                    sql += "WHERE activo = 0 ORDER BY nombres ASC ";
+                    break;
+                default:
+                    sql += "ORDER BY id_cliente DESC "; // Orden por defecto (más nuevos primero)
+                    break;
+            }
+        } else {
+            sql += "ORDER BY id_cliente DESC ";
+        }
+
+        // 3. Agregamos la paginación al final
+        sql += "LIMIT ? OFFSET ?";
+
+        try {
+            con = Conexion.getConexion(); // O como obtengas tu conexión
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, limite);
+            ps.setInt(2, offset);
+
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Cliente c = new Cliente();
+// Cambia esto:
+// c.setIdCliente(rs.getInt("id_cliente"));
+
+// Por esto:
+                c.setIdCliente(rs.getLong("id_cliente"));
+                c.setDniCliente(rs.getString("dni_cliente"));
+                c.setNombres(rs.getString("nombres"));
+                c.setApellidos(rs.getString("apellidos"));
+                c.setDireccion(rs.getString("direccion"));
+                c.setTelefono(rs.getString("telefono"));
+                c.setActivo(rs.getInt("activo"));
+                // Agrega los campos que falten según tu tabla
+                lista.add(c);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Cierra tus recursos aquí (rs, ps, con)
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (ps != null) {
+                    ps.close();
+                }
+                if (con != null) {
+                    con.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+
+        return lista;
+    }
     
+    // Agrega esto en DAO/ClienteDAO.java
+
+    /**
+     * Registra un cliente y retorna su ID generado.
+     * Retorna -1 si hubo error.
+     */
+    public int registrarClienteYObtenerId(String dni, String nom, String ape, String dir, String tel) {
+        String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, telefono, activo) VALUES (?, ?, ?, ?, ?, 1)";
+        
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+            
+            ps.setString(1, dni);
+            ps.setString(2, nom);
+            ps.setString(3, ape);
+            ps.setString(4, dir); // Usaremos la misma dirección de instalación por defecto
+            ps.setString(5, tel);
+            
+            int affected = ps.executeUpdate();
+            
+            if (affected > 0) {
+                try (java.sql.ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1); // Retorna el ID nuevo
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error registrando cliente express: " + e.getMessage());
+        }
+        return -1;
+    }
+
     // Método optimizado para llenar la lista de autocompletado
     public List<String[]> obtenerListaSimpleClientes() {
         List<String[]> lista = new ArrayList<>();
         // Traemos solo lo necesario para buscar
         String sql = "SELECT dni_cliente, nombres, apellidos FROM cliente WHERE activo = 1";
-        
-        try (java.sql.Connection conn = bd.Conexion.getConexion();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
-             java.sql.ResultSet rs = ps.executeQuery()) {
-            
-            while(rs.next()) {
+
+        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql); java.sql.ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
                 // Guardamos: [0]=DNI, [1]=Nombre Completo
                 lista.add(new String[]{
                     rs.getString("dni_cliente"),
                     rs.getString("nombres") + " " + rs.getString("apellidos")
                 });
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return lista;
     }
-    
+
     /**
-     * Obtiene el número total de clientes activos.
-     * Es necesario para calcular el número total de páginas.
+     * Obtiene el número total de clientes activos. Es necesario para calcular
+     * el número total de páginas.
      */
     public int obtenerTotalClientesActivos() {
         String sql = "SELECT COUNT(id_cliente) FROM cliente WHERE activo = 1";
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
             if (rs.next()) {
                 return rs.getInt(1);
             }
@@ -75,24 +186,23 @@ public class ClienteDAO {
         }
         return 0;
     }
-    
+
     /**
-     * ✅ MEJORADO: Búsqueda de clientes (Activo=1)
-     * Utiliza los índices creados (dni_cliente, apellidos, nombres)
+     * ✅ MEJORADO: Búsqueda de clientes (Activo=1) Utiliza los índices creados
+     * (dni_cliente, apellidos, nombres)
      */
     public List<Cliente> buscarClientes(String criterio) {
         List<Cliente> clientes = new ArrayList<>();
         // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
         String sql = "SELECT * FROM cliente WHERE (nombres LIKE ? OR apellidos LIKE ? OR dni_cliente LIKE ?) AND activo = 1 ORDER BY apellidos, nombres";
-        
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             String likeCriterio = "%" + criterio + "%";
             stmt.setString(1, likeCriterio);
             stmt.setString(2, likeCriterio);
             stmt.setString(3, likeCriterio);
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     clientes.add(mapearCliente(rs));
@@ -104,27 +214,26 @@ public class ClienteDAO {
         }
         return clientes;
     }
-    
-    
-    // ... dentro de ClienteDAO ...
 
+    // ... dentro de ClienteDAO ...
     /**
-     * Registra Cliente y (Opcional) su primer Contrato en una sola transacción segura.
+     * Registra Cliente y (Opcional) su primer Contrato en una sola transacción
+     * segura.
      */
     public boolean registrarClienteCompleto(Cliente c, int idServicio, boolean incluirContrato) {
         Connection conn = null;
         PreparedStatement psCliente = null;
         PreparedStatement psContrato = null;
         boolean exito = false;
-        
+
         try {
             conn = Conexion.getConexion();
             conn.setAutoCommit(false); // 🛑 INICIO TRANSACCIÓN (Nada se guarda real hasta el commit)
 
             // 1. INSERTAR CLIENTE
             String sqlC = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, correo, telefono, fecha_registro, activo, deuda) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, 0.0)";
-            
+                    + "VALUES (?, ?, ?, ?, ?, ?, NOW(), 1, 0.0)";
+
             psCliente = conn.prepareStatement(sqlC, Statement.RETURN_GENERATED_KEYS);
             psCliente.setString(1, c.getDniCliente());
             psCliente.setString(2, c.getNombres());
@@ -132,27 +241,31 @@ public class ClienteDAO {
             psCliente.setString(4, c.getDireccion());
             psCliente.setString(5, c.getCorreo());
             psCliente.setString(6, c.getTelefono()); // Asegúrate de tener este campo en Cliente.java
-            
+
             int rows = psCliente.executeUpdate();
-            if (rows == 0) throw new SQLException("Fallo al crear cliente");
+            if (rows == 0) {
+                throw new SQLException("Fallo al crear cliente");
+            }
 
             // Obtener ID generado
             long idClienteGenerado = 0;
             try (ResultSet rs = psCliente.getGeneratedKeys()) {
-                if (rs.next()) idClienteGenerado = rs.getLong(1);
+                if (rs.next()) {
+                    idClienteGenerado = rs.getLong(1);
+                }
             }
 
             // 2. INSERTAR CONTRATO (Si se seleccionó la opción)
             if (incluirContrato && idClienteGenerado > 0) {
                 // Ajusta nombres de columnas según tu tabla 'suscripcion'
                 String sqlS = "INSERT INTO suscripcion (id_cliente, id_servicio, fecha_inicio, activo, direccion_instalacion) "
-                            + "VALUES (?, ?, NOW(), 1, ?)";
-                
+                        + "VALUES (?, ?, NOW(), 1, ?)";
+
                 psContrato = conn.prepareStatement(sqlS);
                 psContrato.setLong(1, idClienteGenerado);
                 psContrato.setInt(2, idServicio);
                 psContrato.setString(3, c.getDireccion()); // Asumimos misma dirección
-                
+
                 psContrato.executeUpdate();
             }
 
@@ -161,33 +274,42 @@ public class ClienteDAO {
             System.out.println("Transacción exitosa: Cliente " + idClienteGenerado);
 
         } catch (Exception e) {
-            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {} // ↩️ DESHACER SI FALLA
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException ex) {
+            } // ↩️ DESHACER SI FALLA
             System.err.println("Error transacción cliente: " + e.getMessage());
             e.printStackTrace();
         } finally {
             try {
-                if (psCliente != null) psCliente.close();
-                if (psContrato != null) psContrato.close();
-                if (conn != null) conn.close();
-            } catch (Exception e) {}
+                if (psCliente != null) {
+                    psCliente.close();
+                }
+                if (psContrato != null) {
+                    psContrato.close();
+                }
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (Exception e) {
+            }
         }
         return exito;
     }
 
-
     // ----------------------------------------------------------------------------------
     // ⚙️ MÉTODOS CRUD (Corregidos y con Try-with-resources)
     // ----------------------------------------------------------------------------------
-
     public Long insertarCliente(Cliente cliente) {
         Long generatedId = null;
         // ✅ Corregido: Uso de minúsculas y la función NOW()
         String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, correo, fecha_registro, activo, deuda) "
-                   + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
+                + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
 
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, cliente.getDniCliente());
             stmt.setString(2, cliente.getNombres());
             stmt.setString(3, cliente.getApellidos());
@@ -210,16 +332,17 @@ public class ClienteDAO {
         }
         return generatedId;
     }
-    
+
     public boolean actualizarCliente(Cliente cliente) {
         // ✅ Corregido: Uso de minúsculas y guiones bajos en SQL
         String sql = "UPDATE cliente SET dni_cliente = ?, nombres = ?, apellidos = ?, direccion = ?, correo = ? WHERE id_cliente = ?";
         boolean resultado = false;
 
-        if (cliente == null || cliente.getIdCliente() == null) { return false; }
+        if (cliente == null || cliente.getIdCliente() == null) {
+            return false;
+        }
 
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, cliente.getDniCliente());
             stmt.setString(2, cliente.getNombres());
@@ -244,12 +367,11 @@ public class ClienteDAO {
         String sql = "UPDATE cliente SET activo = 0 WHERE id_cliente = ?";
         boolean resultado = false;
 
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setLong(1, idCliente);
             resultado = stmt.executeUpdate() > 0;
-            
+
             if (resultado) {
                 System.out.println("Cliente eliminado (ACTIVO=0) - ID: " + idCliente);
             }
@@ -264,13 +386,12 @@ public class ClienteDAO {
         String sql = "UPDATE cliente SET deuda = ? WHERE id_cliente = ?";
         boolean resultado = false;
 
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setDouble(1, nuevaDeuda);
             stmt.setLong(2, idCliente);
             resultado = stmt.executeUpdate() > 0;
-            
+
             if (resultado) {
                 System.out.println("Deuda actualizada correctamente para cliente ID: " + idCliente);
             }
@@ -280,16 +401,17 @@ public class ClienteDAO {
         }
         return resultado;
     }
-    
+
     public boolean agregarDeuda(Long idCliente, Double montoAAgregar) {
         String sql = "UPDATE cliente SET deuda = deuda + ? WHERE id_cliente = ?";
         boolean resultado = false;
 
-        if (montoAAgregar == null || montoAAgregar <= 0) { return false; }
-        
-        try (Connection conn = Conexion.getConexion();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        if (montoAAgregar == null || montoAAgregar <= 0) {
+            return false;
+        }
+
+        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setDouble(1, montoAAgregar);
             stmt.setLong(2, idCliente);
             resultado = stmt.executeUpdate() > 0;
@@ -307,8 +429,9 @@ public class ClienteDAO {
     // ----------------------------------------------------------------------------------
     // 🧰 HELPER (Ayudante)
     // ----------------------------------------------------------------------------------
-
-    /** Mapea un ResultSet a un objeto Cliente (Evita repetir código) */
+    /**
+     * Mapea un ResultSet a un objeto Cliente (Evita repetir código)
+     */
     private Cliente mapearCliente(ResultSet rs) throws SQLException {
         Cliente cliente = new Cliente();
         // ✅ Uso de nombres de columna exactos: id_cliente, dni_cliente, fecha_registro, activo, deuda
@@ -323,14 +446,15 @@ public class ClienteDAO {
         cliente.setDeuda(rs.getDouble("deuda"));
         return cliente;
     }
-    
+
     /**
-     * NOTA: Este método original ha sido reemplazado por obtenerClientesPaginados()
-     * para mejorar el rendimiento. Se mantiene comentado si necesitas el patrón antiguo.
+     * NOTA: Este método original ha sido reemplazado por
+     * obtenerClientesPaginados() para mejorar el rendimiento. Se mantiene
+     * comentado si necesitas el patrón antiguo.
      */
     /*
     public List<Cliente> obtenerTodosClientes() {
          return obtenerClientesPaginados(1000000, 0); // Limitarlo a un número gigante, pero forzar el LIMIT/OFFSET
     }
-    */
+     */
 }

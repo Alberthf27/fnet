@@ -18,50 +18,52 @@ import javax.swing.table.DefaultTableModel;
 public class subpanel_Caja extends JPanel {
 
     // --- COMPONENTES UI ---
-    
     // Tabla 1: Selección de Cliente (Arriba)
     private JTable tablaClientes;
     private DefaultTableModel modeloClientes;
-    
+
     // Tabla 2: Deudas del Cliente (Abajo)
     private JTable tablaDeudas;
     private DefaultTableModel modeloDeudas;
-    
+
     private JTextField txtBuscar;
-    
+
     // Panel Derecho (Cobro)
     private JLabel lblTotalMonto, lblVuelto, lblEstadoPago, lblClienteSeleccionado, lblPlanSeleccionado;
     private JTextField txtRecibido;
     private JButton btnEfectivo, btnYape, btnTransf;
-    
+
     // --- LÓGICA ---
     private double totalSeleccionado = 0.0;
     private String metodoPagoSeleccionado = "EFECTIVO";
-    
+
     // Datos del cliente seleccionado actualmente
-    private int idSuscripcionActual = -1; 
+    private int idSuscripcionActual = -1;
     private String nombreClienteActual = "---";
+
+    // --- NUEVO: Caché para el filtro rápido ---
+    private java.util.List<Suscripcion> clientesCache = new java.util.ArrayList<>();
 
     public subpanel_Caja() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(5, 10, 5, 10));
-        
+
         initUI();
         // Cargar lista inicial vacía o últimos clientes
-        buscarClientes(""); 
+        buscarClientes("");
     }
 
     private void initUI() {
         // =================================================================================
         // 1. SECCIÓN IZQUIERDA (DIVIDIDA EN DOS: LISTA CLIENTES Y LISTA DEUDAS)
         // =================================================================================
-        
+
         // --- A. PANEL SUPERIOR (BUSCADOR Y BOTONES) ---
         JPanel pnlBusqueda = new JPanel(null);
         pnlBusqueda.setPreferredSize(new Dimension(100, 60));
         pnlBusqueda.setBackground(Color.WHITE);
-        
+
         JLabel lblTitulo = new JLabel("CAJA Y PAGOS");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitulo.setForeground(new Color(15, 23, 42));
@@ -72,15 +74,29 @@ public class subpanel_Caja extends JPanel {
         txtBuscar.putClientProperty("JTextField.placeholderText", "Escribe nombre o DNI...");
         txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtBuscar.setBounds(160, 15, 250, 35);
-        txtBuscar.addActionListener(e -> buscarClientes(txtBuscar.getText()));
+
+        // --- LOGICA HÍBRIDA ---
+        txtBuscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    // Enter -> Búsqueda profunda en BD (Trae datos frescos)
+                    buscarClientes(txtBuscar.getText());
+                } else {
+                    // Escribiendo -> Filtro local instantáneo (Usa caché)
+                    filtrarLocalmente(txtBuscar.getText());
+                }
+            }
+        });
+
         pnlBusqueda.add(txtBuscar);
-        
+
         JButton btnBuscar = new JButton("🔍");
         btnBuscar.setBounds(420, 15, 50, 35);
         estilarBotonSimple(btnBuscar);
         btnBuscar.addActionListener(e -> buscarClientes(txtBuscar.getText()));
         pnlBusqueda.add(btnBuscar);
-        
+
         JButton btnAdelantar = new JButton("📅 Adelantar Mes");
         btnAdelantar.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnAdelantar.setBackground(new Color(255, 247, 237));
@@ -94,14 +110,17 @@ public class subpanel_Caja extends JPanel {
         // --- B. TABLA DE CLIENTES (RESULTADOS BÚSQUEDA) ---
         String[] colsC = {"ID_S", "CLIENTE", "DNI", "PLAN / SERVICIO", "ESTADO"};
         modeloClientes = new DefaultTableModel(colsC, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
         tablaClientes = new JTable(modeloClientes);
         estilarTabla(tablaClientes);
         // Ocultar ID
-        tablaClientes.getColumnModel().getColumn(0).setMinWidth(0); tablaClientes.getColumnModel().getColumn(0).setMaxWidth(0);
+        tablaClientes.getColumnModel().getColumn(0).setMinWidth(0);
+        tablaClientes.getColumnModel().getColumn(0).setMaxWidth(0);
         tablaClientes.getColumnModel().getColumn(1).setPreferredWidth(200);
-        
+
         JScrollPane scrollClientes = new JScrollPane(tablaClientes);
         scrollClientes.getViewport().setBackground(Color.WHITE);
         scrollClientes.setBorder(BorderFactory.createTitledBorder(
@@ -117,16 +136,22 @@ public class subpanel_Caja extends JPanel {
         // --- C. TABLA DE DEUDAS (DEL CLIENTE SELECCIONADO) ---
         String[] colsD = {"Pagar", "Mes / Concepto", "Vencimiento", "Monto", "ID_F"};
         modeloDeudas = new DefaultTableModel(colsD, 0) {
-            public boolean isCellEditable(int row, int col) { return col == 0; }
-            public Class<?> getColumnClass(int col) { return col == 0 ? Boolean.class : String.class; }
+            public boolean isCellEditable(int row, int col) {
+                return col == 0;
+            }
+
+            public Class<?> getColumnClass(int col) {
+                return col == 0 ? Boolean.class : String.class;
+            }
         };
         modeloDeudas.addTableModelListener(e -> calcularTotalSeleccionado());
-        
+
         tablaDeudas = new JTable(modeloDeudas);
         estilarTabla(tablaDeudas);
-        tablaDeudas.getColumnModel().getColumn(4).setMinWidth(0); tablaDeudas.getColumnModel().getColumn(4).setMaxWidth(0);
+        tablaDeudas.getColumnModel().getColumn(4).setMinWidth(0);
+        tablaDeudas.getColumnModel().getColumn(4).setMaxWidth(0);
         tablaDeudas.getColumnModel().getColumn(0).setPreferredWidth(50);
-        
+
         JScrollPane scrollDeudas = new JScrollPane(tablaDeudas);
         scrollDeudas.getViewport().setBackground(Color.WHITE);
         scrollDeudas.setBorder(BorderFactory.createTitledBorder(
@@ -135,7 +160,7 @@ public class subpanel_Caja extends JPanel {
         // Unir Búsqueda + Tabla Clientes + Tabla Deudas en el Panel Izquierdo
         JPanel pnlListas = new JPanel(new BorderLayout());
         pnlListas.add(pnlBusqueda, BorderLayout.NORTH);
-        
+
         // Split vertical entre Clientes (Arriba) y Deudas (Abajo)
         JSplitPane splitVertical = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollClientes, scrollDeudas);
         splitVertical.setResizeWeight(0.5); // 50% espacio para cada uno
@@ -143,21 +168,20 @@ public class subpanel_Caja extends JPanel {
         splitVertical.setDividerSize(5);
         pnlListas.add(splitVertical, BorderLayout.CENTER);
 
-
         // =================================================================================
         // 2. SECCIÓN DERECHA (PANEL DE COBRO FIJO)
         // =================================================================================
         JPanel pnlDerecho = new JPanel(null);
         pnlDerecho.setBackground(new Color(248, 250, 252));
         pnlDerecho.setBorder(new MatteBorder(0, 1, 0, 0, new Color(226, 232, 240)));
-        
+
         // Info Cliente
         lblClienteSeleccionado = new JLabel("Cliente: ---");
         lblClienteSeleccionado.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblClienteSeleccionado.setForeground(new Color(15, 23, 42));
         lblClienteSeleccionado.setBounds(20, 20, 360, 20);
         pnlDerecho.add(lblClienteSeleccionado);
-        
+
         lblPlanSeleccionado = new JLabel("Plan: ---");
         lblPlanSeleccionado.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblPlanSeleccionado.setForeground(Color.GRAY);
@@ -189,9 +213,11 @@ public class subpanel_Caja extends JPanel {
         btnEfectivo.addActionListener(e -> seleccionarMetodo("EFECTIVO"));
         btnYape.addActionListener(e -> seleccionarMetodo("YAPE"));
         btnTransf.addActionListener(e -> seleccionarMetodo("TRANSFERENCIA"));
-        
-        pnlDerecho.add(btnEfectivo); pnlDerecho.add(btnYape); pnlDerecho.add(btnTransf);
-        seleccionarMetodo("EFECTIVO"); 
+
+        pnlDerecho.add(btnEfectivo);
+        pnlDerecho.add(btnYape);
+        pnlDerecho.add(btnTransf);
+        seleccionarMetodo("EFECTIVO");
 
         // Inputs Cobro
         JLabel lblRecibido = new JLabel("Monto Recibido:");
@@ -203,7 +229,9 @@ public class subpanel_Caja extends JPanel {
         txtRecibido.setHorizontalAlignment(SwingConstants.RIGHT);
         txtRecibido.setBounds(20, 305, 160, 50);
         txtRecibido.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { calcularVueltoOParcial(); }
+            public void keyReleased(KeyEvent e) {
+                calcularVueltoOParcial();
+            }
         });
         pnlDerecho.add(txtRecibido);
 
@@ -238,64 +266,92 @@ public class subpanel_Caja extends JPanel {
         splitPrincipal.setBorder(null);
         splitPrincipal.setDividerSize(3);
         splitPrincipal.setResizeWeight(1.0); // Prioridad izquierda
-        
+
         pnlDerecho.setPreferredSize(new Dimension(380, 0));
         pnlDerecho.setMinimumSize(new Dimension(350, 0));
-        
+
         add(splitPrincipal, BorderLayout.CENTER);
     }
 
     // --- LÓGICA DE NEGOCIO ---
-
-    private void buscarClientes(String texto) {
-        // Usa SuscripcionDAO.listarTodo para obtener clientes CON contrato
-        // Así podemos obtener el ID_SUSCRIPCION necesario para pagos
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+    private void buscarClientes(String busquedaBD) {
+        if (Principal.instancia != null) {
+            Principal.instancia.mostrarCarga(true);
+        }
         modeloClientes.setRowCount(0);
-        
+
         new Thread(() -> {
             SuscripcionDAO dao = new SuscripcionDAO();
-            List<Suscripcion> lista = dao.listarTodo(texto, "NOMBRE (A-Z)"); // Reutilizamos el método potente
-            
+            // Traemos TODOS o los filtrados por BD si se requiere, 
+            // pero para que el filtro local funcione bien, idealmente traemos una lista amplia inicial
+            // o lo que el usuario haya buscado con ENTER.
+            List<Suscripcion> listaBD = dao.listarTodo(busquedaBD, "NOMBRE (A-Z)");
+
+            // --- GUARDAMOS EN CACHÉ ---
+            clientesCache = new ArrayList<>(listaBD);
+
             SwingUtilities.invokeLater(() -> {
-                for (Suscripcion s : lista) {
-                    modeloClientes.addRow(new Object[]{
-                        s.getIdSuscripcion(),
-                        s.getNombreCliente(),
-                        "---", // DNI no viene en listarTodo por defecto, se puede agregar al DAO si urge
-                        s.getNombreServicio(),
-                        (s.getActivo() == 1 ? "ACTIVO" : "CORTADO")
-                    });
+                llenarTablaClientes(clientesCache); // Usamos método auxiliar
+                if (Principal.instancia != null) {
+                    Principal.instancia.mostrarCarga(false);
                 }
-                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
             });
         }).start();
     }
 
+    private void filtrarLocalmente(String texto) {
+        String query = texto.toLowerCase();
+        List<Suscripcion> resultados = new ArrayList<>();
+
+        for (Suscripcion s : clientesCache) {
+            // Filtramos por Nombre o por Nombre del Servicio (Plan)
+            if (s.getNombreCliente().toLowerCase().contains(query)
+                    || s.getNombreServicio().toLowerCase().contains(query)) {
+                resultados.add(s);
+            }
+        }
+        llenarTablaClientes(resultados);
+    }
+
+    private void llenarTablaClientes(List<Suscripcion> lista) {
+        modeloClientes.setRowCount(0);
+        for (Suscripcion s : lista) {
+            modeloClientes.addRow(new Object[]{
+                s.getIdSuscripcion(),
+                s.getNombreCliente(),
+                "---", // DNI (si lo tienes en el modelo Suscripcion, ponlo aqui: s.getDni())
+                s.getNombreServicio(),
+                (s.getActivo() == 1 ? "ACTIVO" : "CORTADO")
+            });
+        }
+    }
+
     private void seleccionarCliente() {
         int fila = tablaClientes.getSelectedRow();
-        if (fila == -1) return;
-        
+        if (fila == -1) {
+            return;
+        }
+
         // 1. Obtener datos del cliente seleccionado
         this.idSuscripcionActual = Integer.parseInt(modeloClientes.getValueAt(fila, 0).toString());
         this.nombreClienteActual = modeloClientes.getValueAt(fila, 1).toString();
         String plan = modeloClientes.getValueAt(fila, 3).toString();
-        
+
         // 2. Actualizar UI derecha
         lblClienteSeleccionado.setText("Cliente: " + nombreClienteActual);
         lblPlanSeleccionado.setText("Plan: " + plan);
-        
+
         // 3. Cargar sus deudas
         cargarDeudasDelCliente(idSuscripcionActual);
     }
 
     private void cargarDeudasDelCliente(int idSuscripcion) {
         modeloDeudas.setRowCount(0);
-        
+
         new Thread(() -> {
             PagoDAO dao = new PagoDAO();
             // Este método debe existir en tu PagoDAO (ver abajo)
-            List<Object[]> deudas = dao.buscarDeudasPorSuscripcion(idSuscripcion); 
+            List<Object[]> deudas = dao.buscarDeudasPorSuscripcion(idSuscripcion);
 
             SwingUtilities.invokeLater(() -> {
                 for (Object[] d : deudas) {
@@ -305,7 +361,7 @@ public class subpanel_Caja extends JPanel {
                     String vence = d[3].toString();
                     String monto = String.format("%.2f", (Double) d[2]);
                     int idFactura = (int) d[0];
-                    
+
                     modeloDeudas.addRow(new Object[]{check, mes, vence, monto, idFactura});
                 }
                 calcularTotalSeleccionado();
@@ -360,34 +416,42 @@ public class subpanel_Caja extends JPanel {
             JOptionPane.showMessageDialog(this, "Seleccione al menos una deuda.");
             return;
         }
-        
+
         try {
             double recibido = Double.parseDouble(txtRecibido.getText().replace(",", "."));
             if (recibido < totalSeleccionado) {
                 JOptionPane.showMessageDialog(this, "Monto insuficiente.");
                 return;
             }
-        } catch(Exception e) { return; }
+        } catch (Exception e) {
+            return;
+        }
 
         int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar pago de S/. " + String.format("%.2f", totalSeleccionado) + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
-            
+            if (Principal.instancia != null) {
+                Principal.instancia.mostrarCarga(true);
+            }
+
             new Thread(() -> {
                 PagoDAO dao = new PagoDAO();
                 boolean error = false;
-                
+
                 for (int i = 0; i < modeloDeudas.getRowCount(); i++) {
                     if ((boolean) modeloDeudas.getValueAt(i, 0)) {
                         int idFactura = (int) modeloDeudas.getValueAt(i, 4);
                         double monto = Double.parseDouble(modeloDeudas.getValueAt(i, 3).toString().replace(",", "."));
-                        if (!dao.realizarCobro(idFactura, monto, 1)) error = true;
+                        if (!dao.realizarCobro(idFactura, monto, 1)) {
+                            error = true;
+                        }
                     }
                 }
-                
+
                 boolean finalError = error;
                 SwingUtilities.invokeLater(() -> {
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                    if (Principal.instancia != null) {
+                        Principal.instancia.mostrarCarga(false);
+                    }
                     if (!finalError) {
                         JOptionPane.showMessageDialog(this, "Pago exitoso.");
                         cargarDeudasDelCliente(idSuscripcionActual); // Refrescar solo deudas
@@ -400,22 +464,26 @@ public class subpanel_Caja extends JPanel {
             }).start();
         }
     }
-    
+
     private void adelantarMes() {
         if (idSuscripcionActual == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un cliente de la lista primero.");
             return;
         }
-        
+
         int confirm = JOptionPane.showConfirmDialog(this, "¿Generar recibo adelantado para " + nombreClienteActual + "?", "Adelantar Mes", JOptionPane.YES_NO_OPTION);
-        if(confirm == JOptionPane.YES_OPTION) {
-            if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (Principal.instancia != null) {
+                Principal.instancia.mostrarCarga(true);
+            }
             new Thread(() -> {
                 PagoDAO dao = new PagoDAO();
                 boolean ok = dao.generarSiguienteFactura(idSuscripcionActual);
                 SwingUtilities.invokeLater(() -> {
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
-                    if(ok) {
+                    if (Principal.instancia != null) {
+                        Principal.instancia.mostrarCarga(false);
+                    }
+                    if (ok) {
                         cargarDeudasDelCliente(idSuscripcionActual); // Ver el nuevo recibo
                         JOptionPane.showMessageDialog(this, "Recibo generado.");
                     } else {
@@ -471,6 +539,7 @@ public class subpanel_Caja extends JPanel {
     }
 
     class ZebraRenderer extends DefaultTableCellRenderer {
+
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
@@ -479,8 +548,11 @@ public class subpanel_Caja extends JPanel {
                 setBackground(new Color(200, 230, 255));
                 setForeground(Color.BLACK);
             } else {
-                if (row % 2 == 0) setBackground(Color.WHITE);
-                else setBackground(new Color(248, 248, 250));
+                if (row % 2 == 0) {
+                    setBackground(Color.WHITE);
+                } else {
+                    setBackground(new Color(248, 248, 250));
+                }
             }
             return this;
         }

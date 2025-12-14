@@ -53,6 +53,54 @@ public class SuscripcionDAO {
         }
         return lista;
     }
+    
+    /**
+     * Guarda un contrato NUEVO o ACTUALIZA uno existente con todos los campos.
+     * Soporta cambio de titular, fecha inicio y día de pago.
+     */
+    public boolean guardarOActualizarContrato(int idSuscripcion, int idServicio, String direccion, int idCliente, java.util.Date fechaInicio, int diaPago) {
+        String sql;
+        boolean esNuevo = (idSuscripcion == -1); // Si es -1, insertamos
+
+        if (esNuevo) {
+            // INSERTAR NUEVO
+            sql = "INSERT INTO suscripcion (id_servicio, direccion_instalacion, id_cliente, fecha_inicio, dia_pago, codigo_contrato, activo) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, 1)";
+        } else {
+            // ACTUALIZAR EXISTENTE
+            sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ?, id_cliente = ?, fecha_inicio = ?, dia_pago = ? "
+                    + "WHERE id_suscripcion = ?";
+        }
+
+        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idServicio);
+            ps.setString(2, direccion);
+            ps.setInt(3, idCliente);
+
+            // Convertir java.util.Date a java.sql.Date
+            java.sql.Date sqlFecha = new java.sql.Date(fechaInicio.getTime());
+            ps.setDate(4, sqlFecha);
+
+            ps.setInt(5, diaPago);
+
+            if (esNuevo) {
+                // Generar código simple para nuevo contrato
+                String codigo = "CNT-" + System.currentTimeMillis();
+                ps.setString(6, codigo);
+            } else {
+                // Si es update, el último parámetro es el ID del WHERE
+                ps.setInt(6, idSuscripcion);
+            }
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            System.err.println("Error al guardar/actualizar contrato: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     public boolean actualizarContrato(int idSuscripcion, int idNuevoServicio, String nuevaDireccion) {
         String sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ? WHERE id_suscripcion = ?";

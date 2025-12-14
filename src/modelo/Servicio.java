@@ -15,7 +15,10 @@ public class Servicio {
 
     public Double getMensualidad() { return mensualidad; }
     public void setMensualidad(Double mensualidad) { this.mensualidad = mensualidad; }
-
+// Método alias para que funcione getNombre() igual que getDescripcion()
+    public String getNombre() {
+        return this.descripcion;
+    }
     // Importante para el ComboBox del formulario
     @Override
     public String toString() {

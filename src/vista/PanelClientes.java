@@ -27,14 +27,17 @@ public class PanelClientes extends javax.swing.JPanel {
         // C. Configurar el TabbedPane
         jTabbedPane1.removeAll(); // Limpiar pestañas de diseño
         
+        
+        jTabbedPane1.addTab("Contratos / Suscripciones", 
+                cargarIcono("/img/servicios.png"), 
+                new subpanel_Suscripciones());
+        
+        
         // D. Agregar Pestañas Reales
         jTabbedPane1.addTab("Directorio Personas", 
                 cargarIcono("/img/clientes.png"), 
                 new subpanel_DirectorioClientes());
 
-        jTabbedPane1.addTab("Contratos / Suscripciones", 
-                cargarIcono("/img/servicios.png"), 
-                new subpanel_Suscripciones());
         
         // E. Agregar al centro (Se estirará automáticamente)
         this.add(jTabbedPane1, BorderLayout.CENTER);
