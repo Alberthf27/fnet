@@ -14,7 +14,7 @@ public class Suscripcion {
     private int activo;
     private String sector; // <--- NO OLVIDAR ESTE
     private int diaPago;
-
+    private double garantia; // Nuevo atributo
     // Campos visuales
     private String nombreCliente;
     private String nombreServicio;
@@ -120,5 +120,13 @@ public class Suscripcion {
 
     public void setNombreServicio(String n) {
         this.nombreServicio = n;
+    }
+    
+    public double getGarantia() {
+        return garantia;
+    }
+
+    public void setGarantia(double garantia) {
+        this.garantia = garantia;
     }
 }

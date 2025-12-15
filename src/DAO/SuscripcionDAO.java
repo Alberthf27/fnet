@@ -7,15 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SuscripcionDAO {
+    
 
     public List<Suscripcion> listarPaginado(int limit, int offset) {
         List<Suscripcion> lista = new ArrayList<>();
 
         // --- CORRECCIÓN AQUÍ ---
         // Antes tenías: s.direccion_i
-        // Ahora es:     s.direccion_instalacion
-        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, "
+        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.garantia, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad "
+                + "FROM suscripcion s "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -41,6 +42,8 @@ public class SuscripcionDAO {
                     sus.setFechaInicio(rs.getDate("fecha_inicio"));
                     sus.setActivo(rs.getInt("activo"));
 
+                    sus.setGarantia(rs.getDouble("garantia")); // <--- AÑADE ESTA LÍNEA
+
                     // Datos Extras del JOIN
                     sus.setNombreCliente(rs.getString("nombres") + " " + rs.getString("apellidos"));
                     sus.setNombreServicio(rs.getString("descripcion"));
@@ -53,7 +56,7 @@ public class SuscripcionDAO {
         }
         return lista;
     }
-    
+
     /**
      * Guarda un contrato NUEVO o ACTUALIZA uno existente con todos los campos.
      * Soporta cambio de titular, fecha inicio y día de pago.
@@ -215,13 +218,14 @@ public class SuscripcionDAO {
         List<Suscripcion> lista = new ArrayList<>();
 
         // SQL Base
-        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.sector, s.dia_pago, "
+        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.sector, s.dia_pago, s.garantia, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, "
                 + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
-                + "WHERE s.activo > 0 "
+                // Muestra Activos (1) y Suspendidos (0), pero oculta los dados de baja (fecha_cancelacion no nula)
+                + "WHERE (s.fecha_cancelacion IS NULL) "
                 + "AND (c.nombres LIKE ? OR c.apellidos LIKE ? OR s.codigo_contrato LIKE ?) ";
 
         // LÓGICA DE ORDENAMIENTO CORREGIDA
@@ -277,7 +281,9 @@ public class SuscripcionDAO {
                     sus.setActivo(rs.getInt("activo"));
                     sus.setSector(rs.getString("sector"));
                     sus.setDiaPago(rs.getInt("dia_pago"));
-
+                    sus.setDiaPago(rs.getInt("dia_pago"));
+                    sus.setGarantia(rs.getDouble("garantia")); // <--- AÑADE ESTA LÍNEA
+                    
                     String nom = rs.getString("nombres");
                     String ape = rs.getString("apellidos");
                     String nombreCompleto = ((nom != null ? nom : "") + " " + (ape != null ? ape : "")).trim();
@@ -315,20 +321,20 @@ public class SuscripcionDAO {
         }
         return lista;
     }
-    
+
     // Método para determinar a qué MES corresponde el inicio del cobro
     public String calcularMesFacturacion(java.util.Date fechaInicio) {
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.setTime(fechaInicio);
-        
+
         int dia = cal.get(java.util.Calendar.DAY_OF_MONTH);
-        
+
         // LÓGICA DEL NEGOCIO: 
         // Si entra después del 16, el mes de servicio cuenta desde el SIGUIENTE.
         if (dia > 16) {
             cal.add(java.util.Calendar.MONTH, 1); // Sumar 1 mes
         }
-        
+
         // Formatear mes (Ej: "JULIO 2025")
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMMM yyyy", new java.util.Locale("es", "ES"));
         return sdf.format(cal.getTime()).toUpperCase();
@@ -346,6 +352,25 @@ public class SuscripcionDAO {
         } catch (Exception e) {
         }
         return 0;
+    }
+
+    /**
+     * Da de baja un contrato definitivamente. Establece activo = 0 y guarda la
+     * fecha de cancelación.
+     */
+    public boolean darDeBajaContrato(int idSuscripcion) {
+        // Marcamos como inactivo (0) y registramos FECHA DE FIN
+        String sql = "UPDATE suscripcion SET activo = 0, fecha_cancelacion = CURDATE(), fecha_fin = CURDATE() WHERE id_suscripcion = ?";
+
+        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idSuscripcion);
+            return ps.executeUpdate() > 0;
+
+        } catch (java.sql.SQLException e) {
+            System.err.println("Error al dar de baja: " + e.getMessage());
+            return false;
+        }
     }
 
 }

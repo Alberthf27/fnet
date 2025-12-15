@@ -9,6 +9,8 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter; // IMPORTANTE
+import java.awt.event.KeyEvent;   // IMPORTANTE
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.BorderFactory;
@@ -23,15 +25,14 @@ import javax.swing.border.EmptyBorder;
 
 public class Login extends javax.swing.JFrame {
 
-    // --- PALETA DE COLORES "FLAT" (PLANA) ---
     private final Color COLOR_FONDO = new Color(15, 23, 42);
     private final Color COLOR_ACCENTO = new Color(255, 102, 0);
     private final Color COLOR_ACCENTO_HOVER = new Color(204, 82, 0);
     private final Color COLOR_TEXTO_HINT = new Color(160, 174, 192);
 
-    // Variables globales para poder usarlas dentro de los eventos
     private JTextField txtUsuario;
     private JPasswordField txtPassword;
+    private JButton btnEntrar; // Hacemos el botón global para llamarlo con Enter
 
     public Login() {
         setUndecorated(true);
@@ -42,13 +43,12 @@ public class Login extends javax.swing.JFrame {
     }
 
     private void initComponentsPersonalizado() {
-        // 1. PANEL PRINCIPAL
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(null);
         mainPanel.setBackground(COLOR_FONDO);
         setContentPane(mainPanel);
 
-        // Botón Cerrar (X)
+        // Botón Cerrar
         JLabel btnCerrar = new JLabel("X");
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 20));
         btnCerrar.setForeground(Color.WHITE);
@@ -56,26 +56,17 @@ public class Login extends javax.swing.JFrame {
         btnCerrar.setBounds(860, 10, 30, 30);
         btnCerrar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCerrar.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
-                System.exit(0);
-            }
-
-            public void mouseEntered(MouseEvent e) {
-                btnCerrar.setForeground(COLOR_ACCENTO);
-            }
-
-            public void mouseExited(MouseEvent e) {
-                btnCerrar.setForeground(Color.WHITE);
-            }
+            public void mouseClicked(MouseEvent e) { System.exit(0); }
+            public void mouseEntered(MouseEvent e) { btnCerrar.setForeground(COLOR_ACCENTO); }
+            public void mouseExited(MouseEvent e) { btnCerrar.setForeground(Color.WHITE); }
         });
         mainPanel.add(btnCerrar);
 
-        // 2. TARJETA CENTRAL
+        // Tarjeta Central
         JPanel cardPanel = new JPanel();
         cardPanel.setBackground(Color.WHITE);
         cardPanel.setBounds(275, 100, 350, 420);
         cardPanel.setLayout(null);
-
         cardPanel.setBorder(new EmptyBorder(0, 0, 0, 0) {
             @Override
             public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
@@ -87,12 +78,11 @@ public class Login extends javax.swing.JFrame {
         });
         mainPanel.add(cardPanel);
 
-        // --- CONTENIDO DE LA TARJETA ---
+        // Logo y Título
         JLabel lblLogo = new JLabel();
         ImageIcon icono = cargarIcono("/img/logo_fibranet.png", 180, 60);
-        if (icono != null) {
-            lblLogo.setIcon(icono);
-        } else {
+        if (icono != null) lblLogo.setIcon(icono);
+        else {
             lblLogo.setText("FIBRANET");
             lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 32));
             lblLogo.setForeground(COLOR_FONDO);
@@ -108,18 +98,38 @@ public class Login extends javax.swing.JFrame {
         lblTitulo.setBounds(25, 110, 300, 20);
         cardPanel.add(lblTitulo);
 
-        // Input Usuario
+        // --- CAMPOS DE TEXTO ---
         txtUsuario = crearTextFieldPersonalizado("Usuario");
         txtUsuario.setBounds(40, 160, 270, 45);
         cardPanel.add(txtUsuario);
 
-        // Input Contraseña
         txtPassword = crearPasswordFieldPersonalizado("Contraseña");
         txtPassword.setBounds(40, 220, 270, 45);
         cardPanel.add(txtPassword);
 
+        // --- LÓGICA DE TECLA ENTER ---
+        // 1. Al dar Enter en Usuario -> Ir a Password
+        txtUsuario.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    txtPassword.requestFocus();
+                }
+            }
+        });
+
+        // 2. Al dar Enter en Password -> Clic en Ingresar
+        txtPassword.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    btnEntrar.doClick(); // Simula el clic
+                }
+            }
+        });
+
         // BOTÓN INGRESAR
-        JButton btnEntrar = new JButton("INGRESAR");
+        btnEntrar = new JButton("INGRESAR");
         btnEntrar.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnEntrar.setForeground(Color.WHITE);
         btnEntrar.setBackground(COLOR_ACCENTO);
@@ -129,48 +139,11 @@ public class Login extends javax.swing.JFrame {
         btnEntrar.setBounds(40, 300, 270, 50);
 
         btnEntrar.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btnEntrar.setBackground(COLOR_ACCENTO_HOVER);
-            }
-
-            public void mouseExited(MouseEvent e) {
-                btnEntrar.setBackground(COLOR_ACCENTO);
-            }
+            public void mouseEntered(MouseEvent e) { btnEntrar.setBackground(COLOR_ACCENTO_HOVER); }
+            public void mouseExited(MouseEvent e) { btnEntrar.setBackground(COLOR_ACCENTO); }
         });
 
-        // ====================================================================
-        // AQUÍ ES DONDE SE CONECTA EL BOTÓN (DENTRO DEL MÉTODO DE INICIO)
-        // ====================================================================
-// Acción del botón INGRESAR
-        btnEntrar.addActionListener(e -> {
-            String codigo = txtUsuario.getText(); // "0001"
-            String pass = new String(txtPassword.getPassword());
-            
-            // 1. Validaciones
-            if(codigo.isEmpty() || codigo.equals("Usuario") || pass.isEmpty() || pass.equals("Contraseña")) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Por favor, ingrese código y contraseña.");
-                return;
-            }
-
-            // 2. Login (Pasamos el código como String)
-            setCursor(new Cursor(Cursor.WAIT_CURSOR));
-            
-            DAO.UsuarioDAO dao = new DAO.UsuarioDAO();
-            // ¡OJO! Asegúrate de actualizar UsuarioDAO primero
-            modelo.Empleado emp = dao.login(codigo, pass); 
-            
-            setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-
-            if (emp != null) {
-                this.dispose();
-                new Principal(emp).setVisible(true);
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Código o contraseña incorrectos.", 
-                    "Acceso Denegado", 
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        btnEntrar.addActionListener(e -> realizarLogin()); // Método extraído para limpieza
 
         cardPanel.add(btnEntrar);
 
@@ -182,8 +155,35 @@ public class Login extends javax.swing.JFrame {
         lblFooter.setBounds(0, 570, 900, 20);
         mainPanel.add(lblFooter);
     }
+    
+    // Método separado para la lógica de login (llamado por Clic y por Enter)
+    private void realizarLogin() {
+        String codigo = txtUsuario.getText();
+        String pass = new String(txtPassword.getPassword());
 
-    // --- MÉTODOS AUXILIARES ---
+        if(codigo.isEmpty() || codigo.equals("Usuario") || pass.isEmpty() || pass.equals("Contraseña")) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Por favor, ingrese código y contraseña.");
+            return;
+        }
+
+        setCursor(new Cursor(Cursor.WAIT_CURSOR));
+        
+        DAO.UsuarioDAO dao = new DAO.UsuarioDAO();
+        modelo.Empleado emp = dao.login(codigo, pass); 
+        
+        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+
+        if (emp != null) {
+            this.dispose();
+            new Principal(emp).setVisible(true);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Código o contraseña incorrectos.", 
+                "Acceso Denegado", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private JTextField crearTextFieldPersonalizado(String placeholder) {
         JTextField txt = new JTextField();
         estilarCampoTexto(txt, placeholder);
@@ -204,7 +204,6 @@ public class Login extends javax.swing.JFrame {
         txt.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-
         txt.setText(placeholder);
         txt.setForeground(COLOR_TEXTO_HINT);
 
@@ -219,7 +218,6 @@ public class Login extends javax.swing.JFrame {
                             BorderFactory.createEmptyBorder(5, 10, 5, 10)));
                 }
             }
-
             public void focusLost(FocusEvent evt) {
                 if (txt.getText().isEmpty()) {
                     txt.setForeground(COLOR_TEXTO_HINT);
@@ -240,16 +238,14 @@ public class Login extends javax.swing.JFrame {
                 java.awt.Image img = new javax.swing.ImageIcon(url).getImage();
                 return new javax.swing.ImageIcon(img.getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH));
             }
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
         return null;
     }
 
     public static void main(String args[]) {
         try {
             javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {
-        }
+        } catch (Exception ex) {}
         java.awt.EventQueue.invokeLater(() -> new Login().setVisible(true));
     }
 }

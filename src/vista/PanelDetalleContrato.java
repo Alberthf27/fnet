@@ -11,8 +11,8 @@ public class PanelDetalleContrato extends JPanel {
 
     private JLabel lblCliente, lblPlan, lblEstado, lblDireccion, lblSector, lblDeudaTotal, lblProximoPago;
     private JLabel lblContratoID, lblMorosidad;
-    private JLabel lblInicio;
-    
+    private JLabel lblInicio, lblGarantia; // <--- AÑADE lblGarantia
+
     // Variables para el botón de historial
     private int idSuscripcionActual = 0;
     private String nombreClienteActual = "";
@@ -20,11 +20,11 @@ public class PanelDetalleContrato extends JPanel {
     public PanelDetalleContrato() {
         setLayout(null);
         setBackground(Color.WHITE);
-        setBorder(new MatteBorder(0, 1, 0, 0, new Color(226, 232, 240))); 
-        
+        setBorder(new MatteBorder(0, 1, 0, 0, new Color(226, 232, 240)));
+
         // Asegurar que el panel sea lo suficientemente alto para mostrar todo
-        setPreferredSize(new Dimension(350, 700)); 
-        
+        setPreferredSize(new Dimension(350, 800));
+
         initUI();
     }
 
@@ -55,7 +55,7 @@ public class PanelDetalleContrato extends JPanel {
         lblEstado.setBounds(10, 10, 280, 25);
         lblEstado.setOpaque(true);
         pnlEstado.add(lblEstado);
-        
+
         lblMorosidad = new JLabel("Seleccione un cliente");
         lblMorosidad.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         lblMorosidad.setHorizontalAlignment(SwingConstants.CENTER);
@@ -65,7 +65,7 @@ public class PanelDetalleContrato extends JPanel {
 
         // Datos
         int y = 180;
-        int gap = 60; 
+        int gap = 60;
 
         add(crearLabelTitulo("Titular:", y));
         lblCliente = crearLabelValor("---", y + 20);
@@ -77,7 +77,7 @@ public class PanelDetalleContrato extends JPanel {
         add(lblPlan);
 
         y += gap;
-        add(crearLabelTitulo("Sector / Zona:", y)); 
+        add(crearLabelTitulo("Sector / Zona:", y));
         lblSector = crearLabelValor("---", y + 20);
         add(lblSector);
 
@@ -91,9 +91,21 @@ public class PanelDetalleContrato extends JPanel {
         lblInicio = crearLabelValor("---", y + 20);
         add(lblInicio);
 
-        // Sección Financiera
+        // --- INICIO NUEVO CÓDIGO GARANTÍA ---
+        y += gap; // Bajamos un escalón más
+        add(crearLabelTitulo("Garantía en Resguardo:", y));
+        lblGarantia = crearLabelValor("S/. 0.00", y + 20);
+        lblGarantia.setForeground(new Color(22, 163, 74)); // Verde bonito
+        lblGarantia.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Un poco más negrita para resaltar
+        add(lblGarantia);
+        // --- FIN NUEVO CÓDIGO GARANTÍA ---
+
+        // Sección Financiera (Nota: Como aumentamos 'y', el separador bajará automáticamente)
         y += gap + 10;
         JSeparator sep = new JSeparator();
+        sep.setBounds(25, y, 300, 10);
+        add(sep);
+        // ... el resto sigue igual
         sep.setBounds(25, y, 300, 10);
         add(sep);
         y += 15;
@@ -107,7 +119,7 @@ public class PanelDetalleContrato extends JPanel {
         lblDeudaTotal = crearLabelValor("S/. 0.00", y + 20);
         lblDeudaTotal.setFont(new Font("Segoe UI", Font.BOLD, 22));
         add(lblDeudaTotal);
-        
+
         // BOTÓN HISTORIAL (MOVIDO MÁS ABAJO)
         JButton btnVerHistorial = new JButton("Ver Historial Completo");
         btnVerHistorial.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -115,8 +127,8 @@ public class PanelDetalleContrato extends JPanel {
         btnVerHistorial.setForeground(new Color(15, 23, 42));
         btnVerHistorial.setFocusPainted(false);
         // Lo bajamos a Y=630 para que no tape la deuda
-        btnVerHistorial.setBounds(25, 630, 200, 40); 
-        
+        btnVerHistorial.setBounds(25, 700, 200, 40);
+
         btnVerHistorial.addActionListener(e -> {
             if (idSuscripcionActual > 0) {
                 java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
@@ -130,7 +142,7 @@ public class PanelDetalleContrato extends JPanel {
                 JOptionPane.showMessageDialog(this, "Seleccione un cliente primero.");
             }
         });
-        
+
         add(btnVerHistorial);
     }
 
@@ -139,7 +151,7 @@ public class PanelDetalleContrato extends JPanel {
         this.idSuscripcionActual = s.getIdSuscripcion();
         this.nombreClienteActual = s.getNombreCliente();
 
-        double precio = s.getMontoMensual(); 
+        double precio = s.getMontoMensual();
 
         String nombre = s.getNombreCliente() != null ? s.getNombreCliente() : "SIN NOMBRE";
         String plan = s.getNombreServicio() != null ? s.getNombreServicio() : "SIN PLAN";
@@ -152,24 +164,38 @@ public class PanelDetalleContrato extends JPanel {
         lblDireccion.setText("<html>" + direccion + "</html>");
         lblContratoID.setText("CONTRATO: " + codigo);
         lblSector.setText(sector);
-        
+
         lblInicio.setText(s.getFechaInicio() != null ? s.getFechaInicio().toString() : "---");
         lblProximoPago.setText("Los días " + s.getDiaPago() + " de cada mes");
 
+        // --- AÑADIR ESTO ---
+        double garantia = s.getGarantia(); // Asumiendo que ya creaste el getter en tu modelo Suscripcion
+        if (garantia > 0) {
+            lblGarantia.setText("S/. " + String.format("%.2f", garantia));
+            lblGarantia.setForeground(new Color(22, 163, 74)); // Verde (Tiene saldo)
+        } else {
+            lblGarantia.setText("S/. 0.00 (Sin garantía)");
+            lblGarantia.setForeground(Color.GRAY); // Gris (No tiene)
+        }
+        
         int pendientes = s.getFacturasPendientes();
         double deudaTotal = precio * pendientes;
 
+        // ...
+        lblInicio.setText(s.getFechaInicio() != null ? s.getFechaInicio().toString() : "---");
+        lblProximoPago.setText("Los días " + s.getDiaPago() + " de cada mes");
+
         if (s.getActivo() == 1) {
             lblEstado.setText("SERVICIO ACTIVO");
-            lblEstado.setBackground(new Color(220, 252, 231)); 
+            lblEstado.setBackground(new Color(220, 252, 231));
             lblEstado.setForeground(new Color(22, 163, 74));
-            
+
             if (pendientes == 0) {
                 lblMorosidad.setText("Cliente al día 🌟");
                 lblMorosidad.setForeground(new Color(22, 163, 74));
             } else {
                 lblMorosidad.setText("Pendiente: " + pendientes + " mes(es)");
-                lblMorosidad.setForeground(new Color(234, 179, 8)); 
+                lblMorosidad.setForeground(new Color(234, 179, 8));
             }
         } else {
             lblEstado.setText("CORTADO");
@@ -178,7 +204,7 @@ public class PanelDetalleContrato extends JPanel {
             lblMorosidad.setText("Suspendido por Deuda");
             lblMorosidad.setForeground(Color.RED);
         }
-        
+
         lblDeudaTotal.setText("S/. " + String.format("%.2f", deudaTotal));
         lblDeudaTotal.setForeground(deudaTotal > 0 ? new Color(220, 38, 38) : new Color(15, 23, 42));
     }

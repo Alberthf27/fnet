@@ -27,6 +27,7 @@ public class Principal extends javax.swing.JFrame {
 
         // Cargar diseño por defecto para pruebas
         configurarDiseñoModerno();
+        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
     }
 
     public Principal(modelo.Empleado empleado) {
@@ -53,6 +54,7 @@ public class Principal extends javax.swing.JFrame {
         // 4. Iniciar Dashboard
         btn_principal.doClick();
         configurarDiseñoModerno();
+        this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
     }
 
     @SuppressWarnings("unchecked")

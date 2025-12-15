@@ -6,34 +6,38 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import modelo.Servicio;     // <--- AGREGAR
-import DAO.ServicioDAO;     // <--- AGREGAR
-import java.util.Date;
+import modelo.Servicio;
+import DAO.ServicioDAO;
 
 public class subpanel_Suscripciones extends JPanel {
 
-    private JTable tabla;
+private JTable tabla;
     private DefaultTableModel modelo;
     private SuscripcionDAO susDAO;
     private PanelDetalleContrato panelDetalle;
     private JTextField txtBuscar;
     private JComboBox<String> cmbOrden;
     private JLabel lblTotalContratos;
+    
+    // Botones dinámicos
+    private JButton btnEstadoDinamico; // Suspender / Reactivar
+    private JButton btnDarBaja;        // Cancelar Contrato Definitivamente
+
+    // Datos en memoria
+    private List<String[]> clientesCache = new ArrayList<>();
+    private List<Suscripcion> listaCache = new ArrayList<>();
+    private List<Servicio> planesCache = new ArrayList<>();
 
     // --- AUTOCOMPLETADO ---
     private JPopupMenu menuSugerencias;
     private JList<String> listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
-// ...
-    private List<String[]> clientesCache = new ArrayList<>();
-    private List<Suscripcion> listaCache = new ArrayList<>();
 
-    // AGREGA ESTA LÍNEA:
-    private List<Servicio> planesCache = new ArrayList<>();
     // ...
 
     public subpanel_Suscripciones() {
@@ -42,10 +46,24 @@ public class subpanel_Suscripciones extends JPanel {
         setBorder(new EmptyBorder(5, 10, 5, 10));
 
         susDAO = new SuscripcionDAO();
+        precargarDatosAuxiliares();
         precargarClientes();
         initUI();
         //initAutocompletado();
         cargarDatos("");
+    }
+    
+    private void precargarDatosAuxiliares() {
+        new Thread(() -> {
+            DAO.ClienteDAO dao = new DAO.ClienteDAO();
+            clientesCache = dao.obtenerListaSimpleClientes();
+            try {
+                ServicioDAO servDao = new ServicioDAO();
+                planesCache = servDao.obtenerServiciosActivos();
+            } catch (Exception e) {
+                System.err.println("Error planes: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void precargarClientes() {
@@ -64,117 +82,108 @@ public class subpanel_Suscripciones extends JPanel {
         }).start();
     }
 
-    private void initUI() {
-        // --- 1. PANEL SUPERIOR COMPACTO ---
+  private void initUI() {
+        // --- 1. PANEL SUPERIOR (HEADER) ---
         JPanel topPanel = new JPanel(null);
         topPanel.setPreferredSize(new Dimension(100, 50));
         topPanel.setBackground(Color.WHITE);
 
-        JButton btnNuevo = new JButton("+ CONTRATO");
-        estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
-        btnNuevo.setBounds(580, 10, 110, 30); // <--- x=580, ancho=110
-        btnNuevo.addActionListener(e -> {
-            abrirNuevoContrato();
-        });
-        topPanel.add(btnNuevo);
-
+        // Título
         JLabel lblTitulo = new JLabel("CONTRATOS");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitulo.setForeground(new Color(15, 23, 42));
         lblTitulo.setBounds(0, 10, 120, 30);
         topPanel.add(lblTitulo);
 
-        // BUSCADOR
+        // Buscador
         txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar cliente...");
         txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtBuscar.setBounds(130, 10, 250, 30);
-        topPanel.add(txtBuscar);
-
-        // FILTROS
-        cmbOrden = new JComboBox<>(new String[]{"DIA DE PAGO", "MÁS RECIENTES", "MÁS ANTIGUOS", "NOMBRE (A-Z)", "DEUDORES"});
-        cmbOrden.setBounds(390, 10, 130, 30);
-        cmbOrden.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        cmbOrden.addActionListener(e -> cargarDatos(txtBuscar.getText()));
-        cmbOrden.setBackground(Color.WHITE);
-        topPanel.add(cmbOrden);
-
-        JButton btnBuscar = new JButton();
-        // Cargar Icono Lupa
-        try {
-            // Asegúrate que la imagen está en src/img/lupa.png
-            ImageIcon icono = new ImageIcon(getClass().getResource("/img/lupa.png"));
-            // Escalar imagen si es muy grande (opcional, ajusta 20,20 al tamaño deseado)
-            Image img = icono.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-            btnBuscar.setIcon(new ImageIcon(img));
-        } catch (Exception ex) {
-            btnBuscar.setText("🔍"); // Fallback si no encuentra la imagen
-        }
-
-        btnBuscar.setBounds(530, 10, 40, 30);
-        btnBuscar.addActionListener(e -> cargarDatos(txtBuscar.getText()));
-        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
-        topPanel.add(btnBuscar);
-
-        // BOTONES ACCIÓN
-        int xAccion = 710;
-        JButton btnCortar = new JButton("CORTAR");
-        estilarBoton(btnCortar, new Color(220, 38, 38), Color.WHITE);
-        btnCortar.setBounds(xAccion, 10, 80, 30);
-        btnCortar.addActionListener(e -> cambiarEstadoServicio(0));
-        topPanel.add(btnCortar);
-
-        // Reemplaza o agrega este KeyListener a tu txtBuscar
+        
+        // Listener del Buscador (Enter = BD, Escribir = Filtro Local)
         txtBuscar.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                // Si presiona ENTER, hacemos búsqueda real a la BD (Refrescar)
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     cargarDatos(txtBuscar.getText());
                 } else {
-                    // Cualquier otra tecla: Filtro LOCAL instantáneo
                     filtrarLocalmente(txtBuscar.getText());
                 }
             }
         });
+        topPanel.add(txtBuscar);
 
-        JButton btnActivar = new JButton("ACTIVAR");
-        estilarBoton(btnActivar, new Color(22, 163, 74), Color.WHITE);
-        btnActivar.setBounds(xAccion + 90, 10, 90, 30);
-        btnActivar.addActionListener(e -> cambiarEstadoServicio(1));
-        topPanel.add(btnActivar);
+        // Filtro Orden
+        cmbOrden = new JComboBox<>(new String[]{"DIA DE PAGO", "MÁS RECIENTES", "MÁS ANTIGUOS", "NOMBRE (A-Z)", "DEUDORES"});
+        cmbOrden.setBounds(390, 10, 130, 30);
+        cmbOrden.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        cmbOrden.setBackground(Color.WHITE);
+        cmbOrden.addActionListener(e -> cargarDatos(txtBuscar.getText()));
+        topPanel.add(cmbOrden);
 
+        // Botón Lupa
+        JButton btnBuscar = new JButton("🔍");
+        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
+        btnBuscar.setBounds(530, 10, 40, 30);
+        btnBuscar.addActionListener(e -> cargarDatos(txtBuscar.getText()));
+        topPanel.add(btnBuscar);
+
+        // --- BOTONES DE ACCIÓN ---
+        
+        // Botón Nuevo (+ Contrato)
+        JButton btnNuevo = new JButton("+ CONTRATO");
+        estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
+        btnNuevo.setBounds(580, 10, 110, 30);
+        btnNuevo.addActionListener(e -> abrirNuevoContrato());
+        topPanel.add(btnNuevo);
+
+        // Coordenada X base para los botones de gestión
+        int xAccion = 700; 
+
+        // Botón Dinámico (Suspender/Reactivar)
+        btnEstadoDinamico = new JButton("SUSPENDER");
+        estilarBoton(btnEstadoDinamico, new Color(245, 158, 11), Color.WHITE);
+        btnEstadoDinamico.setBounds(xAccion, 10, 100, 30);
+        btnEstadoDinamico.setEnabled(false);
+        btnEstadoDinamico.addActionListener(e -> accionBotonDinamico());
+        topPanel.add(btnEstadoDinamico);
+
+        // Botón Dar de Baja
+        btnDarBaja = new JButton("BAJA");
+        estilarBoton(btnDarBaja, new Color(220, 38, 38), Color.WHITE);
+        btnDarBaja.setBounds(xAccion + 110, 10, 70, 30);
+        btnDarBaja.setEnabled(false);
+        btnDarBaja.addActionListener(e -> accionDarDeBaja());
+        topPanel.add(btnDarBaja);
+
+        // Botón Editar
         JButton btnEditar = new JButton("EDITAR");
         estilarBoton(btnEditar, new Color(234, 179, 8), Color.WHITE);
         btnEditar.setBounds(xAccion + 190, 10, 80, 30);
         btnEditar.addActionListener(e -> abrirEdicion());
         topPanel.add(btnEditar);
 
+        // Agregamos el TopPanel UNA SOLA VEZ
         add(topPanel, BorderLayout.NORTH);
 
-        // --- 2. TABLA ESTILO EXCEL ---
+        // --- 2. TABLA Y DETALLES ---
         String[] cols = {"ID", "CLIENTE", "PLAN", "MONTO", "DIA", "ESTADO", "HISTORIAL", "OBJ"};
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int col) { return false; }
         };
 
         tabla = new JTable(modelo);
-        tabla.setRowHeight(25); // Compacto
+        tabla.setRowHeight(25);
         tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.setIntercellSpacing(new Dimension(0, 0));
         tabla.setShowVerticalLines(true);
-        tabla.setShowHorizontalLines(true);
         tabla.setGridColor(new Color(220, 220, 220));
 
-        // Ocultar Columnas ID y OBJ
-        tabla.getColumnModel().getColumn(0).setMinWidth(0);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
-        tabla.getColumnModel().getColumn(7).setMinWidth(0);
-        tabla.getColumnModel().getColumn(7).setMaxWidth(0);
+        // Ocultar columnas internas
+        tabla.getColumnModel().getColumn(0).setMinWidth(0); tabla.getColumnModel().getColumn(0).setMaxWidth(0); // ID
+        tabla.getColumnModel().getColumn(7).setMinWidth(0); tabla.getColumnModel().getColumn(7).setMaxWidth(0); // OBJ
 
-        // Anchos Optimizados
+        // Anchos
         tabla.getColumnModel().getColumn(1).setPreferredWidth(220); // Cliente
         tabla.getColumnModel().getColumn(2).setPreferredWidth(120); // Plan
         tabla.getColumnModel().getColumn(3).setPreferredWidth(60);  // Monto
@@ -183,9 +192,9 @@ public class subpanel_Suscripciones extends JPanel {
         tabla.getColumnModel().getColumn(6).setPreferredWidth(120); // Historial
 
         // Renderizadores
+        tabla.setDefaultRenderer(Object.class, new GeneralRenderer());
         tabla.getColumnModel().getColumn(6).setCellRenderer(new HistorialRendererCompacto());
         tabla.getColumnModel().getColumn(1).setCellRenderer(new ClienteRenderer());
-        tabla.setDefaultRenderer(Object.class, new GeneralRenderer());
 
         JScrollPane scrollTabla = new JScrollPane(tabla);
         scrollTabla.getViewport().setBackground(Color.WHITE);
@@ -193,28 +202,31 @@ public class subpanel_Suscripciones extends JPanel {
 
         panelDetalle = new PanelDetalleContrato();
 
+        // Listener de selección corregido
         tabla.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && tabla.getSelectedRow() != -1) {
-                Suscripcion s = (Suscripcion) modelo.getValueAt(tabla.getSelectedRow(), 7);
-                panelDetalle.mostrarDatos(s);
+            if (!e.getValueIsAdjusting()) {
+                if (tabla.getSelectedRow() != -1) {
+                    Suscripcion s = (Suscripcion) modelo.getValueAt(tabla.getSelectedRow(), 7);
+                    panelDetalle.mostrarDatos(s);
+                    actualizarEstadoBotones(s); // Lógica de botones
+                } else {
+                    btnEstadoDinamico.setEnabled(false);
+                    btnDarBaja.setEnabled(false);
+                }
             }
         });
 
+        // Split Pane (Tabla | Detalle)
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollTabla, panelDetalle);
         split.setBorder(null);
-        split.setDividerSize(3); // Borde delgado
-
-        // MAGIA PARA QUE NO SE ESTIRE EL DETALLE:
-        // 1. Le decimos que TODO el espacio extra (1.0) se lo de a la izquierda (Tabla)
-        split.setResizeWeight(1.0);
-
-        // 2. Fijamos el ancho del panel de detalle
+        split.setDividerSize(3);
+        split.setResizeWeight(1.0); // Tabla ocupa el espacio extra
         panelDetalle.setMinimumSize(new Dimension(350, 0));
         panelDetalle.setPreferredSize(new Dimension(380, 0));
 
         add(split, BorderLayout.CENTER);
 
-        // --- 3. PANEL INFERIOR (CONTADOR) ---
+        // --- 3. FOOTER (CONTADOR) ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottomPanel.setBackground(Color.WHITE);
         bottomPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
@@ -225,6 +237,70 @@ public class subpanel_Suscripciones extends JPanel {
         bottomPanel.add(lblTotalContratos);
 
         add(bottomPanel, BorderLayout.SOUTH);
+    }
+    
+    // --- LÓGICA INTELIGENTE DE BOTONES ---
+    private void actualizarEstadoBotones(Suscripcion s) {
+        // Verificar si está dado de baja (Si tu objeto tiene fechaCancelacion, úsala aquí)
+        // Por ahora asumimos la lógica solicitada: Activo vs Suspendido
+        
+        btnDarBaja.setEnabled(true);
+        btnEstadoDinamico.setEnabled(true);
+
+        if (s.getActivo() == 1) {
+            // ESTÁ ACTIVO -> Ofrecer SUSPENDER
+            btnEstadoDinamico.setText("SUSPENDER");
+            btnEstadoDinamico.setBackground(new Color(245, 158, 11)); // Naranja
+        } else {
+            // ESTÁ SUSPENDIDO (INACTIVO) -> Ofrecer REACTIVAR
+            btnEstadoDinamico.setText("REACTIVAR");
+            btnEstadoDinamico.setBackground(new Color(22, 163, 74)); // Verde
+        }
+        
+        // Opcional: Si ya está dado de baja definitivamente, podrías deshabilitar todo
+        // if (s.getFechaCancelacion() != null) { 
+        //     btnEstadoDinamico.setEnabled(false); 
+        //     btnEstadoDinamico.setText("DE BAJA");
+        // }
+    }
+
+    private void accionBotonDinamico() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) return;
+        Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
+
+        boolean esSuspension = (s.getActivo() == 1);
+        String msj = esSuspension ? "¿Suspender el servicio por falta de pago?" : "¿Reactivar el servicio al cliente?";
+        
+        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Estado", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            // 1 = Activo, 0 = Suspendido
+            int nuevoEstado = esSuspension ? 0 : 1; 
+            new Thread(() -> {
+                susDAO.cambiarEstado(s.getIdSuscripcion(), nuevoEstado);
+                SwingUtilities.invokeLater(() -> cargarDatos(txtBuscar.getText()));
+            }).start();
+        }
+    }
+
+    private void accionDarDeBaja() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) return;
+        Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
+
+        String msj = "<html>ADVERTENCIA: Dar de baja finalizará el contrato hoy.<br>"
+                   + "El servicio pasará a estado 'BAJA' y se guardará la fecha de cancelación.<br><br>"
+                   + "¿Confirmar la BAJA DEFINITIVA?</html>";
+        
+        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Baja", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+            new Thread(() -> {
+                // Aquí llamamos al método que actualiza fecha_cancelacion = NOW() y activo = 0
+                susDAO.darDeBajaContrato(s.getIdSuscripcion()); 
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Contrato finalizado correctamente.");
+                    cargarDatos(txtBuscar.getText());
+                });
+            }).start();
+        }
     }
 
 private void abrirNuevoContrato() {

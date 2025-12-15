@@ -1,4 +1,3 @@
-
 package vista.componentes;
 
 import java.awt.Color;
@@ -8,50 +7,67 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
 public class CardPanel extends JPanel {
     
+    // 1. Declaramos las etiquetas como variables globales de la clase
+    private JLabel lblValor;
+    private JLabel lblSubtitulo;
+    private JLabel lblIcono;
+
     public CardPanel(String titulo, String valor, String subtitulo, String rutaIcono, Color colorIcono) {
         setOpaque(false);
-        setLayout(null); // Diseño absoluto interno
+        setLayout(null); 
         setBackground(Color.WHITE);
         
-        // 1. Icono (Esquina superior derecha)
-        JLabel lblIcono = new JLabel();
+        // --- Icono ---
+        lblIcono = new JLabel();
         try {
-            // Si tienes iconos, úsalos. Si no, usamos un cuadro de color temporal
             if(rutaIcono != null && !rutaIcono.isEmpty()) {
                 lblIcono.setIcon(new javax.swing.ImageIcon(getClass().getResource(rutaIcono)));
             } else {
-                lblIcono.setText("●"); // Punto como placeholder
+                lblIcono.setText("●");
                 lblIcono.setForeground(colorIcono);
                 lblIcono.setFont(new Font("Segoe UI", Font.BOLD, 20));
             }
         } catch(Exception e) {}
         lblIcono.setBounds(180, 15, 40, 40);
-        lblIcono.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lblIcono.setHorizontalAlignment(SwingConstants.RIGHT);
         add(lblIcono);
 
-        // 2. Título (Ej: Ingresos de Hoy)
+        // --- Título ---
         JLabel lblTitulo = new JLabel(titulo);
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblTitulo.setForeground(new Color(100, 116, 139)); // Gris azulado (Slate 500)
+        lblTitulo.setForeground(new Color(100, 116, 139));
         lblTitulo.setBounds(20, 20, 150, 20);
         add(lblTitulo);
         
-        // 3. Valor Principal (Ej: S/. 1,250.00)
-        JLabel lblValor = new JLabel(valor);
+        // --- Valor Principal (Instanciamos la variable global) ---
+        lblValor = new JLabel(valor);
         lblValor.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        lblValor.setForeground(new Color(15, 23, 42)); // Azul oscuro (Slate 900)
+        lblValor.setForeground(new Color(15, 23, 42));
         lblValor.setBounds(20, 45, 200, 30);
         add(lblValor);
         
-        // 4. Subtítulo (Ej: +12% vs ayer)
-        JLabel lblSub = new JLabel(subtitulo);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblSub.setForeground(colorIcono); // Color verde/rojo según el dato
-        lblSub.setBounds(20, 80, 200, 20);
-        add(lblSub);
+        // --- Subtítulo (Instanciamos la variable global) ---
+        lblSubtitulo = new JLabel(subtitulo);
+        lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSubtitulo.setForeground(colorIcono);
+        lblSubtitulo.setBounds(20, 80, 200, 20);
+        add(lblSubtitulo);
+    }
+
+    // 2. MÉTODO QUE FALTABA: Permite actualizar los datos desde panel_Gerente
+    public void setData(String nuevoValor, String nuevoSubtitulo) {
+        // Ejecutar en el hilo de Swing para evitar parpadeos o errores
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            lblValor.setText(nuevoValor);
+            if(nuevoSubtitulo != null && !nuevoSubtitulo.isEmpty()) {
+                lblSubtitulo.setText(nuevoSubtitulo);
+            }
+            repaint(); // Forzar repintado visual
+        });
     }
 
     @Override
@@ -63,7 +79,7 @@ public class CardPanel extends JPanel {
         g2.setColor(getBackground());
         g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
         
-        // Borde sutil gris (opcional)
+        // Borde sutil gris
         g2.setColor(new Color(226, 232, 240));
         g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 15, 15);
         

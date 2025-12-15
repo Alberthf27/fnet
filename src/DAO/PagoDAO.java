@@ -157,6 +157,45 @@ public class PagoDAO {
         return lista;
     }
     
+    
+    // --- AGREGAR ESTO EN PagoDAO.java ---
+
+    // Obtener los últimos N pagos registrados (Para el Dashboard)
+    public List<Object[]> obtenerUltimosPagos(int limite) {
+        List<Object[]> lista = new ArrayList<>();
+        // Unimos Factura -> Suscripción -> Cliente para tener el nombre
+        // Filtramos por id_estado = 2 (Pagado)
+        String sql = "SELECT f.fecha_pago, c.nombres, c.apellidos, f.monto_pagado " +
+                     "FROM factura f " +
+                     "JOIN suscripcion s ON f.id_suscripcion = s.id_suscripcion " +
+                     "JOIN cliente c ON s.id_cliente = c.id_cliente " +
+                     "WHERE f.id_estado = 2 " + 
+                     "ORDER BY f.fecha_pago DESC LIMIT ?";
+        
+        try (Connection conn = Conexion.getConexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, limite);
+            ResultSet rs = ps.executeQuery();
+            
+            // Formato de hora simple
+            java.text.SimpleDateFormat sdfHora = new java.text.SimpleDateFormat("HH:mm");
+            
+            while(rs.next()) {
+                java.sql.Timestamp fechaPago = rs.getTimestamp("fecha_pago");
+                String hora = (fechaPago != null) ? sdfHora.format(fechaPago) : "--:--";
+                
+                lista.add(new Object[]{
+                    hora,                                               // Col 1: Hora
+                    rs.getString("nombres") + " " + rs.getString("apellidos"), // Col 2: Cliente
+                    "S/. " + rs.getDouble("monto_pagado"),              // Col 3: Monto
+                    "Efectivo"                                          // Col 4: Método (Hardcodeado por ahora)
+                });
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return lista;
+    }
+    
     // En src/DAO/PagoDAO.java
     public List<Object[]> buscarDeudasPorSuscripcion(int idSuscripcion) {
         List<Object[]> lista = new ArrayList<>();

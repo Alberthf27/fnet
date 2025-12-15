@@ -1,47 +1,85 @@
 package vista;
 
-public class PanelEquipos extends javax.swing.JPanel {
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+public class PanelEquipos extends JPanel {
 
     public PanelEquipos() {
-        initComponents(); // NetBeans init
-        
-        // Configurar Pestañas
-        jTabbedPane1.removeAll();
-        
-        // Pestaña 1: Inventario (El panel que acabamos de crear)
-        jTabbedPane1.addTab("Inventario General", 
-                cargarIcono("/img/equipos.png"), 
-                new subpanel_Inventario());
-        
-        // Pestaña 2: Tipos de Equipo (Para no repetir código, aquí podrías reusar 
-        // la lógica de 'subpanel_Planes' (lista izquierda, form derecha) 
-        // pero adaptada a Tipos, o crear un 'subpanel_TiposEquipo' nuevo).
-        // Por ahora dejamos un panel vacío para que compile.
-        jTabbedPane1.addTab("Modelos y Tipos", 
-                cargarIcono("/img/servicios.png"), 
-                new javax.swing.JPanel()); 
-    }
+        setLayout(new BorderLayout(0, 0)); // Diseño Responsive
+        setBackground(new Color(241, 245, 249));
 
-    private javax.swing.Icon cargarIcono(String ruta) {
-        try {
-            java.net.URL url = getClass().getResource(ruta);
-            return (url != null) ? new javax.swing.ImageIcon(url) : null;
-        } catch (Exception e) { return null; }
-    }
+        // --- 1. HEADER (Fijo arriba) ---
+        JPanel pnlHeader = new JPanel(new BorderLayout());
+        pnlHeader.setBackground(getBackground());
+        pnlHeader.setPreferredSize(new Dimension(0, 80));
+        pnlHeader.setBorder(new EmptyBorder(20, 30, 20, 30));
 
-    // --- CÓDIGO GENERADO POR NETBEANS (NO TOCAR, SE LIMPIA EN CONSTRUCTOR) ---
-    private void initComponents() {
-        jTabbedPane1 = new javax.swing.JTabbedPane();
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 1140, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 747, Short.MAX_VALUE)
-        );
+        // Títulos
+        JPanel pnlTextos = new JPanel(new BorderLayout());
+        pnlTextos.setOpaque(false);
+        JLabel lblTitulo = new JLabel("Inventario de Equipos");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitulo.setForeground(new Color(15, 23, 42));
+        
+        JLabel lblSub = new JLabel("Gestión de Routers, Antenas y ONUs");
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblSub.setForeground(new Color(100, 116, 139));
+        
+        pnlTextos.add(lblTitulo, BorderLayout.NORTH);
+        pnlTextos.add(lblSub, BorderLayout.SOUTH);
+        pnlHeader.add(pnlTextos, BorderLayout.WEST);
+
+        // Controles (Buscador y Botón)
+        JPanel pnlControles = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pnlControles.setOpaque(false);
+        
+        JTextField txtBuscar = new JTextField(15);
+        JButton btnBuscar = new JButton("Buscar");
+        JButton btnNuevo = new JButton("+ Registrar Equipo");
+        btnNuevo.setBackground(new Color(37, 99, 235));
+        btnNuevo.setForeground(Color.WHITE);
+        
+        pnlControles.add(txtBuscar);
+        pnlControles.add(btnBuscar);
+        pnlControles.add(btnNuevo);
+        pnlHeader.add(pnlControles, BorderLayout.EAST);
+
+        add(pnlHeader, BorderLayout.NORTH);
+
+        // --- 2. TABLA (Se expande en el centro) ---
+        JPanel pnlTabla = new JPanel(new BorderLayout());
+        pnlTabla.setBackground(Color.WHITE);
+        pnlTabla.setBorder(new EmptyBorder(0, 30, 30, 30));
+
+        String[] col = {"Serie/MAC", "Modelo", "Tipo", "Estado", "Asignado a"};
+        Object[][] data = {
+            {"A1:B2:C3:D4", "Huawei HG8145V5", "ONU", "En Uso", "Juan Perez"},
+            {"TP-12345-X", "TP-Link Archer C6", "Router", "Disponible", "--"}
+        };
+        
+        DefaultTableModel model = new DefaultTableModel(data, col);
+        JTable tabla = new JTable(model);
+        tabla.setRowHeight(35);
+        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        
+        JScrollPane scroll = new JScrollPane(tabla);
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        
+        pnlTabla.add(scroll, BorderLayout.CENTER); // IMPORTANTE
+        
+        add(pnlTabla, BorderLayout.CENTER);
     }
-    private javax.swing.JTabbedPane jTabbedPane1;
 }

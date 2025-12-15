@@ -3,12 +3,13 @@ package vista;
 import DAO.FinanzasDAO;
 import java.awt.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-// JFreeChart Imports
+// Imports JFreeChart
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -25,22 +26,23 @@ public class PanelFinanzas extends JPanel {
 
     private FinanzasDAO finanzasDAO;
     private JLabel lblMRR, lblCaja, lblDeuda;
-
-    // Contenedores para los 4 gráficos
     private JPanel pnlGraficoTendencia, pnlGraficoPastel, pnlGraficoChurn, pnlGraficoCaja;
+    
+    // Pool de hilos para paralelismo controlado (3 hilos simultáneos para no saturar Railway)
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
     public PanelFinanzas() {
         setBackground(new Color(245, 247, 250));
-        setLayout(new BorderLayout(20, 20)); // Use BorderLayout for main structure
-        setBorder(new EmptyBorder(20, 20, 20, 20)); // Margin around the whole panel
+        setLayout(new BorderLayout(20, 20));
+        setBorder(new EmptyBorder(20, 20, 20, 20));
 
         finanzasDAO = new FinanzasDAO();
         initUI();
-        cargarDatos();
+        cargarDatosParalelo(); // <--- NUEVO MÉTODO DE CARGA
     }
 
     private void initUI() {
-        // --- HEADER PANEL (Title + Buttons) ---
+        // --- HEADER ---
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(getBackground());
         headerPanel.setPreferredSize(new Dimension(0, 50));
@@ -66,36 +68,35 @@ public class PanelFinanzas extends JPanel {
         headerPanel.add(btnPanel, BorderLayout.EAST);
         add(headerPanel, BorderLayout.NORTH);
 
-        // --- CENTER PANEL (KPIs + Charts) ---
+        // --- CENTER ---
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setBackground(getBackground());
 
-        // 1. KPI CARDS SECTION
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0)); // 1 row, 3 cols, gap 20
+        // 1. CARDS
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         cardsPanel.setBackground(getBackground());
-        cardsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120)); // Fixed height for cards
         cardsPanel.setPreferredSize(new Dimension(0, 120));
 
-        lblMRR = new JLabel("Cargando...");
+        lblMRR = new JLabel("...");
         cardsPanel.add(crearTarjeta("MRR (Ingreso Recurrente)", lblMRR, "Salud financiera base", new Color(37, 99, 235)));
 
-        lblCaja = new JLabel("Cargando...");
+        lblCaja = new JLabel("...");
         cardsPanel.add(crearTarjeta("Flujo de Caja (Mes)", lblCaja, "Liquidez inmediata", new Color(22, 163, 74)));
 
-        lblDeuda = new JLabel("Cargando...");
+        lblDeuda = new JLabel("...");
         cardsPanel.add(crearTarjeta("Cartera Vencida", lblDeuda, "Riesgo de impago", new Color(220, 38, 38)));
 
         centerPanel.add(cardsPanel);
-        centerPanel.add(Box.createRigidArea(new Dimension(0, 20))); // Spacer
+        centerPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // 2. CHARTS GRID SECTION
+        // 2. GRÁFICOS
         JPanel chartsGrid = new JPanel(new GridLayout(2, 2, 20, 20));
         chartsGrid.setBackground(getBackground());
 
         pnlGraficoTendencia = crearContenedorGrafico("Tendencia de Crecimiento (MRR)");
-        pnlGraficoPastel = crearContenedorGrafico("Distribución de Planes (Mix)");
-        pnlGraficoChurn = crearContenedorGrafico("Altas vs Bajas (Crecimiento Neto)");
+        pnlGraficoPastel = crearContenedorGrafico("Distribución de Planes");
+        pnlGraficoChurn = crearContenedorGrafico("Altas vs Bajas");
         pnlGraficoCaja = crearContenedorGrafico("Flujo de Caja (7 días)");
 
         chartsGrid.add(pnlGraficoTendencia);
@@ -107,14 +108,55 @@ public class PanelFinanzas extends JPanel {
         add(centerPanel, BorderLayout.CENTER);
     }
 
+    /**
+     * Mágia de Optimización:
+     * Lanza múltiples hilos para que la UI se pinte instantáneamente 
+     * y los datos aparezcan conforme llegan de la BD.
+     */
+    private void cargarDatosParalelo() {
+        // Indicadores de carga
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+
+        // 1. Cargar KPIs (Texto simple) - Rápidos
+        CompletableFuture.supplyAsync(() -> finanzasDAO.calcularMRR(), executor)
+            .thenAccept(val -> SwingUtilities.invokeLater(() -> lblMRR.setText("S/. " + String.format("%.2f", val))));
+
+        CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerBalanceMes(), executor)
+            .thenAccept(val -> SwingUtilities.invokeLater(() -> lblCaja.setText("S/. " + String.format("%.2f", val))));
+
+        CompletableFuture.supplyAsync(() -> finanzasDAO.calcularDeudaTotal(), executor)
+            .thenAccept(val -> SwingUtilities.invokeLater(() -> lblDeuda.setText("S/. " + String.format("%.2f", val))));
+
+        // 2. Cargar Gráficos (Listas de datos) - Más pesados
+        CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerHistorialMRR(), executor)
+            .thenAccept(datos -> SwingUtilities.invokeLater(() -> generarGraficoLinea(pnlGraficoTendencia, datos)));
+
+        CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerDistribucionPlanes(), executor)
+            .thenAccept(datos -> SwingUtilities.invokeLater(() -> generarGraficoDonut(pnlGraficoPastel, datos)));
+
+        CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerAltasBajasUltimosMeses(), executor)
+            .thenAccept(datos -> SwingUtilities.invokeLater(() -> generarGraficoBarrasApiladas(pnlGraficoChurn, datos)));
+        
+        CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerFlujoUltimos7Dias(), executor)
+            .thenAccept(datos -> {
+                SwingUtilities.invokeLater(() -> {
+                    generarGraficoBarrasSimples(pnlGraficoCaja, datos);
+                    // Cuando el último (o uno de los últimos) termine, ocultamos la carga global
+                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                });
+            });
+    }
+
+    // --- MÉTODOS DE UI (Igual que antes pero encapsulados) ---
+
     private JPanel crearTarjeta(String titulo, JLabel lblValor, String subtitulo, Color color) {
-        JPanel card = new JPanel(new BorderLayout()); // Changed to BorderLayout for resizing
+        JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 5, 0, 0, color),
             new EmptyBorder(15, 15, 15, 15)
         ));
-
+        
         JLabel lblT = new JLabel(titulo);
         lblT.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblT.setForeground(Color.GRAY);
@@ -128,7 +170,6 @@ public class PanelFinanzas extends JPanel {
         lblS.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblS.setForeground(Color.LIGHT_GRAY);
         card.add(lblS, BorderLayout.SOUTH);
-
         return card;
     }
 
@@ -139,17 +180,40 @@ public class PanelFinanzas extends JPanel {
             BorderFactory.createLineBorder(new Color(226, 232, 240)),
             new EmptyBorder(10, 10, 10, 10)
         ));
-
         JLabel lbl = new JLabel(titulo);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lbl.setForeground(new Color(100, 116, 139));
         lbl.setBorder(new EmptyBorder(0, 0, 10, 0));
         p.add(lbl, BorderLayout.NORTH);
-
+        
+        // Placeholder de carga
+        JLabel loading = new JLabel("Cargando datos...", SwingConstants.CENTER);
+        loading.setForeground(Color.LIGHT_GRAY);
+        p.add(loading, BorderLayout.CENTER);
+        
         return p;
     }
 
-    // --- GENERADORES DE GRÁFICOS (Keep mostly same logic, simplified styles) ---
+    private void estilarBoton(JButton btn, Color bg) {
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+    }
+
+    private void abrirDialogoMovimiento(String tipo) {
+        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        java.awt.Frame frame = (parent instanceof java.awt.Frame) ? (java.awt.Frame) parent : null;
+        DialogoMovimiento dialog = new DialogoMovimiento(frame, tipo);
+        dialog.setVisible(true);
+        if (dialog.isGuardado()) {
+            cargarDatosParalelo(); // Recargar si hubo cambios
+        }
+    }
+
+    // --- GENERACIÓN DE JFREECHART ---
 
     private void generarGraficoLinea(JPanel contenedor, List<Object[]> datos) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -171,7 +235,6 @@ public class PanelFinanzas extends JPanel {
 
         JFreeChart chart = ChartFactory.createRingChart("", dataset, true, true, false);
         PiePlot plot = (PiePlot) chart.getPlot();
-        // Simple color cycle or specific logic if names are known
         plot.setBackgroundPaint(Color.WHITE);
         plot.setOutlineVisible(false);
         plot.setLabelBackgroundPaint(new Color(255,255,255, 200));
@@ -180,12 +243,11 @@ public class PanelFinanzas extends JPanel {
 
     private void generarGraficoBarrasApiladas(JPanel contenedor, List<double[]> datos) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        String[] meses = {"Sep", "Oct", "Nov", "Dic"}; // Example labels, should ideally come from DB
+        String[] meses = {"Sep", "Oct", "Nov", "Dic"}; 
         for (int i=0; i<datos.size(); i++) {
             dataset.addValue(datos.get(i)[0], "Nuevos", (i<meses.length ? meses[i] : ""+i));
             dataset.addValue(datos.get(i)[1], "Bajas", (i<meses.length ? meses[i] : ""+i));
         }
-
         JFreeChart chart = ChartFactory.createBarChart("", "", "Clientes", dataset);
         CategoryPlot plot = chart.getCategoryPlot();
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
@@ -198,12 +260,13 @@ public class PanelFinanzas extends JPanel {
 
     private void generarGraficoBarrasSimples(JPanel contenedor, List<double[]> datos) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        // Generar etiquetas de días dinámicas (opcional) o fijas
         String[] dias = {"L", "M", "M", "J", "V", "S", "D"};
         for (int i=0; i<datos.size(); i++) {
-            dataset.addValue(datos.get(i)[0], "Ingreso", (i<dias.length?dias[i]:""+i));
-            dataset.addValue(datos.get(i)[1], "Gasto", (i<dias.length?dias[i]:""+i));
+            String diaLabel = (i < dias.length) ? dias[i] : String.valueOf(i);
+            dataset.addValue(datos.get(i)[0], "Ingreso", diaLabel);
+            dataset.addValue(datos.get(i)[1], "Gasto", diaLabel);
         }
-
         JFreeChart chart = ChartFactory.createBarChart("", "", "", dataset);
         CategoryPlot plot = chart.getCategoryPlot();
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
@@ -222,7 +285,7 @@ public class PanelFinanzas extends JPanel {
     }
 
     private void agregarAlPanel(JPanel contenedor, JFreeChart chart) {
-        contenedor.removeAll(); // Clear previous chart if reloading
+        contenedor.removeAll(); 
         chart.setBackgroundPaint(Color.WHITE);
         chart.setBorderVisible(false);
         ChartPanel cp = new ChartPanel(chart);
@@ -230,65 +293,5 @@ public class PanelFinanzas extends JPanel {
         contenedor.add(cp, BorderLayout.CENTER);
         contenedor.revalidate();
         contenedor.repaint();
-    }
-
-    private void abrirDialogoMovimiento(String tipo) {
-        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-        java.awt.Frame frame = (parent instanceof java.awt.Frame) ? (java.awt.Frame) parent : null;
-        DialogoMovimiento dialog = new DialogoMovimiento(frame, tipo);
-        dialog.setVisible(true);
-        if (dialog.isGuardado()) {
-            cargarDatos();
-        }
-    }
-
-    private void estilarBoton(JButton btn, Color bg) {
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-    }
-
-    private void cargarDatos() {
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
-        new Thread(() -> {
-            try {
-                // Async data loading logic (Keep your original CompletableFuture logic here)
-                // ... (Use the same logic from your provided snippet)
-                // Ensure finanzasDAO methods exist (see below)
-
-                 // Mocking data for visual test if DAO is empty
-                 // In production, uncomment your DAO calls
-                 double mrr = finanzasDAO.calcularMRR();
-                 double caja = finanzasDAO.obtenerBalanceMes();
-                 double deuda = finanzasDAO.calcularDeudaTotal();
-                 List<Object[]> histMRR = finanzasDAO.obtenerHistorialMRR();
-                 List<Object[]> planes = finanzasDAO.obtenerDistribucionPlanes();
-                 List<double[]> churn = finanzasDAO.obtenerAltasBajasUltimosMeses();
-                 List<double[]> flujo = finanzasDAO.obtenerFlujoUltimos7Dias();
-
-                SwingUtilities.invokeLater(() -> {
-                    lblMRR.setText("S/. " + String.format("%.2f", mrr));
-                    lblCaja.setText("S/. " + String.format("%.2f", caja));
-                    lblDeuda.setText("S/. " + String.format("%.2f", deuda));
-                    
-                    try {
-                        generarGraficoLinea(pnlGraficoTendencia, histMRR);
-                        generarGraficoDonut(pnlGraficoPastel, planes);
-                        generarGraficoBarrasApiladas(pnlGraficoChurn, churn);
-                        generarGraficoBarrasSimples(pnlGraficoCaja, flujo);
-                    } catch (Exception e) { e.printStackTrace(); }
-                    
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                SwingUtilities.invokeLater(() -> {
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
-                });
-            }
-        }).start();
     }
 }
