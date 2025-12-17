@@ -34,6 +34,54 @@ public class ClienteDAO {
         }
         return clientes;
     }
+    
+    
+    // AGREGAR ESTO EN TU CLASE ClienteDAO
+
+    public List<Cliente> listarTodo(String busqueda, String orden) {
+        List<Cliente> lista = new ArrayList<>();
+        String sql = "SELECT * FROM cliente WHERE (nombres LIKE ? OR apellidos LIKE ? OR dni_cliente LIKE ?)";
+
+        // Lógica de Filtros
+        if (orden != null) {
+            switch (orden) {
+                case "NOMBRE (A-Z)": sql += " ORDER BY nombres ASC"; break;
+                case "APELLIDO (A-Z)": sql += " ORDER BY apellidos ASC"; break;
+                case "SOLO ACTIVOS": sql += " AND activo = 1 ORDER BY nombres ASC"; break;
+                case "SOLO BAJAS": sql += " AND activo = 0 ORDER BY nombres ASC"; break;
+                default: sql += " ORDER BY id_cliente DESC"; break;
+            }
+        } else {
+            sql += " ORDER BY id_cliente DESC";
+        }
+
+        try (java.sql.Connection conn = bd.Conexion.getConexion(); 
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            String pattern = "%" + busqueda + "%";
+            ps.setString(1, pattern);
+            ps.setString(2, pattern);
+            ps.setString(3, pattern);
+
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Cliente c = new Cliente();
+                    c.setIdCliente(rs.getLong("id_cliente"));
+                    c.setNombres(rs.getString("nombres"));
+                    c.setApellidos(rs.getString("apellidos"));
+                    c.setDniCliente(rs.getString("dni_cliente"));
+                    c.setDireccion(rs.getString("direccion"));
+                    c.setTelefono(rs.getString("telefono"));
+                    c.setActivo(rs.getInt("activo"));
+                    // Agrega otros campos si tu modelo Cliente tiene más (email, coordenadas, etc.)
+                    lista.add(c);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
 
     public List<Cliente> obtenerClientesPaginados(int limite, int offset, String criterio) {
         List<Cliente> lista = new ArrayList<>();

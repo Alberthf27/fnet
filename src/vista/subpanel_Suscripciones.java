@@ -474,26 +474,71 @@ private void abrirNuevoContrato() {
         lblTotalContratos.setText("Total Contratos: " + listaParaMostrar.size());
     }
 
-    // --- ACCIONES ---
-    private void cambiarEstadoServicio(int nuevoEstado) {
+// EN: vista/subpanel_Suscripciones.java
+
+    private void cambiarEstadoServicio(int estadoForzado) {
         int fila = tabla.getSelectedRow();
         if (fila == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un contrato.");
             return;
         }
+        
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
-        String accion = nuevoEstado == 1 ? "ACTIVAR" : "CORTAR";
-
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Seguro que desea " + accion + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            if (Principal.instancia != null) {
-                Principal.instancia.mostrarCarga(true);
-            }
-            new Thread(() -> {
-                susDAO.cambiarEstado(s.getIdSuscripcion(), nuevoEstado);
-                cargarDatos(txtBuscar.getText());
-            }).start();
+        
+        // 1. Lógica para alternar estado si viene del botón dinámico (-1)
+        int nuevoEstado;
+        if (estadoForzado == -1) {
+             nuevoEstado = (s.getActivo() == 1) ? 0 : 1; 
+        } else {
+             nuevoEstado = estadoForzado;
         }
+
+        String accion = (nuevoEstado == 1) ? "ACTIVAR" : "CORTAR / SUSPENDER";
+
+        // 2. AQUÍ ESTÁ LA LÓGICA DE ALERTAS QUE PEDISTE
+        if (nuevoEstado == 0) { // Si vamos a CORTAR
+            StringBuilder alerta = new StringBuilder();
+            alerta.append("¿Está seguro de ").append(accion).append(" el servicio a ").append(s.getNombreCliente()).append("?\n\n");
+            
+            // Verificamos si tiene equipos prestados (SEMA/SIFM)
+            if (s.isEquiposPrestados()) {
+                alerta.append("⚠️ ¡ATENCIÓN! CLIENTE TIENE EQUIPOS PRESTADOS.\n");
+                alerta.append("   -> Debe recuperar: Router / ONU / Antena.\n\n");
+            } else {
+                alerta.append("ℹ️ Equipos propios (No requiere devolución).\n\n");
+            }
+
+            // Verificamos si tiene garantía
+            if (s.getGarantia() > 0) {
+                alerta.append("💰 ¡ALERTA! HAY GARANTÍA POR DEVOLVER: S/. ")
+                      .append(String.format("%.2f", s.getGarantia())).append("\n");
+            }
+            
+            int confirm = JOptionPane.showConfirmDialog(this, alerta.toString(), "Confirmar Corte", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION) return;
+            
+        } else {
+            // Lógica simple para ACTIVAR
+            int confirm = JOptionPane.showConfirmDialog(this, "¿Reactivar servicio?", "Confirmar", JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION) return;
+        }
+
+        // 3. EJECUCIÓN EN BASE DE DATOS
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        
+        new Thread(() -> {
+            boolean dbSuccess = susDAO.cambiarEstado(s.getIdSuscripcion(), nuevoEstado);
+            
+            SwingUtilities.invokeLater(() -> {
+                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                if (dbSuccess) {
+                    JOptionPane.showMessageDialog(this, "Estado actualizado correctamente.");
+                    cargarDatos(txtBuscar.getText()); // Refrescar tabla
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al actualizar base de datos.");
+                }
+            });
+        }).start();
     }
 
 private void abrirEdicion() {

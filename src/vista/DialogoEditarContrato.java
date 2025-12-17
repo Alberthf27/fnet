@@ -1,7 +1,7 @@
 package vista;
 
 import DAO.SuscripcionDAO;
-import DAO.ClienteDAO; // Necesario para crear clientes
+import DAO.ClienteDAO; 
 import modelo.Servicio;
 import com.toedter.calendar.JDateChooser;
 import java.awt.Color;
@@ -20,6 +20,12 @@ public class DialogoEditarContrato extends JDialog {
     private JComboBox<Servicio> cmbPlanes;
     private JTextField txtDireccion;
     
+    // --- NUEVOS CONTROLES ---
+    private JCheckBox chkMesAdelantado;
+    private JCheckBox chkEquiposPrestados;
+    private JTextField txtGarantia;
+    // ------------------------
+
     // CAMPOS DE CLIENTE
     private JTextField txtDniCli, txtNombresCli, txtApellidosCli, txtCelularCli;
     private JButton btnBuscarDni;
@@ -29,9 +35,9 @@ public class DialogoEditarContrato extends JDialog {
 
     private int idSuscripcion;
     private int idClienteActual; 
-    private int idClienteSeleccionado = -1; // ID final a usar
+    private int idClienteSeleccionado = -1;
     private boolean guardado = false;
-    private boolean esNuevoCliente = false; // Bandera para saber si insertamos
+    private boolean esNuevoCliente = false;
 
     public DialogoEditarContrato(java.awt.Frame parent, int idSuscripcion, 
                                  String nombrePlanActual, String dirActual, 
@@ -45,15 +51,16 @@ public class DialogoEditarContrato extends JDialog {
         this.idClienteSeleccionado = idClienteOriginal;
 
         setTitle(idSuscripcion == -1 ? "Nuevo Contrato" : "Editar Contrato #" + idSuscripcion);
-        setSize(550, 680); // Más alto para el formulario de cliente
+        setSize(550, 750); // Aumentamos un poco la altura para las nuevas opciones
         setLocationRelativeTo(parent);
         setResizable(false);
         
         initUI(nombrePlanActual, dirActual, nombreClienteOriginal, planesCache, fechaInicioActual, diaPagoActual);
         
-        // Si es editar, cargamos los datos del cliente actual (simulado)
         if (idSuscripcion != -1 && nombreClienteOriginal != null) {
             llenarDatosClienteExistente(); 
+            // NOTA: Para editar los checks (MA, Equipos) deberías pasarlos en el constructor también.
+            // Por ahora inician en los valores por defecto o tendrás que añadir lógica de carga extra.
         }
     }
 
@@ -87,30 +94,24 @@ public class DialogoEditarContrato extends JDialog {
         panel.add(cmbPlanes);
         y += 75;
 
-        // --- 2. FECHAS (CON SINCRONIZACIÓN AUTOMÁTICA) ---
+        // --- 2. FECHAS ---
         panel.add(crearLabel("Fecha Inicio:", 20, y));
         dateInicio = new JDateChooser();
         dateInicio.setDate(fechaInicio != null ? fechaInicio : new Date());
         dateInicio.setDateFormatString("dd/MM/yyyy");
         dateInicio.setBounds(20, y + 25, 200, 35);
         
-        // LISTENER MAGICO: Al cambiar fecha, cambia el día de pago
-        dateInicio.getDateEditor().addPropertyChangeListener(
-            new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent e) {
-                    if ("date".equals(e.getPropertyName())) {
-                        Date nuevaFecha = dateInicio.getDate();
-                        if (nuevaFecha != null) {
-                            java.util.Calendar cal = java.util.Calendar.getInstance();
-                            cal.setTime(nuevaFecha);
-                            int dia = cal.get(java.util.Calendar.DAY_OF_MONTH);
-                            spinDiaPago.setValue(dia); // Actualiza spinner
-                        }
-                    }
+        dateInicio.getDateEditor().addPropertyChangeListener(e -> {
+            if ("date".equals(e.getPropertyName())) {
+                Date nuevaFecha = dateInicio.getDate();
+                if (nuevaFecha != null) {
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.setTime(nuevaFecha);
+                    int dia = cal.get(java.util.Calendar.DAY_OF_MONTH);
+                    spinDiaPago.setValue(dia);
                 }
-            });
-        
+            }
+        });
         panel.add(dateInicio);
 
         panel.add(crearLabel("Día de Pago:", 250, y));
@@ -120,7 +121,40 @@ public class DialogoEditarContrato extends JDialog {
         panel.add(spinDiaPago);
         y += 75;
 
-        // --- 3. DIRECCIÓN ---
+        // --- 3. CONDICIONES DEL CONTRATO (NUEVO) ---
+        JPanel pnlCondiciones = new JPanel(null);
+        pnlCondiciones.setBackground(new Color(240, 248, 255)); // Azul muy claro
+        pnlCondiciones.setBorder(BorderFactory.createTitledBorder(null, "Condiciones", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, new Font("Segoe UI", Font.BOLD, 12)));
+        pnlCondiciones.setBounds(20, y, 480, 70);
+        panel.add(pnlCondiciones);
+
+        chkMesAdelantado = new JCheckBox("Mes Adelantado");
+        chkMesAdelantado.setBackground(new Color(240, 248, 255));
+        chkMesAdelantado.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        chkMesAdelantado.setSelected(true); // Por defecto SI (MA)
+        chkMesAdelantado.setBounds(15, 25, 130, 25);
+        pnlCondiciones.add(chkMesAdelantado);
+
+        chkEquiposPrestados = new JCheckBox("Equipos Prestados");
+        chkEquiposPrestados.setBackground(new Color(240, 248, 255));
+        chkEquiposPrestados.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        chkEquiposPrestados.setSelected(true); // Por defecto SI
+        chkEquiposPrestados.setBounds(150, 25, 140, 25);
+        pnlCondiciones.add(chkEquiposPrestados);
+
+        JLabel lblGar = new JLabel("Garantía S/.");
+        lblGar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblGar.setBounds(300, 25, 80, 25);
+        pnlCondiciones.add(lblGar);
+
+        txtGarantia = new JTextField("0.00");
+        txtGarantia.setHorizontalAlignment(SwingConstants.RIGHT);
+        txtGarantia.setBounds(380, 25, 80, 25);
+        pnlCondiciones.add(txtGarantia);
+
+        y += 85;
+
+        // --- 4. DIRECCIÓN ---
         panel.add(crearLabel("Dirección de Instalación:", 20, y));
         txtDireccion = new JTextField(dirActual);
         txtDireccion.setBounds(20, y + 25, 480, 35);
@@ -128,14 +162,13 @@ public class DialogoEditarContrato extends JDialog {
         panel.add(txtDireccion);
         y += 85;
 
-        // --- 4. DATOS DEL CLIENTE (FORMULARIO INTELIGENTE) ---
+        // --- 5. DATOS DEL CLIENTE ---
         JPanel panelCli = new JPanel(null);
         panelCli.setBackground(new Color(248, 250, 252));
         panelCli.setBorder(BorderFactory.createTitledBorder(null, "Datos del Titular", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, new Font("Segoe UI", Font.BOLD, 12)));
-        panelCli.setBounds(20, y, 480, 190); // Más alto
+        panelCli.setBounds(20, y, 480, 190); 
         panel.add(panelCli);
 
-        // Fila 1: DNI y Botón
         JLabel lblDni = new JLabel("DNI:");
         lblDni.setBounds(15, 25, 50, 20);
         panelCli.add(lblDni);
@@ -146,7 +179,6 @@ public class DialogoEditarContrato extends JDialog {
 
         btnBuscarDni = new JButton("🔍");
         btnBuscarDni.setBounds(180, 20, 50, 30);
-        btnBuscarDni.setToolTipText("Buscar o Validar DNI");
         btnBuscarDni.addActionListener(e -> buscarOActivarFormulario());
         panelCli.add(btnBuscarDni);
         
@@ -154,14 +186,13 @@ public class DialogoEditarContrato extends JDialog {
         lblNota.setBounds(240, 20, 200, 30);
         panelCli.add(lblNota);
 
-        // Fila 2: Nombres y Apellidos
         JLabel lblNom = new JLabel("Nombres:");
         lblNom.setBounds(15, 65, 80, 20);
         panelCli.add(lblNom);
         
         txtNombresCli = new JTextField();
         txtNombresCli.setBounds(15, 85, 210, 30);
-        txtNombresCli.setEnabled(false); // Bloqueado por defecto
+        txtNombresCli.setEnabled(false); 
         panelCli.add(txtNombresCli);
         
         JLabel lblApe = new JLabel("Apellidos:");
@@ -173,7 +204,6 @@ public class DialogoEditarContrato extends JDialog {
         txtApellidosCli.setEnabled(false);
         panelCli.add(txtApellidosCli);
 
-        // Fila 3: Celular
         JLabel lblCel = new JLabel("Celular / Telf:");
         lblCel.setBounds(15, 125, 100, 20);
         panelCli.add(lblCel);
@@ -186,11 +216,10 @@ public class DialogoEditarContrato extends JDialog {
         // --- BOTONES ---
         JButton btnGuardar = new JButton("💾 GUARDAR CONTRATO");
         estilarBoton(btnGuardar, new Color(37, 99, 235), Color.WHITE);
-        btnGuardar.setBounds(150, 570, 220, 45);
+        btnGuardar.setBounds(150, y + 205, 220, 45); // Ajustado al final
         btnGuardar.addActionListener(e -> guardar());
         panel.add(btnGuardar);
         
-        // Trigger inicial del listener de fecha para setear día hoy
         if (fechaInicio != null) {
              java.util.Calendar cal = java.util.Calendar.getInstance();
              cal.setTime(fechaInicio);
@@ -208,37 +237,24 @@ public class DialogoEditarContrato extends JDialog {
         setCursor(new Cursor(Cursor.WAIT_CURSOR));
         new Thread(() -> {
             SuscripcionDAO dao = new SuscripcionDAO();
-            // Usamos buscarClientePorDni que devuelve [id, nombres+apellidos]
-            // Lo ideal sería que tu DAO devolviera objeto Cliente completo, 
-            // pero para no cambiar todo tu DAO, haremos un truco.
-            
             String[] datos = dao.buscarClientePorDni(dni); 
             
             SwingUtilities.invokeLater(() -> {
                 setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                 if (datos != null) {
-                    // --- CLIENTE EXISTE ---
                     esNuevoCliente = false;
                     idClienteSeleccionado = Integer.parseInt(datos[0]);
-                    
-                    // Como el DAO actual concatena nombre+apellido, lo ponemos todo en nombre
-                    // y bloqueamos para que no edite
                     txtNombresCli.setText(datos[1]); 
-                    txtApellidosCli.setText(""); // Ya viene concatenado
-                    txtCelularCli.setText("---"); // No lo trajimos del DAO
-                    
+                    txtApellidosCli.setText(""); 
+                    txtCelularCli.setText("---"); 
                     bloquearCamposCliente(true);
-                    txtNombresCli.setBackground(new Color(220, 255, 220)); // Verde claro
+                    txtNombresCli.setBackground(new Color(220, 255, 220)); 
                 } else {
-                    // --- CLIENTE NO EXISTE (NUEVO) ---
                     esNuevoCliente = true;
                     idClienteSeleccionado = -1;
-                    
-                    // Limpiamos y habilitamos para que escriba
                     txtNombresCli.setText("");
                     txtApellidosCli.setText("");
                     txtCelularCli.setText("");
-                    
                     bloquearCamposCliente(false);
                     txtNombresCli.requestFocus();
                     JOptionPane.showMessageDialog(this, "Cliente nuevo. Por favor complete los datos.");
@@ -258,8 +274,18 @@ public class DialogoEditarContrato extends JDialog {
         String dir = txtDireccion.getText();
         Date fechaInicio = dateInicio.getDate();
         int diaPago = (int) spinDiaPago.getValue();
+        
+        // --- OBTENER NUEVOS DATOS ---
+        boolean mesAdelantado = chkMesAdelantado.isSelected();
+        boolean equiposPrestados = chkEquiposPrestados.isSelected();
+        double garantia = 0.0;
+        try {
+            garantia = Double.parseDouble(txtGarantia.getText().replace(",", "."));
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Monto de garantía inválido.");
+            return;
+        }
 
-        // 1. Validaciones Básicas
         if (s == null || dir.isEmpty() || fechaInicio == null) {
             JOptionPane.showMessageDialog(this, "Plan, Dirección y Fecha Inicio son obligatorios.");
             return;
@@ -268,12 +294,12 @@ public class DialogoEditarContrato extends JDialog {
         if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
         setVisible(false);
 
+        final double garantiaFinal = garantia; // Para uso en lambda
+
         new Thread(() -> {
-            // 2. Lógica de Cliente (Existente o Nuevo)
             int idFinalCliente = idClienteSeleccionado;
 
             if (esNuevoCliente) {
-                // Registrar Cliente Nuevo "al vuelo"
                 String dni = txtDniCli.getText().trim();
                 String nom = txtNombresCli.getText().trim();
                 String ape = txtApellidosCli.getText().trim();
@@ -285,11 +311,10 @@ public class DialogoEditarContrato extends JDialog {
                         setVisible(true);
                         JOptionPane.showMessageDialog(this, "Para cliente nuevo, DNI y Nombre son obligatorios.");
                     });
-                    return; // Abortar
+                    return;
                 }
 
                 ClienteDAO cliDao = new ClienteDAO();
-                // Llamamos al método nuevo que creaste en el paso 1
                 idFinalCliente = cliDao.registrarClienteYObtenerId(dni, nom, ape, dir, tel);
                 
                 if (idFinalCliente == -1) {
@@ -298,12 +323,11 @@ public class DialogoEditarContrato extends JDialog {
                         setVisible(true);
                         JOptionPane.showMessageDialog(this, "Error al registrar el cliente nuevo.");
                     });
-                    return; // Abortar
+                    return;
                 }
             } else {
-                // Si no se buscó nada y era nuevo contrato
                 if (idSuscripcion == -1 && idFinalCliente == -1) {
-                     SwingUtilities.invokeLater(() -> {
+                      SwingUtilities.invokeLater(() -> {
                         if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
                         setVisible(true);
                         JOptionPane.showMessageDialog(this, "Busque un cliente o registre uno nuevo.");
@@ -312,10 +336,11 @@ public class DialogoEditarContrato extends JDialog {
                 }
             }
 
-            // 3. Guardar el Contrato
             SuscripcionDAO susDao = new SuscripcionDAO();
+            // LLAMADA AL DAO ACTUALIZADO
             boolean exito = susDao.guardarOActualizarContrato(
-                idSuscripcion, s.getIdServicio(), dir, idFinalCliente, fechaInicio, diaPago
+                idSuscripcion, s.getIdServicio(), dir, idFinalCliente, fechaInicio, diaPago,
+                mesAdelantado, equiposPrestados, garantiaFinal
             );
             
             SwingUtilities.invokeLater(() -> {
@@ -332,15 +357,7 @@ public class DialogoEditarContrato extends JDialog {
         }).start();
     }
     
-    // Método auxiliar para rellenar visualmente si es edición
     private void llenarDatosClienteExistente() {
-        // Como tu suscripción actual solo trae "Nombre Completo" y no DNI separado
-        // en el objeto suscripción simple, dejaremos el DNI vacío para que lo busquen
-        // o lo puedes traer haciendo una consulta extra si quieres perfección.
-        // Por ahora, solo mostramos el nombre en el campo bloqueado.
-        
-        // NOTA: Si quisieras traer el DNI, tendrías que hacer una query extra en el init.
-        // Aquí asumiremos que el usuario busca el DNI si quiere cambiarlo.
         txtNombresCli.setText("(Cliente Actual Seleccionado)"); 
         txtNombresCli.setEnabled(false);
     }

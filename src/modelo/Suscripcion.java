@@ -22,6 +22,9 @@ public class Suscripcion {
     private int facturasPendientes;
     private String historialPagos;
 
+    private boolean mesAdelantado;
+    private boolean equiposPrestados;
+
     // --- GETTERS Y SETTERS ---
     // Getter seguro para monto
     public double getMontoMensual() {
@@ -121,12 +124,38 @@ public class Suscripcion {
     public void setNombreServicio(String n) {
         this.nombreServicio = n;
     }
-    
+
     public double getGarantia() {
         return garantia;
     }
 
     public void setGarantia(double garantia) {
         this.garantia = garantia;
+    }
+
+    public boolean isMesAdelantado() {
+        return mesAdelantado;
+    }
+
+    public void setMesAdelantado(boolean mesAdelantado) {
+        this.mesAdelantado = mesAdelantado;
+        // Si viene de la BD como int (0 o 1), asegúrate de convertirlo en el DAO
+    }
+
+    // Sobrecarga para facilitar la vida al DAO si usas int
+    public void setMesAdelantado(int valor) {
+        this.mesAdelantado = (valor == 1);
+    }
+
+    public boolean isEquiposPrestados() {
+        return equiposPrestados;
+    }
+
+    public void setEquiposPrestados(boolean equiposPrestados) {
+        this.equiposPrestados = equiposPrestados;
+    }
+
+    public void setEquiposPrestados(int valor) {
+        this.equiposPrestados = (valor == 1);
     }
 }

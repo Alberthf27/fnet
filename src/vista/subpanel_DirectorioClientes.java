@@ -17,7 +17,10 @@ public class subpanel_DirectorioClientes extends JPanel {
     private DefaultTableModel modelo;
     private ClienteDAO clienteDAO;
     private JTextField txtBuscar;
-    private JComboBox<String> cmbFiltro; // NUEVO FILTRO
+    private JComboBox<String> cmbFiltro;
+
+    // Etiquetas de conteo
+    private JLabel lblTotalRegistros;
 
     // Paginación
     private int paginaActual = 0;
@@ -25,11 +28,12 @@ public class subpanel_DirectorioClientes extends JPanel {
     private JLabel lblPagina;
     private JButton btnAnterior, btnSiguiente;
 
-    // --- AUTOCOMPLETADO (Google Style) ---
+    // --- AUTOCOMPLETADO (Igual que Suscripciones) ---
     private JPopupMenu menuSugerencias;
     private JList<String> listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
-    private List<String[]> clientesCache = new ArrayList<>(); // [dni, nombre_completo]
+    private List<String[]> clientesCache = new ArrayList<>(); // [0]=DNI, [1]=NOMBRE COMPLETO
+private List<Cliente> listaCache = new ArrayList<>();
 
     public subpanel_DirectorioClientes() {
         setLayout(new BorderLayout());
@@ -37,22 +41,22 @@ public class subpanel_DirectorioClientes extends JPanel {
         setBorder(new EmptyBorder(5, 10, 5, 10));
 
         clienteDAO = new ClienteDAO();
-        precargarCacheBusqueda(); // Carga rápida para buscador
+        precargarCacheBusqueda(); // Carga nombres y DNI en memoria
         initUI();
-        //initAutocompletado();
-        cargarClientes();
+        initAutocompletado(); // Activamos el buscador inteligente
+        cargarClientes();     // Carga inicial paginada
     }
 
     private void precargarCacheBusqueda() {
         new Thread(() -> {
-            // Asumo que tu DAO tiene un método ligero para traer solo DNI y Nombre
-            // Si no, usa obtenerListaSimpleClientes que usaste en Suscripciones
+            // Usamos obtenerListaSimpleClientes que devuelve [dni, nombre]
+            // Asegúrate de que este método exista en ClienteDAO (lo usamos en Suscripciones)
             clientesCache = clienteDAO.obtenerListaSimpleClientes();
         }).start();
     }
 
     private void initUI() {
-        // --- 1. PANEL SUPERIOR ---
+        // --- 1. PANEL SUPERIOR (HEADER) ---
         JPanel topPanel = new JPanel(null);
         topPanel.setPreferredSize(new Dimension(100, 50));
         topPanel.setBackground(Color.WHITE);
@@ -70,30 +74,21 @@ public class subpanel_DirectorioClientes extends JPanel {
         txtBuscar.setBounds(130, 10, 230, 30);
         topPanel.add(txtBuscar);
 
-        // FILTROS (NUEVO)
+        // FILTROS
         cmbFiltro = new JComboBox<>(new String[]{"NOMBRE (A-Z)", "APELLIDO (A-Z)", "SOLO ACTIVOS", "SOLO BAJAS"});
         cmbFiltro.setBounds(370, 10, 120, 30);
         cmbFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         cmbFiltro.setBackground(Color.WHITE);
         cmbFiltro.addActionListener(e -> {
-            paginaActual = 0; // Resetear página al filtrar
+            paginaActual = 0; 
             cargarClientes();
         });
         topPanel.add(cmbFiltro);
 
         JButton btnBuscar = new JButton("🔍");
-        try {
-            ImageIcon icono = new ImageIcon(getClass().getResource("/img/lupa.png"));
-            Image img = icono.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-            btnBuscar.setIcon(new ImageIcon(img));
-            btnBuscar.setText("");
-        } catch (Exception e) {
-            btnBuscar.setText("🔍");
-        }
-
+        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
         btnBuscar.setBounds(500, 10, 40, 30);
         btnBuscar.addActionListener(e -> buscar(txtBuscar.getText()));
-        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
         topPanel.add(btnBuscar);
 
         // BOTONES ACCIÓN
@@ -121,9 +116,7 @@ public class subpanel_DirectorioClientes extends JPanel {
         // --- 2. TABLA ---
         String[] cols = {"ID", "DNI", "NOMBRES", "APELLIDOS", "DIRECCIÓN", "TELÉFONO", "ESTADO", "OBJ"};
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int col) { return false; }
         };
 
         tabla = new JTable(modelo);
@@ -134,11 +127,11 @@ public class subpanel_DirectorioClientes extends JPanel {
         tabla.setShowHorizontalLines(true);
         tabla.setGridColor(new Color(220, 220, 220));
 
-        tabla.getColumnModel().getColumn(0).setMinWidth(0);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
-        tabla.getColumnModel().getColumn(7).setMinWidth(0);
-        tabla.getColumnModel().getColumn(7).setMaxWidth(0);
+        // Ocultar columnas internas
+        tabla.getColumnModel().getColumn(0).setMinWidth(0); tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(7).setMinWidth(0); tabla.getColumnModel().getColumn(7).setMaxWidth(0);
 
+        // Anchos
         tabla.getColumnModel().getColumn(1).setPreferredWidth(80);
         tabla.getColumnModel().getColumn(2).setPreferredWidth(150);
         tabla.getColumnModel().getColumn(3).setPreferredWidth(150);
@@ -153,11 +146,21 @@ public class subpanel_DirectorioClientes extends JPanel {
         scroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         add(scroll, BorderLayout.CENTER);
 
-        // --- 3. PAGINACIÓN ---
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // --- 3. FOOTER (PAGINACIÓN + TOTAL) ---
+        JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(Color.WHITE);
         bottomPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
 
+        // Izquierda: Contador Total
+        lblTotalRegistros = new JLabel("Total Clientes: 0");
+        lblTotalRegistros.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTotalRegistros.setForeground(Color.GRAY);
+        bottomPanel.add(lblTotalRegistros, BorderLayout.WEST);
+
+        // Centro: Controles Paginación
+        JPanel pnlPaginacion = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        pnlPaginacion.setBackground(Color.WHITE);
+        
         btnAnterior = new JButton("<");
         estilarBoton(btnAnterior, Color.WHITE, Color.BLACK);
         btnAnterior.addActionListener(e -> cambiarPagina(-1));
@@ -169,13 +172,22 @@ public class subpanel_DirectorioClientes extends JPanel {
         estilarBoton(btnSiguiente, Color.WHITE, Color.BLACK);
         btnSiguiente.addActionListener(e -> cambiarPagina(1));
 
-        bottomPanel.add(btnAnterior);
-        bottomPanel.add(lblPagina);
-        bottomPanel.add(btnSiguiente);
+        pnlPaginacion.add(btnAnterior);
+        pnlPaginacion.add(lblPagina);
+        pnlPaginacion.add(btnSiguiente);
+        
+        bottomPanel.add(pnlPaginacion, BorderLayout.CENTER);
+        
+        // Derecha: Espacio vacío para equilibrar o poner algo más
+        JPanel pnlRight = new JPanel(); 
+        pnlRight.setBackground(Color.WHITE);
+        pnlRight.setPreferredSize(new Dimension(100, 10));
+        bottomPanel.add(pnlRight, BorderLayout.EAST);
+
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    // --- LÓGICA AUTOCOMPLETADO ---
+    // --- LÓGICA AUTOCOMPLETADO (Igual que Suscripciones) ---
     private void initAutocompletado() {
         menuSugerencias = new JPopupMenu();
         menuSugerencias.setFocusable(false);
@@ -191,24 +203,16 @@ public class subpanel_DirectorioClientes extends JPanel {
         });
         menuSugerencias.add(new JScrollPane(listaSugerencias));
 
-        txtBuscar.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    menuSugerencias.setVisible(false);
-                    buscar(txtBuscar.getText());
-                    return;
-                }
-                if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    if (menuSugerencias.isVisible()) {
-                        listaSugerencias.requestFocusInWindow();
-                        listaSugerencias.setSelectedIndex(0);
-                    }
-                    return;
-                }
-                filtrarSugerencias();
+       txtBuscar.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyReleased(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                cargarClientes(); // Recarga desde BD si da Enter
+            } else {
+                filtrarLocalmente(txtBuscar.getText()); // Filtra en memoria mientras escribe
             }
-        });
+        }
+    });
 
         listaSugerencias.addKeyListener(new KeyAdapter() {
             @Override
@@ -229,10 +233,8 @@ public class subpanel_DirectorioClientes extends JPanel {
         }
         int count = 0;
         for (String[] cli : clientesCache) {
-            if (count > 10) {
-                break;
-            }
-            // Verificamos que cli[0] (DNI) no sea null antes de usarlo
+            if (count > 10) break;
+            
             String dni = cli[0];
             String nombre = cli[1];
 
@@ -240,8 +242,7 @@ public class subpanel_DirectorioClientes extends JPanel {
             boolean coincideNombre = (nombre != null && nombre.toLowerCase().contains(texto));
 
             if (coincideDni || coincideNombre) {
-                // ... el resto sigue igual
-                modeloSugerencias.addElement(cli[1]); // Muestra nombre
+                modeloSugerencias.addElement(nombre); // Mostrar nombre en la lista
                 count++;
             }
         }
@@ -262,40 +263,68 @@ public class subpanel_DirectorioClientes extends JPanel {
             buscar(sel);
         }
     }
+    
+    // Método auxiliar para agregar una fila al modelo de la tabla
+    private void agregarFila(Cliente c) {
+        modelo.addRow(new Object[]{
+            c.getIdCliente(),
+            c.getDniCliente() != null ? c.getDniCliente() : "---",
+            c.getNombres(),
+            c.getApellidos() != null ? c.getApellidos() : "",
+            c.getDireccion() != null ? c.getDireccion() : "",
+            c.getTelefono() != null ? c.getTelefono() : "---",
+            (c.getActivo() == 1 ? "ACTIVO" : "BAJA"), // Estado visual
+            c // Objeto oculto en la columna 7 (importante para editar/eliminar)
+        });
+    }
 
     // --- CARGA DE DATOS ---
+    // REEMPLAZA TU MÉTODO cargarClientes() POR ESTE:
     private void cargarClientes() {
-        if (Principal.instancia != null) {
-            Principal.instancia.mostrarCarga(true);
-        }
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
         modelo.setRowCount(0);
 
         new Thread(() -> {
             try {
-                int offset = paginaActual * FILAS_POR_PAGINA;
                 String filtro = (String) cmbFiltro.getSelectedItem();
-
-                // NOTA: Asegúrate de que tu DAO acepte el parámetro 'filtro'
-                // Si no, modifica tu DAO para manejar el ORDER BY según este String
-                List<Cliente> lista = clienteDAO.obtenerClientesPaginados(FILAS_POR_PAGINA, offset, filtro);
+                // Usamos el nuevo método del DAO para traer TODO
+                List<Cliente> listaTraida = clienteDAO.listarTodo("", filtro);
+                
+                // Guardamos en memoria
+                listaCache = new ArrayList<>(listaTraida);
 
                 SwingUtilities.invokeLater(() -> {
-                    for (Cliente c : lista) {
-                        agregarFila(c);
-                    }
-                    lblPagina.setText("Página " + (paginaActual + 1));
-                    btnAnterior.setEnabled(paginaActual > 0);
-                    // Lógica simple: si trajo menos filas que el límite, no hay más pág.
-                    btnSiguiente.setEnabled(lista.size() == FILAS_POR_PAGINA);
-
-                    if (Principal.instancia != null) {
-                        Principal.instancia.mostrarCarga(false);
-                    }
+                    llenarTabla(listaCache);
+                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         }).start();
+    }
+
+    // AGREGA ESTE MÉTODO NUEVO (Para buscar letra por letra en el caché):
+    private void filtrarLocalmente(String texto) {
+        String busqueda = texto.trim().toLowerCase();
+        List<Cliente> resultados = new ArrayList<>();
+
+        for (Cliente c : listaCache) {
+            // Buscamos coincidencia en cualquier campo importante
+            if ((c.getNombres() != null && c.getNombres().toLowerCase().contains(busqueda)) ||
+                (c.getApellidos() != null && c.getApellidos().toLowerCase().contains(busqueda)) ||
+                (c.getDniCliente() != null && c.getDniCliente().contains(busqueda))) {
+                resultados.add(c);
+            }
+        }
+        llenarTabla(resultados);
+    }
+
+    // MODIFICA TU MÉTODO llenarTabla (o agregarFila) PARA ACTUALIZAR EL CONTADOR
+    private void llenarTabla(List<Cliente> lista) {
+        modelo.setRowCount(0);
+        for (Cliente c : lista) {
+            agregarFila(c); // Usa tu método existente agregarFila
+        }
+        // Actualiza el label total
+        lblTotalRegistros.setText("Total Clientes: " + lista.size());
     }
 
     private void buscar(String texto) {
@@ -305,47 +334,30 @@ public class subpanel_DirectorioClientes extends JPanel {
             return;
         }
 
-        if (Principal.instancia != null) {
-            Principal.instancia.mostrarCarga(true);
-        }
+        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
         modelo.setRowCount(0);
 
         new Thread(() -> {
-            // El buscador ignora la paginación para mostrar coincidencias directas
+            // El buscador ignora la paginación para mostrar coincidencias directas de la BD
             List<Cliente> lista = clienteDAO.buscarClientes(texto);
             SwingUtilities.invokeLater(() -> {
-                for (Cliente c : lista) {
-                    agregarFila(c);
-                }
+                llenarTabla(lista);
+                
                 lblPagina.setText("Resultados: " + lista.size());
                 btnAnterior.setEnabled(false);
                 btnSiguiente.setEnabled(false);
-                if (Principal.instancia != null) {
-                    Principal.instancia.mostrarCarga(false);
-                }
+                
+                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
             });
         }).start();
     }
+    
+
 
     private void cambiarPagina(int dir) {
         paginaActual += dir;
-        if (paginaActual < 0) {
-            paginaActual = 0;
-        }
+        if (paginaActual < 0) paginaActual = 0;
         cargarClientes();
-    }
-
-    private void agregarFila(Cliente c) {
-        modelo.addRow(new Object[]{
-            c.getIdCliente(),
-            c.getDniCliente() != null ? c.getDniCliente() : "---",
-            c.getNombres(),
-            c.getApellidos() != null ? c.getApellidos() : "",
-            c.getDireccion() != null ? c.getDireccion() : "",
-            c.getTelefono() != null ? c.getTelefono() : "---",
-            (c.getActivo() == 1 ? "ACTIVO" : "BAJA"),
-            c
-        });
     }
 
     // --- ACCIONES ---
@@ -354,7 +366,7 @@ public class subpanel_DirectorioClientes extends JPanel {
         FormularioCliente form = new FormularioCliente((Frame) parent, c);
         form.setVisible(true);
         if (form.isGuardado()) {
-            precargarCacheBusqueda(); // Actualizar cache si se creó uno nuevo
+            precargarCacheBusqueda(); // Actualizar cache
             cargarClientes();
         }
     }
@@ -376,10 +388,7 @@ public class subpanel_DirectorioClientes extends JPanel {
             return;
         }
         Cliente c = (Cliente) modelo.getValueAt(fila, 7);
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Dar de baja a " + c.getNombres() + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
-
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Dar de baja a " + c.getNombres() + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (clienteDAO.eliminarCliente(c.getIdCliente())) {
                 cargarClientes();
@@ -398,7 +407,6 @@ public class subpanel_DirectorioClientes extends JPanel {
     }
 
     class GeneralRenderer extends DefaultTableCellRenderer {
-
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
             super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
@@ -420,11 +428,7 @@ public class subpanel_DirectorioClientes extends JPanel {
                 setBackground(new Color(200, 230, 255));
                 setForeground(Color.BLACK);
             } else {
-                if (row % 2 == 0) {
-                    setBackground(Color.WHITE);
-                } else {
-                    setBackground(new Color(248, 248, 250));
-                }
+                setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 248, 250));
             }
             setBorder(new EmptyBorder(0, 5, 0, 0));
             return this;
