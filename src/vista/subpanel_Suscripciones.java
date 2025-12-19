@@ -16,17 +16,17 @@ import DAO.ServicioDAO;
 
 public class subpanel_Suscripciones extends JPanel {
 
-private JTable tabla;
+    private JTable tabla;
     private DefaultTableModel modelo;
     private SuscripcionDAO susDAO;
     private PanelDetalleContrato panelDetalle;
     private JTextField txtBuscar;
     private JComboBox<String> cmbOrden;
     private JLabel lblTotalContratos;
-    
+
     // Botones dinámicos
     private JButton btnEstadoDinamico; // Suspender / Reactivar
-    private JButton btnDarBaja;        // Cancelar Contrato Definitivamente
+    private JButton btnDarBaja; // Cancelar Contrato Definitivamente
 
     // Datos en memoria
     private List<String[]> clientesCache = new ArrayList<>();
@@ -49,10 +49,10 @@ private JTable tabla;
         precargarDatosAuxiliares();
         precargarClientes();
         initUI();
-        //initAutocompletado();
+        // initAutocompletado();
         cargarDatos("");
     }
-    
+
     private void precargarDatosAuxiliares() {
         new Thread(() -> {
             DAO.ClienteDAO dao = new DAO.ClienteDAO();
@@ -82,7 +82,7 @@ private JTable tabla;
         }).start();
     }
 
-  private void initUI() {
+    private void initUI() {
         // --- 1. PANEL SUPERIOR (HEADER) ---
         JPanel topPanel = new JPanel(null);
         topPanel.setPreferredSize(new Dimension(100, 50));
@@ -100,7 +100,7 @@ private JTable tabla;
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar cliente...");
         txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtBuscar.setBounds(130, 10, 250, 30);
-        
+
         // Listener del Buscador (Enter = BD, Escribir = Filtro Local)
         txtBuscar.addKeyListener(new KeyAdapter() {
             @Override
@@ -115,7 +115,8 @@ private JTable tabla;
         topPanel.add(txtBuscar);
 
         // Filtro Orden
-        cmbOrden = new JComboBox<>(new String[]{"DIA DE PAGO", "MÁS RECIENTES", "MÁS ANTIGUOS", "NOMBRE (A-Z)", "DEUDORES"});
+        cmbOrden = new JComboBox<>(
+                new String[] { "DIA DE PAGO", "MÁS RECIENTES", "MÁS ANTIGUOS", "NOMBRE (A-Z)", "DEUDORES" });
         cmbOrden.setBounds(390, 10, 130, 30);
         cmbOrden.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         cmbOrden.setBackground(Color.WHITE);
@@ -123,23 +124,23 @@ private JTable tabla;
         topPanel.add(cmbOrden);
 
         // Botón Lupa
-        JButton btnBuscar = new JButton("🔍");
+        JButton btnBuscar = new JButton("Buscar");
         estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
-        btnBuscar.setBounds(530, 10, 40, 30);
+        btnBuscar.setBounds(530, 10, 60, 30);
         btnBuscar.addActionListener(e -> cargarDatos(txtBuscar.getText()));
         topPanel.add(btnBuscar);
 
         // --- BOTONES DE ACCIÓN ---
-        
+
         // Botón Nuevo (+ Contrato)
         JButton btnNuevo = new JButton("+ CONTRATO");
         estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
-        btnNuevo.setBounds(580, 10, 110, 30);
+        btnNuevo.setBounds(600, 10, 110, 30);
         btnNuevo.addActionListener(e -> abrirNuevoContrato());
         topPanel.add(btnNuevo);
 
         // Coordenada X base para los botones de gestión
-        int xAccion = 700; 
+        int xAccion = 700;
 
         // Botón Dinámico (Suspender/Reactivar)
         btnEstadoDinamico = new JButton("SUSPENDER");
@@ -168,9 +169,11 @@ private JTable tabla;
         add(topPanel, BorderLayout.NORTH);
 
         // --- 2. TABLA Y DETALLES ---
-        String[] cols = {"ID", "CLIENTE", "PLAN", "MONTO", "DIA", "ESTADO", "HISTORIAL", "OBJ"};
+        String[] cols = { "ID", "CLIENTE", "PLAN", "MONTO", "DIA", "ESTADO", "HISTORIAL", "OBJ" };
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
@@ -180,15 +183,17 @@ private JTable tabla;
         tabla.setGridColor(new Color(220, 220, 220));
 
         // Ocultar columnas internas
-        tabla.getColumnModel().getColumn(0).setMinWidth(0); tabla.getColumnModel().getColumn(0).setMaxWidth(0); // ID
-        tabla.getColumnModel().getColumn(7).setMinWidth(0); tabla.getColumnModel().getColumn(7).setMaxWidth(0); // OBJ
+        tabla.getColumnModel().getColumn(0).setMinWidth(0);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(0); // ID
+        tabla.getColumnModel().getColumn(7).setMinWidth(0);
+        tabla.getColumnModel().getColumn(7).setMaxWidth(0); // OBJ
 
         // Anchos
         tabla.getColumnModel().getColumn(1).setPreferredWidth(220); // Cliente
         tabla.getColumnModel().getColumn(2).setPreferredWidth(120); // Plan
-        tabla.getColumnModel().getColumn(3).setPreferredWidth(60);  // Monto
-        tabla.getColumnModel().getColumn(4).setPreferredWidth(40);  // Dia
-        tabla.getColumnModel().getColumn(5).setPreferredWidth(70);  // Estado
+        tabla.getColumnModel().getColumn(3).setPreferredWidth(60); // Monto
+        tabla.getColumnModel().getColumn(4).setPreferredWidth(40); // Dia
+        tabla.getColumnModel().getColumn(5).setPreferredWidth(70); // Estado
         tabla.getColumnModel().getColumn(6).setPreferredWidth(120); // Historial
 
         // Renderizadores
@@ -238,12 +243,13 @@ private JTable tabla;
 
         add(bottomPanel, BorderLayout.SOUTH);
     }
-    
+
     // --- LÓGICA INTELIGENTE DE BOTONES ---
     private void actualizarEstadoBotones(Suscripcion s) {
-        // Verificar si está dado de baja (Si tu objeto tiene fechaCancelacion, úsala aquí)
+        // Verificar si está dado de baja (Si tu objeto tiene fechaCancelacion, úsala
+        // aquí)
         // Por ahora asumimos la lógica solicitada: Activo vs Suspendido
-        
+
         btnDarBaja.setEnabled(true);
         btnEstadoDinamico.setEnabled(true);
 
@@ -256,25 +262,27 @@ private JTable tabla;
             btnEstadoDinamico.setText("REACTIVAR");
             btnEstadoDinamico.setBackground(new Color(22, 163, 74)); // Verde
         }
-        
+
         // Opcional: Si ya está dado de baja definitivamente, podrías deshabilitar todo
-        // if (s.getFechaCancelacion() != null) { 
-        //     btnEstadoDinamico.setEnabled(false); 
-        //     btnEstadoDinamico.setText("DE BAJA");
+        // if (s.getFechaCancelacion() != null) {
+        // btnEstadoDinamico.setEnabled(false);
+        // btnEstadoDinamico.setText("DE BAJA");
         // }
     }
 
     private void accionBotonDinamico() {
         int fila = tabla.getSelectedRow();
-        if (fila == -1) return;
+        if (fila == -1)
+            return;
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
 
         boolean esSuspension = (s.getActivo() == 1);
         String msj = esSuspension ? "¿Suspender el servicio por falta de pago?" : "¿Reactivar el servicio al cliente?";
-        
-        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Estado", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+
+        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Estado",
+                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             // 1 = Activo, 0 = Suspendido
-            int nuevoEstado = esSuspension ? 0 : 1; 
+            int nuevoEstado = esSuspension ? 0 : 1;
             new Thread(() -> {
                 susDAO.cambiarEstado(s.getIdSuscripcion(), nuevoEstado);
                 SwingUtilities.invokeLater(() -> cargarDatos(txtBuscar.getText()));
@@ -284,17 +292,19 @@ private JTable tabla;
 
     private void accionDarDeBaja() {
         int fila = tabla.getSelectedRow();
-        if (fila == -1) return;
+        if (fila == -1)
+            return;
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
 
         String msj = "<html>ADVERTENCIA: Dar de baja finalizará el contrato hoy.<br>"
-                   + "El servicio pasará a estado 'BAJA' y se guardará la fecha de cancelación.<br><br>"
-                   + "¿Confirmar la BAJA DEFINITIVA?</html>";
-        
-        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Baja", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+                + "El servicio pasará a estado 'BAJA' y se guardará la fecha de cancelación.<br><br>"
+                + "¿Confirmar la BAJA DEFINITIVA?</html>";
+
+        if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Baja", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
             new Thread(() -> {
                 // Aquí llamamos al método que actualiza fecha_cancelacion = NOW() y activo = 0
-                susDAO.darDeBajaContrato(s.getIdSuscripcion()); 
+                susDAO.darDeBajaContrato(s.getIdSuscripcion());
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, "Contrato finalizado correctamente.");
                     cargarDatos(txtBuscar.getText());
@@ -303,18 +313,22 @@ private JTable tabla;
         }
     }
 
-private void abrirNuevoContrato() {
+    private void abrirNuevoContrato() {
         java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-        
-        // PASAMOS: planesCache, Fecha de hoy, Día 1
+
+        // PASAMOS: planesCache, Fecha de hoy, Día 1, y condiciones por defecto para
+        // nuevo contrato
         DialogoEditarContrato dialog = new DialogoEditarContrato(
-            (java.awt.Frame) parent, 
-            -1, "", "", -1, "",      // Datos vacíos
-            planesCache,             // <--- LISTA DE PLANES
-            new Date(),              // <--- FECHA DE HOY
-            1                        // <--- DÍA DE PAGO DEFAULT
+                (java.awt.Frame) parent,
+                -1, "", "", -1, "", // Datos vacíos
+                planesCache, // Lista de planes
+                new Date(), // Fecha de hoy
+                1, // Día de pago default
+                true, // Mes adelantado (default: true)
+                true, // Equipos prestados (default: true)
+                0.0 // Garantía (default: 0)
         );
-        
+
         dialog.setVisible(true);
         if (dialog.isGuardado()) {
             cargarDatos("");
@@ -381,7 +395,7 @@ private void abrirNuevoContrato() {
         }
 
         int count = 0;
-// EN: vista/subpanel_Suscripciones.java -> filtrarSugerencias()
+        // EN: vista/subpanel_Suscripciones.java -> filtrarSugerencias()
 
         for (String[] cli : clientesCache) {
             if (count > 10) {
@@ -460,21 +474,21 @@ private void abrirNuevoContrato() {
     private void llenarTabla(List<Suscripcion> listaParaMostrar) {
         modelo.setRowCount(0);
         for (Suscripcion s : listaParaMostrar) {
-            modelo.addRow(new Object[]{
-                s.getIdSuscripcion(),
-                s.getNombreCliente(),
-                s.getNombreServicio(),
-                "S/. " + s.getMontoMensual(),
-                s.getDiaPago(),
-                s.getActivo() == 1 ? "ACTIVO" : "CORTADO",
-                s.getHistorialPagos(),
-                s // Objeto oculto
+            modelo.addRow(new Object[] {
+                    s.getIdSuscripcion(),
+                    s.getNombreCliente(),
+                    s.getNombreServicio(),
+                    "S/. " + s.getMontoMensual(),
+                    s.getDiaPago(),
+                    s.getActivo() == 1 ? "ACTIVO" : "CORTADO",
+                    s.getHistorialPagos(),
+                    s // Objeto oculto
             });
         }
         lblTotalContratos.setText("Total Contratos: " + listaParaMostrar.size());
     }
 
-// EN: vista/subpanel_Suscripciones.java
+    // EN: vista/subpanel_Suscripciones.java
 
     private void cambiarEstadoServicio(int estadoForzado) {
         int fila = tabla.getSelectedRow();
@@ -482,15 +496,15 @@ private void abrirNuevoContrato() {
             JOptionPane.showMessageDialog(this, "Seleccione un contrato.");
             return;
         }
-        
+
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
-        
+
         // 1. Lógica para alternar estado si viene del botón dinámico (-1)
         int nuevoEstado;
         if (estadoForzado == -1) {
-             nuevoEstado = (s.getActivo() == 1) ? 0 : 1; 
+            nuevoEstado = (s.getActivo() == 1) ? 0 : 1;
         } else {
-             nuevoEstado = estadoForzado;
+            nuevoEstado = estadoForzado;
         }
 
         String accion = (nuevoEstado == 1) ? "ACTIVAR" : "CORTAR / SUSPENDER";
@@ -498,8 +512,9 @@ private void abrirNuevoContrato() {
         // 2. AQUÍ ESTÁ LA LÓGICA DE ALERTAS QUE PEDISTE
         if (nuevoEstado == 0) { // Si vamos a CORTAR
             StringBuilder alerta = new StringBuilder();
-            alerta.append("¿Está seguro de ").append(accion).append(" el servicio a ").append(s.getNombreCliente()).append("?\n\n");
-            
+            alerta.append("¿Está seguro de ").append(accion).append(" el servicio a ").append(s.getNombreCliente())
+                    .append("?\n\n");
+
             // Verificamos si tiene equipos prestados (SEMA/SIFM)
             if (s.isEquiposPrestados()) {
                 alerta.append("⚠️ ¡ATENCIÓN! CLIENTE TIENE EQUIPOS PRESTADOS.\n");
@@ -511,26 +526,32 @@ private void abrirNuevoContrato() {
             // Verificamos si tiene garantía
             if (s.getGarantia() > 0) {
                 alerta.append("💰 ¡ALERTA! HAY GARANTÍA POR DEVOLVER: S/. ")
-                      .append(String.format("%.2f", s.getGarantia())).append("\n");
+                        .append(String.format("%.2f", s.getGarantia())).append("\n");
             }
-            
-            int confirm = JOptionPane.showConfirmDialog(this, alerta.toString(), "Confirmar Corte", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (confirm != JOptionPane.YES_OPTION) return;
-            
+
+            int confirm = JOptionPane.showConfirmDialog(this, alerta.toString(), "Confirmar Corte",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION)
+                return;
+
         } else {
             // Lógica simple para ACTIVAR
-            int confirm = JOptionPane.showConfirmDialog(this, "¿Reactivar servicio?", "Confirmar", JOptionPane.YES_NO_OPTION);
-            if (confirm != JOptionPane.YES_OPTION) return;
+            int confirm = JOptionPane.showConfirmDialog(this, "¿Reactivar servicio?", "Confirmar",
+                    JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION)
+                return;
         }
 
         // 3. EJECUCIÓN EN BASE DE DATOS
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
-        
+        if (Principal.instancia != null)
+            Principal.instancia.mostrarCarga(true);
+
         new Thread(() -> {
             boolean dbSuccess = susDAO.cambiarEstado(s.getIdSuscripcion(), nuevoEstado);
-            
+
             SwingUtilities.invokeLater(() -> {
-                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                if (Principal.instancia != null)
+                    Principal.instancia.mostrarCarga(false);
                 if (dbSuccess) {
                     JOptionPane.showMessageDialog(this, "Estado actualizado correctamente.");
                     cargarDatos(txtBuscar.getText()); // Refrescar tabla
@@ -541,27 +562,43 @@ private void abrirNuevoContrato() {
         }).start();
     }
 
-private void abrirEdicion() {
+    private void abrirEdicion() {
         int fila = tabla.getSelectedRow();
-        if (fila == -1) return;
-        
+        if (fila == -1)
+            return;
+
         Suscripcion s = (Suscripcion) modelo.getValueAt(fila, 7);
         int idCliente = susDAO.obtenerIdClienteDeContrato(s.getIdSuscripcion());
 
+        // Obtener condiciones del contrato
+        Object[] condiciones = susDAO.obtenerCondicionesContrato(s.getIdSuscripcion());
+        boolean mesAdelantado = true;
+        boolean equiposPrestados = true;
+        double garantia = 0.0;
+
+        if (condiciones != null) {
+            mesAdelantado = ((Integer) condiciones[0]) == 1;
+            equiposPrestados = ((Integer) condiciones[1]) == 1;
+            garantia = (Double) condiciones[2];
+        }
+
         java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-        
+
         DialogoEditarContrato dialog = new DialogoEditarContrato(
-            (java.awt.Frame) parent,
-            s.getIdSuscripcion(),
-            s.getNombreServicio(),
-            s.getDireccionInstalacion(),
-            idCliente,
-            s.getNombreCliente(),
-            planesCache,        // <--- LISTA DE PLANES
-            s.getFechaInicio(), // <--- FECHA DEL CONTRATO
-            s.getDiaPago()      // <--- DÍA DE PAGO DEL CONTRATO
+                (java.awt.Frame) parent,
+                s.getIdSuscripcion(),
+                s.getNombreServicio(),
+                s.getDireccionInstalacion(),
+                idCliente,
+                s.getNombreCliente(),
+                planesCache, // Lista de planes
+                s.getFechaInicio(), // Fecha del contrato
+                s.getDiaPago(), // Día de pago del contrato
+                mesAdelantado, // Condición: mes adelantado
+                equiposPrestados, // Condición: equipos prestados
+                garantia // Monto de garantía
         );
-        
+
         dialog.setVisible(true);
         if (dialog.isGuardado()) {
             cargarDatos(txtBuscar.getText());
@@ -579,7 +616,8 @@ private void abrirEdicion() {
     class ClienteRenderer extends DefaultTableCellRenderer {
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row,
+                int col) {
             super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
             setFont(new Font("Segoe UI", Font.BOLD, 12));
             setBorder(new EmptyBorder(0, 5, 0, 0));
@@ -591,7 +629,8 @@ private void abrirEdicion() {
     class GeneralRenderer extends DefaultTableCellRenderer {
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row,
+                int col) {
             super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
             if (col == 3 || col == 4) {
                 setHorizontalAlignment(SwingConstants.CENTER);
@@ -638,7 +677,8 @@ private void abrirEdicion() {
         }
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row,
+                int col) {
             this.historialActual = (String) value;
             super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
             setText("");

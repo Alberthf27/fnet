@@ -2,63 +2,469 @@ package vista;
 
 import DAO.PagoDAO;
 import java.awt.*;
+import java.util.Calendar;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import com.toedter.calendar.JDateChooser;
 
+/**
+ * Dialogo de Historial de Pagos EDITABLE.
+ * Permite ver, crear, editar y eliminar facturas de un cliente.
+ * Integra automaticamente los pagos con movimiento_caja.
+ */
 public class DialogoHistorial extends JDialog {
 
-    public DialogoHistorial(Frame parent, int idSuscripcion, String cliente) {
+    private JTable tabla;
+    private DefaultTableModel modelo;
+    private PagoDAO pagoDAO;
+    private int idSuscripcion;
+    private double montoMensual;
+    private int diaPago;
+    private int idUsuario = 1; // TODO: Obtener del usuario logueado
+
+    public DialogoHistorial(Frame parent, int idSuscripcion, String cliente, double monto, int diaPago) {
         super(parent, "Historial: " + cliente, true);
-        setSize(600, 400);
+        this.idSuscripcion = idSuscripcion;
+        this.montoMensual = monto;
+        this.diaPago = diaPago;
+        this.pagoDAO = new PagoDAO();
+
+        setSize(850, 550);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
+        getContentPane().setBackground(Color.WHITE);
 
-        // Título
+        initUI();
+        cargarDatos();
+    }
+
+    // Constructor alternativo para compatibilidad con codigo existente
+    public DialogoHistorial(Frame parent, int idSuscripcion, String cliente) {
+        this(parent, idSuscripcion, cliente, 50.0, 15); // Valores por defecto
+    }
+
+    private void initUI() {
+        // --- PANEL SUPERIOR (Header) ---
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
+
         JLabel lblTitulo = new JLabel("Historial de Pagos y Deudas");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblTitulo.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        add(lblTitulo, BorderLayout.NORTH);
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setForeground(new Color(15, 23, 42));
+        topPanel.add(lblTitulo, BorderLayout.WEST);
 
-        // Tabla
-        String[] cols = {"Periodo", "Vencimiento", "Monto", "Estado", "Fecha Pago"};
-        DefaultTableModel modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+        // Panel de botones de accion
+        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlAcciones.setBackground(Color.WHITE);
+
+        JButton btnAgregar = new JButton("+ Agregar Mes");
+        estilarBoton(btnAgregar, new Color(37, 99, 235), Color.WHITE);
+        btnAgregar.addActionListener(e -> abrirDialogoAgregarMes());
+        pnlAcciones.add(btnAgregar);
+
+        JButton btnGenerarAnio = new JButton("Generar Anio Completo");
+        estilarBoton(btnGenerarAnio, new Color(22, 163, 74), Color.WHITE);
+        btnGenerarAnio.addActionListener(e -> abrirDialogoGenerarAnio());
+        pnlAcciones.add(btnGenerarAnio);
+
+        topPanel.add(pnlAcciones, BorderLayout.EAST);
+        add(topPanel, BorderLayout.NORTH);
+
+        // --- TABLA ---
+        String[] cols = { "ID", "Periodo", "Vencimiento", "Monto", "Estado", "Fecha Pago", "" };
+        modelo = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int row, int col) {
+                return false; // No editable directamente
+            }
         };
-        
-        JTable tabla = new JTable(modelo);
-        tabla.setRowHeight(30);
+
+        tabla = new JTable(modelo);
+        tabla.setRowHeight(40);
+        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        
-        // Renderizador de Colores para Estado
-        tabla.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+        tabla.setShowVerticalLines(true);
+        tabla.setGridColor(new Color(226, 232, 240));
+        tabla.setSelectionBackground(new Color(219, 234, 254));
+
+        // Ocultar columna ID
+        tabla.getColumnModel().getColumn(0).setMinWidth(0);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+
+        // Anchos
+        tabla.getColumnModel().getColumn(1).setPreferredWidth(130); // Periodo
+        tabla.getColumnModel().getColumn(2).setPreferredWidth(100); // Vencimiento
+        tabla.getColumnModel().getColumn(3).setPreferredWidth(80); // Monto
+        tabla.getColumnModel().getColumn(4).setPreferredWidth(110); // Estado
+        tabla.getColumnModel().getColumn(5).setPreferredWidth(100); // Fecha Pago
+        tabla.getColumnModel().getColumn(6).setPreferredWidth(180); // Acciones
+
+        // Renderizador de Estado con colores
+        tabla.getColumnModel().getColumn(4).setCellRenderer(new EstadoRenderer());
+
+        // Renderizador de Acciones (botones reales dentro de panel)
+        tabla.getColumnModel().getColumn(6).setCellRenderer(new AccionesRenderer());
+
+        // Listener para clicks en la tabla
+        tabla.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
-                super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
-                String estado = (String) value;
-                setFont(new Font("Segoe UI", Font.BOLD, 12));
-                if ("PENDIENTE".equals(estado)) setForeground(Color.RED);
-                else if ("PAGADO".equals(estado)) setForeground(new Color(34, 197, 94)); // Verde
-                else setForeground(Color.GRAY);
-                return this;
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int fila = tabla.rowAtPoint(e.getPoint());
+                int col = tabla.columnAtPoint(e.getPoint());
+
+                if (fila >= 0) {
+                    int idFactura = (int) modelo.getValueAt(fila, 0);
+
+                    if (col == 4) { // Click en Estado -> Alternar
+                        alternarEstado(fila, idFactura);
+                    } else if (col == 6) { // Click en Acciones
+                        // Determinar que boton se clickeo por posicion X
+                        Rectangle cellRect = tabla.getCellRect(fila, col, true);
+                        int cellX = e.getX() - cellRect.x;
+                        int btnWidth = 85; // Ancho aproximado de cada boton
+
+                        if (cellX < btnWidth) {
+                            editarFactura(fila, idFactura);
+                        } else {
+                            eliminarFactura(fila, idFactura);
+                        }
+                    }
+                }
             }
         });
 
-        // Cargar Datos
-        PagoDAO dao = new PagoDAO();
-        List<Object[]> datos = dao.obtenerHistorialCompleto(idSuscripcion);
-        for (Object[] d : datos) {
-            modelo.addRow(d);
-        }
+        JScrollPane scroll = new JScrollPane(tabla);
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+        add(scroll, BorderLayout.CENTER);
 
-        add(new JScrollPane(tabla), BorderLayout.CENTER);
-        
-        // Botón Cerrar
+        // --- PANEL INFERIOR ---
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        bottomPanel.setBackground(Color.WHITE);
+        bottomPanel.setBorder(new EmptyBorder(10, 0, 15, 0));
+
+        JButton btnRefrescar = new JButton("Refrescar");
+        estilarBoton(btnRefrescar, new Color(241, 245, 249), new Color(15, 23, 42));
+        btnRefrescar.addActionListener(e -> cargarDatos());
+        bottomPanel.add(btnRefrescar);
+
         JButton btnCerrar = new JButton("Cerrar");
+        estilarBoton(btnCerrar, new Color(100, 116, 139), Color.WHITE);
         btnCerrar.addActionListener(e -> dispose());
-        JPanel pnlSur = new JPanel();
-        pnlSur.add(btnCerrar);
-        add(pnlSur, BorderLayout.SOUTH);
+        bottomPanel.add(btnCerrar);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private void cargarDatos() {
+        modelo.setRowCount(0);
+
+        // Usar hilo para no bloquear UI
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new Thread(() -> {
+            List<Object[]> datos = pagoDAO.obtenerHistorialEditable(idSuscripcion);
+
+            SwingUtilities.invokeLater(() -> {
+                for (Object[] d : datos) {
+                    modelo.addRow(new Object[] {
+                            d[0], // ID Factura
+                            d[1], // Periodo
+                            d[2], // Vencimiento
+                            "S/. " + String.format("%.2f", d[3]), // Monto
+                            d[4], // Estado
+                            d[5] != null ? d[5] : "---", // Fecha Pago
+                            "" // Columna de acciones (vacia, el renderer dibuja los botones)
+                    });
+                }
+                setCursor(Cursor.getDefaultCursor());
+            });
+        }).start();
+    }
+
+    private void alternarEstado(int fila, int idFactura) {
+        String estadoActual = (String) modelo.getValueAt(fila, 4);
+        int nuevoEstado = "PAGADO".equals(estadoActual) ? 1 : 2;
+        String accion = nuevoEstado == 2 ? "marcar como PAGADO" : "marcar como PENDIENTE";
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Desea " + accion + " este mes?\n" +
+                        (nuevoEstado == 2 ? "Se registrara en caja como ingreso."
+                                : "NO se eliminara el registro de caja anterior."),
+                "Confirmar Cambio de Estado",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            new Thread(() -> {
+                java.sql.Date fechaPago = new java.sql.Date(System.currentTimeMillis());
+                boolean exito = pagoDAO.actualizarEstadoFactura(idFactura, nuevoEstado, fechaPago, idUsuario);
+
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    if (exito) {
+                        cargarDatos();
+                        JOptionPane.showMessageDialog(this, "Estado actualizado correctamente.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al actualizar el estado.");
+                    }
+                });
+            }).start();
+        }
+    }
+
+    private void editarFactura(int fila, int idFactura) {
+        String periodoActual = (String) modelo.getValueAt(fila, 1);
+        String montoStr = ((String) modelo.getValueAt(fila, 3)).replace("S/. ", "").replace(",", ".");
+        double montoActual = Double.parseDouble(montoStr);
+
+        JTextField txtPeriodo = new JTextField(periodoActual);
+        JTextField txtMonto = new JTextField(String.format("%.2f", montoActual));
+        JDateChooser dateVenc = new JDateChooser();
+        dateVenc.setDateFormatString("dd/MM/yyyy");
+        dateVenc.setDate((java.util.Date) modelo.getValueAt(fila, 2));
+
+        JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
+        panel.add(new JLabel("Periodo (ej: Enero 2024):"));
+        panel.add(txtPeriodo);
+        panel.add(new JLabel("Monto S/.:"));
+        panel.add(txtMonto);
+        panel.add(new JLabel("Fecha Vencimiento:"));
+        panel.add(dateVenc);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Editar Factura",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                String nuevoPeriodo = txtPeriodo.getText().trim();
+                double nuevoMonto = Double.parseDouble(txtMonto.getText().replace(",", "."));
+                java.sql.Date nuevaFechaVenc = new java.sql.Date(dateVenc.getDate().getTime());
+
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                new Thread(() -> {
+                    boolean exito = pagoDAO.actualizarFactura(idFactura, nuevoPeriodo, nuevoMonto, nuevaFechaVenc);
+                    SwingUtilities.invokeLater(() -> {
+                        setCursor(Cursor.getDefaultCursor());
+                        if (exito) {
+                            cargarDatos();
+                            JOptionPane.showMessageDialog(this, "Factura actualizada.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Error al actualizar.");
+                        }
+                    });
+                }).start();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Datos invalidos: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void eliminarFactura(int fila, int idFactura) {
+        String periodo = (String) modelo.getValueAt(fila, 1);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Eliminar la factura de " + periodo + "?\n\n" +
+                        "ADVERTENCIA: Los movimientos de caja asociados NO seran eliminados.",
+                "Confirmar Eliminacion",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            new Thread(() -> {
+                boolean exito = pagoDAO.eliminarFactura(idFactura);
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    if (exito) {
+                        cargarDatos();
+                        JOptionPane.showMessageDialog(this, "Factura eliminada.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al eliminar.");
+                    }
+                });
+            }).start();
+        }
+    }
+
+    private void abrirDialogoAgregarMes() {
+        JTextField txtPeriodo = new JTextField("Enero 2024");
+        JTextField txtMonto = new JTextField(String.format("%.2f", montoMensual));
+        JDateChooser dateVenc = new JDateChooser();
+        dateVenc.setDateFormatString("dd/MM/yyyy");
+        dateVenc.setDate(new java.util.Date());
+        JComboBox<String> cmbEstado = new JComboBox<>(new String[] { "PENDIENTE", "PAGADO" });
+        JCheckBox chkRegistrarCaja = new JCheckBox("Registrar en caja (si esta pagado)", false);
+
+        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
+        panel.add(new JLabel("Periodo (ej: Enero 2024):"));
+        panel.add(txtPeriodo);
+        panel.add(new JLabel("Monto S/.:"));
+        panel.add(txtMonto);
+        panel.add(new JLabel("Fecha Vencimiento:"));
+        panel.add(dateVenc);
+        panel.add(new JLabel("Estado:"));
+        panel.add(cmbEstado);
+        panel.add(new JLabel(""));
+        panel.add(chkRegistrarCaja);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Agregar Mes Manualmente",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                String periodo = txtPeriodo.getText().trim();
+                double monto = Double.parseDouble(txtMonto.getText().replace(",", "."));
+                java.sql.Date fechaVenc = new java.sql.Date(dateVenc.getDate().getTime());
+                int estado = cmbEstado.getSelectedIndex() == 0 ? 1 : 2;
+                boolean registrarEnCaja = chkRegistrarCaja.isSelected();
+
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                new Thread(() -> {
+                    boolean exito = pagoDAO.crearFacturaManual(idSuscripcion, periodo, monto,
+                            estado, fechaVenc, registrarEnCaja, idUsuario);
+                    SwingUtilities.invokeLater(() -> {
+                        setCursor(Cursor.getDefaultCursor());
+                        if (exito) {
+                            cargarDatos();
+                            JOptionPane.showMessageDialog(this, "Mes agregado correctamente.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Error al agregar.");
+                        }
+                    });
+                }).start();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Datos invalidos: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void abrirDialogoGenerarAnio() {
+        Calendar cal = Calendar.getInstance();
+        int anioActual = cal.get(Calendar.YEAR);
+
+        JSpinner spnAnio = new JSpinner(new SpinnerNumberModel(anioActual, 2020, 2030, 1));
+        JTextField txtMonto = new JTextField(String.format("%.2f", montoMensual));
+        JSpinner spnDia = new JSpinner(new SpinnerNumberModel(diaPago, 1, 31, 1));
+        JComboBox<String> cmbEstado = new JComboBox<>(new String[] { "Todos PENDIENTES", "Todos PAGADOS" });
+        JCheckBox chkRegistrarCaja = new JCheckBox("Registrar en caja (si estan pagados)", false);
+
+        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
+        panel.add(new JLabel("Anio a generar:"));
+        panel.add(spnAnio);
+        panel.add(new JLabel("Monto mensual S/.:"));
+        panel.add(txtMonto);
+        panel.add(new JLabel("Dia de vencimiento:"));
+        panel.add(spnDia);
+        panel.add(new JLabel("Estado por defecto:"));
+        panel.add(cmbEstado);
+        panel.add(new JLabel(""));
+        panel.add(chkRegistrarCaja);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Generar Anio Completo",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                int anio = (int) spnAnio.getValue();
+                double monto = Double.parseDouble(txtMonto.getText().replace(",", "."));
+                int dia = (int) spnDia.getValue();
+                int estado = cmbEstado.getSelectedIndex() == 0 ? 1 : 2;
+                boolean registrarEnCaja = chkRegistrarCaja.isSelected();
+
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+                new Thread(() -> {
+                    int mesesCreados = pagoDAO.generarAnioCompleto(idSuscripcion, anio, dia,
+                            monto, estado, registrarEnCaja, idUsuario);
+                    SwingUtilities.invokeLater(() -> {
+                        setCursor(Cursor.getDefaultCursor());
+                        cargarDatos();
+
+                        if (mesesCreados > 0) {
+                            JOptionPane.showMessageDialog(this,
+                                    "Se generaron " + mesesCreados + " meses para el anio " + anio + ".\n" +
+                                            "(Los meses que ya existian fueron omitidos)");
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "No se generaron nuevos meses.\nEs posible que todos ya existan.");
+                        }
+                    });
+                }).start();
+            } catch (Exception ex) {
+                setCursor(Cursor.getDefaultCursor());
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void estilarBoton(JButton btn, Color bg, Color fg) {
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(true);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    // --- RENDERIZADORES ---
+    class EstadoRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isS, boolean hasF, int row, int col) {
+            JLabel lbl = new JLabel();
+            lbl.setOpaque(true);
+            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lbl.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            lbl.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+            String estado = (String) value;
+            if ("PAGADO".equals(estado)) {
+                lbl.setText("[PAGADO]");
+                lbl.setForeground(new Color(22, 163, 74));
+                lbl.setBackground(isS ? new Color(219, 234, 254) : new Color(220, 252, 231));
+            } else if ("PENDIENTE".equals(estado)) {
+                lbl.setText("[PENDIENTE]");
+                lbl.setForeground(new Color(220, 38, 38));
+                lbl.setBackground(isS ? new Color(219, 234, 254) : new Color(254, 226, 226));
+            } else {
+                lbl.setText("[" + estado + "]");
+                lbl.setForeground(Color.GRAY);
+                lbl.setBackground(isS ? new Color(219, 234, 254) : Color.WHITE);
+            }
+            return lbl;
+        }
+    }
+
+    class AccionesRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isS, boolean hasF, int row, int col) {
+
+            // Panel con dos botones visuales
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
+            panel.setBackground(isS ? new Color(219, 234, 254) : Color.WHITE);
+
+            // Boton Editar
+            JButton btnEditar = new JButton("Editar");
+            btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            btnEditar.setBackground(new Color(59, 130, 246));
+            btnEditar.setForeground(Color.WHITE);
+            btnEditar.setFocusPainted(false);
+            btnEditar.setPreferredSize(new Dimension(70, 25));
+            panel.add(btnEditar);
+
+            // Boton Eliminar
+            JButton btnEliminar = new JButton("Eliminar");
+            btnEliminar.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            btnEliminar.setBackground(new Color(239, 68, 68));
+            btnEliminar.setForeground(Color.WHITE);
+            btnEliminar.setFocusPainted(false);
+            btnEliminar.setPreferredSize(new Dimension(70, 25));
+            panel.add(btnEliminar);
+
+            return panel;
+        }
     }
 }

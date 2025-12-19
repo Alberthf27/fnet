@@ -12,14 +12,16 @@ public class PanelDetalleContrato extends JPanel {
     private JLabel lblCliente, lblPlan, lblEstado, lblDireccion, lblSector, lblDeudaTotal, lblProximoPago;
     private JLabel lblContratoID, lblMorosidad;
     private JLabel lblInicio, lblGarantia;
-    
+
     // --- NUEVOS LABELS ---
-    private JLabel lblMesAdelantado, lblEquipos; 
+    private JLabel lblMesAdelantado, lblEquipos;
     // ---------------------
 
     // Variables para el botón de historial
     private int idSuscripcionActual = 0;
     private String nombreClienteActual = "";
+    private double montoMensualActual = 0.0; // NUEVO
+    private int diaPagoActual = 15; // NUEVO
 
     public PanelDetalleContrato() {
         setLayout(null);
@@ -141,7 +143,7 @@ public class PanelDetalleContrato extends JPanel {
         btnVerHistorial.setBackground(new Color(241, 245, 249));
         btnVerHistorial.setForeground(new Color(15, 23, 42));
         btnVerHistorial.setFocusPainted(false);
-        
+
         y += 70; // Posición final del botón
         btnVerHistorial.setBounds(25, y, 200, 40);
 
@@ -149,7 +151,9 @@ public class PanelDetalleContrato extends JPanel {
             if (idSuscripcionActual > 0) {
                 java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
                 if (parent instanceof java.awt.Frame) {
-                    new DialogoHistorial((java.awt.Frame) parent, idSuscripcionActual, nombreClienteActual).setVisible(true);
+                    // Pasar monto y día de pago para funcionalidad completa
+                    new DialogoHistorial((java.awt.Frame) parent, idSuscripcionActual,
+                            nombreClienteActual, montoMensualActual, diaPagoActual).setVisible(true);
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Seleccione un cliente primero.");
@@ -162,6 +166,8 @@ public class PanelDetalleContrato extends JPanel {
     public void mostrarDatos(Suscripcion s) {
         this.idSuscripcionActual = s.getIdSuscripcion();
         this.nombreClienteActual = s.getNombreCliente();
+        this.montoMensualActual = s.getMontoMensual(); // Guardar monto
+        this.diaPagoActual = s.getDiaPago(); // Guardar día de pago
 
         double precio = s.getMontoMensual();
         String nombre = s.getNombreCliente() != null ? s.getNombreCliente() : "SIN NOMBRE";
@@ -170,14 +176,22 @@ public class PanelDetalleContrato extends JPanel {
         String codigo = s.getCodigoContrato() != null ? s.getCodigoContrato() : "---";
 
         lblCliente.setText(nombre);
-        lblPlan.setText("<html>" + plan + " <span style='color:gray'>(S/. " + String.format("%.2f", precio) + ")</span></html>");
+        lblPlan.setText("<html>" + plan + " <span style='color:gray'>(S/. " + String.format("%.2f", precio)
+                + ")</span></html>");
         lblDireccion.setText("<html>" + direccion + "</html>");
         lblContratoID.setText("CONTRATO: " + codigo);
-        lblInicio.setText(s.getFechaInicio() != null ? s.getFechaInicio().toString() : "---");
-        lblProximoPago.setText("Los días " + s.getDiaPago() + " de cada mes");
+        // Formato de fecha: dd/MM/yyyy
+        if (s.getFechaInicio() != null) {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            lblInicio.setText(sdf.format(s.getFechaInicio()));
+        } else {
+            lblInicio.setText("---");
+        }
+        lblProximoPago.setText("Los dias " + s.getDiaPago() + " de cada mes");
 
         // --- 1. EQUIPOS PRESTADOS ---
-        if (s.isEquiposPrestados()) { // Asegúrate que tu modelo tenga isEquiposPrestados() o getEquiposPrestados() == 1
+        if (s.isEquiposPrestados()) { // Asegúrate que tu modelo tenga isEquiposPrestados() o getEquiposPrestados() ==
+                                      // 1
             lblEquipos.setText("PRESTADOS (Propiedad de la Empresa)");
             lblEquipos.setForeground(new Color(234, 88, 12)); // Naranja (Atención al retirar)
         } else {
@@ -195,10 +209,10 @@ public class PanelDetalleContrato extends JPanel {
         }
 
         // --- 3. GARANTÍA ---
-        double garantia = s.getGarantia(); 
+        double garantia = s.getGarantia();
         if (garantia > 0) {
             lblGarantia.setText("S/. " + String.format("%.2f", garantia));
-            lblGarantia.setForeground(new Color(22, 163, 74)); 
+            lblGarantia.setForeground(new Color(22, 163, 74));
         } else {
             lblGarantia.setText("S/. 0.00");
             lblGarantia.setForeground(Color.GRAY);
@@ -214,7 +228,7 @@ public class PanelDetalleContrato extends JPanel {
             lblEstado.setForeground(new Color(22, 163, 74));
 
             if (pendientes == 0) {
-                lblMorosidad.setText("Cliente al día 🌟");
+                lblMorosidad.setText("Cliente al dia - OK");
                 lblMorosidad.setForeground(new Color(22, 163, 74));
             } else {
                 lblMorosidad.setText("Pendiente: " + pendientes + " mes(es)");

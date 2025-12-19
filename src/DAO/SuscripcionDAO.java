@@ -47,7 +47,7 @@ public class SuscripcionDAO {
                     sus.setNombreServicio(rs.getString("descripcion"));
                     sus.setMontoMensual(rs.getDouble("mensualidad"));
                     // Dentro del while(rs.next()) de listarPaginado y listarTodo:
-                    sus.setMesAdelantado(rs.getInt("mes_adelantado"));     // <--- Agregar
+                    sus.setMesAdelantado(rs.getInt("mes_adelantado")); // <--- Agregar
                     sus.setEquiposPrestados(rs.getInt("equipos_prestados")); // <--- Agregar
                     lista.add(sus);
                 }
@@ -79,7 +79,8 @@ public class SuscripcionDAO {
                     + "WHERE id_suscripcion = ?";
         }
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, idServicio);
             ps.setString(2, direccion);
@@ -112,7 +113,8 @@ public class SuscripcionDAO {
     public boolean actualizarContrato(int idSuscripcion, int idNuevoServicio, String nuevaDireccion) {
         String sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ? WHERE id_suscripcion = ?";
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, idNuevoServicio);
             ps.setString(2, nuevaDireccion);
@@ -142,7 +144,7 @@ public class SuscripcionDAO {
     /**
      * Crea una suscripción rápida para un cliente nuevo.
      *
-     * @param idCliente ID del cliente (Long para compatibilidad)
+     * @param idCliente  ID del cliente (Long para compatibilidad)
      * @param idServicio ID del servicio/plan (Long)
      */
     public boolean crearSuscripcionPorDefecto(Long idCliente, Long idServicio) {
@@ -157,7 +159,8 @@ public class SuscripcionDAO {
         // Generar un código de contrato simple
         String codigo = "CNT-" + System.currentTimeMillis();
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setLong(1, idCliente);
             ps.setLong(2, idServicio); // MySQL lo convertirá a INT automáticamente
@@ -179,14 +182,15 @@ public class SuscripcionDAO {
      */
     public String[] buscarClientePorDni(String dni) {
         String sql = "SELECT id_cliente, nombres, apellidos FROM cliente WHERE dni_cliente = ? AND activo = 1";
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, dni);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new String[]{
-                        String.valueOf(rs.getInt("id_cliente")),
-                        rs.getString("nombres") + " " + rs.getString("apellidos")
+                    return new String[] {
+                            String.valueOf(rs.getInt("id_cliente")),
+                            rs.getString("nombres") + " " + rs.getString("apellidos")
                     };
                 }
             }
@@ -203,7 +207,8 @@ public class SuscripcionDAO {
         // Actualizamos todo de una vez
         String sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ?, id_cliente = ? WHERE id_suscripcion = ?";
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, idServicio);
             ps.setString(2, direccion);
@@ -257,8 +262,8 @@ public class SuscripcionDAO {
             sql += " ORDER BY s.id_suscripcion DESC";
         }
 
-
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             String searchPattern = "%" + busqueda + "%";
             ps.setString(1, searchPattern);
@@ -319,7 +324,7 @@ public class SuscripcionDAO {
 
         int dia = cal.get(java.util.Calendar.DAY_OF_MONTH);
 
-        // LÓGICA DEL NEGOCIO: 
+        // LÓGICA DEL NEGOCIO:
         // Si entra después del 16, el mes de servicio cuenta desde el SIGUIENTE.
         if (dia > 16) {
             cal.add(java.util.Calendar.MONTH, 1); // Sumar 1 mes
@@ -332,7 +337,8 @@ public class SuscripcionDAO {
 
     public int obtenerIdClienteDeContrato(int idSuscripcion) {
         String sql = "SELECT id_cliente FROM suscripcion WHERE id_suscripcion = ?";
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idSuscripcion);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -352,7 +358,8 @@ public class SuscripcionDAO {
         // Marcamos como inactivo (0) y registramos FECHA DE FIN
         String sql = "UPDATE suscripcion SET activo = 0, fecha_cancelacion = CURDATE(), fecha_fin = CURDATE() WHERE id_suscripcion = ?";
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, idSuscripcion);
             return ps.executeUpdate() > 0;
@@ -361,6 +368,33 @@ public class SuscripcionDAO {
             System.err.println("Error al dar de baja: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Obtiene las condiciones de servicio de un contrato para edición.
+     * 
+     * @return Object[3]: [mesAdelantado (int), equiposPrestados (int), garantia
+     *         (double)]
+     *         Retorna null si no se encuentra el contrato.
+     */
+    public Object[] obtenerCondicionesContrato(int idSuscripcion) {
+        String sql = "SELECT mes_adelantado, equipos_prestados, garantia FROM suscripcion WHERE id_suscripcion = ?";
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idSuscripcion);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Object[] {
+                            rs.getInt("mes_adelantado"),
+                            rs.getInt("equipos_prestados"),
+                            rs.getDouble("garantia")
+                    };
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

@@ -22,16 +22,18 @@ public class FormularioCliente extends JDialog {
     public FormularioCliente(java.awt.Frame parent, Cliente clienteAEditar) {
         super(parent, true); // Modal
         this.clienteEdicion = clienteAEditar;
-        
+
         setTitle(clienteAEditar == null ? "Nuevo Cliente" : "Editar Cliente");
         setSize(500, 650); // Un poco más alto
         setLocationRelativeTo(parent);
         setResizable(false);
         initUI();
-        
-        // Cargar datos en hilo aparte si es edición (aunque es rápido, es buena práctica)
-        if (clienteAEditar != null) cargarDatos();
-        
+
+        // Cargar datos en hilo aparte si es edición (aunque es rápido, es buena
+        // práctica)
+        if (clienteAEditar != null)
+            cargarDatos();
+
     }
 
     private void initUI() {
@@ -47,11 +49,11 @@ public class FormularioCliente extends JDialog {
         panel.add(lblTitulo);
 
         int y = 60;
-        
+
         panel.add(crearLabel("DNI / Cédula:", 30, y));
         txtDni = crearInput(30, y + 25, 200);
         panel.add(txtDni);
-        
+
         panel.add(crearLabel("Teléfono:", 250, y));
         txtTelefono = crearInput(250, y + 25, 200);
         panel.add(txtTelefono);
@@ -71,7 +73,7 @@ public class FormularioCliente extends JDialog {
         txtDireccion = crearInput(30, y + 25, 420);
         panel.add(txtDireccion);
         y += 70;
-        
+
         panel.add(crearLabel("Correo (Opcional):", 30, y));
         txtCorreo = crearInput(30, y + 25, 420);
         panel.add(txtCorreo);
@@ -107,13 +109,13 @@ public class FormularioCliente extends JDialog {
             y += 90;
         }
 
-        JButton btnGuardar = new JButton("💾 GUARDAR");
+        JButton btnGuardar = new JButton("GUARDAR");
         estilarBoton(btnGuardar, new Color(22, 163, 74), Color.WHITE);
         btnGuardar.setBounds(250, 520, 200, 45);
-        
+
         // ACCIÓN DE GUARDAR CON HILO (Velocidad y Barra de carga)
         btnGuardar.addActionListener(e -> procesarGuardado());
-        
+
         panel.add(btnGuardar);
 
         JButton btnCancelar = new JButton("Cancelar");
@@ -122,14 +124,15 @@ public class FormularioCliente extends JDialog {
         btnCancelar.addActionListener(e -> dispose());
         panel.add(btnCancelar);
     }
-    
+
     private void cargarPlanes() {
-        // Cargar combos no suele demorar, pero si quieres perfección, úsalo en hilo también
+        // Cargar combos no suele demorar, pero si quieres perfección, úsalo en hilo
+        // también
         new Thread(() -> {
             ServicioDAO dao = new ServicioDAO();
             List<Servicio> servicios = dao.obtenerServiciosActivos();
             SwingUtilities.invokeLater(() -> {
-                for(Servicio s : servicios) {
+                for (Servicio s : servicios) {
                     cmbPlanes.addItem(s);
                 }
             });
@@ -137,25 +140,28 @@ public class FormularioCliente extends JDialog {
     }
 
     private void procesarGuardado() {
-        if (txtDni.getText().isEmpty() || txtNombres.getText().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "DNI y Nombres obligatorios.");
+        // Solo nombres es obligatorio, DNI es opcional
+        if (txtNombres.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El campo Nombres es obligatorio.");
             return;
         }
 
         // 1. Activar barra en Principal (si existe)
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        if (Principal.instancia != null)
+            Principal.instancia.mostrarCarga(true);
         setCursor(new Cursor(Cursor.WAIT_CURSOR));
 
         // 2. Ejecutar guardado en segundo plano
         new Thread(() -> {
             try {
                 boolean exito = guardarEnBD(); // Llamamos a la lógica pesada
-                
+
                 // 3. Volver a la interfaz
                 SwingUtilities.invokeLater(() -> {
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                    if (Principal.instancia != null)
+                        Principal.instancia.mostrarCarga(false);
                     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                    
+
                     if (exito) {
                         JOptionPane.showMessageDialog(this, "Datos guardados correctamente.");
                         resultado = true;
@@ -167,8 +173,9 @@ public class FormularioCliente extends JDialog {
             } catch (Exception ex) {
                 ex.printStackTrace();
                 SwingUtilities.invokeLater(() -> {
-                     if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
-                     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                    if (Principal.instancia != null)
+                        Principal.instancia.mostrarCarga(false);
+                    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                 });
             }
         }).start();
@@ -189,14 +196,15 @@ public class FormularioCliente extends JDialog {
             int idServicio = 0;
             if (conContrato) {
                 Servicio s = (Servicio) cmbPlanes.getSelectedItem();
-                if(s != null) idServicio = s.getIdServicio();
+                if (s != null)
+                    idServicio = s.getIdServicio();
             }
             return dao.registrarClienteCompleto(c, idServicio, conContrato);
         } else {
             return dao.actualizarCliente(c);
         }
     }
-    
+
     private void cargarDatos() {
         txtDni.setText(clienteEdicion.getDniCliente());
         txtNombres.setText(clienteEdicion.getNombres());
@@ -208,7 +216,9 @@ public class FormularioCliente extends JDialog {
         txtDni.setEnabled(true);
     }
 
-    public boolean isGuardado() { return resultado; }
+    public boolean isGuardado() {
+        return resultado;
+    }
 
     // Helpers visuales
     private JLabel crearLabel(String txt, int x, int y) {
@@ -218,14 +228,16 @@ public class FormularioCliente extends JDialog {
         l.setBounds(x, y, 200, 20);
         return l;
     }
+
     private JTextField crearInput(int x, int y, int w) {
         JTextField t = new JTextField();
         t.setBounds(x, y, w, 30);
         t.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)), 
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         return t;
     }
+
     private void estilarBoton(JButton btn, Color bg, Color fg) {
         btn.setBackground(bg);
         btn.setForeground(fg);
