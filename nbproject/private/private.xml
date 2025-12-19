@@ -5,6 +5,7 @@
         <group>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/PanelInstalaciones.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/subpanel_DirectorioClientes.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/panel_Servicios.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/DialogoHistorial.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/DAO/FinanzasDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/modelo/PagoFactura.java</file>
@@ -13,6 +14,7 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/PanelDetalleContrato.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/FormularioCliente.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/PanelPagos.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/DialogoServicio.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/vista/PanelFinanzas.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/modelo/CategoriaMovimiento.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/NetBeansProjects/SistemaFibranet/src/modelo/Servicio.java</file>
