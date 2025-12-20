@@ -7,11 +7,10 @@ import com.toedter.calendar.JDateChooser;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Date;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.DefaultListModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 
@@ -29,13 +28,11 @@ public class DialogoEditarContrato extends JDialog {
 
     // CAMPOS DE CLIENTE
     private JTextField txtDniCli, txtNombresCli, txtApellidosCli, txtCelularCli;
-    private JButton btnBuscarDni;
 
     private JDateChooser dateInicio;
     private JSpinner spinDiaPago;
 
     private int idSuscripcion;
-    private int idClienteActual;
     private int idClienteSeleccionado = -1;
     private boolean guardado = false;
     private boolean esNuevoCliente = false;
@@ -52,11 +49,10 @@ public class DialogoEditarContrato extends JDialog {
             String nombreSuscripcion) { // NUEVO: Nombre del contrato
         super(parent, true);
         this.idSuscripcion = idSuscripcion;
-        this.idClienteActual = idClienteOriginal;
         this.idClienteSeleccionado = idClienteOriginal;
 
         setTitle(idSuscripcion == -1 ? "Nuevo Contrato" : "Editar Contrato #" + idSuscripcion);
-        setSize(550, 800); // Aumentamos altura para el nuevo campo
+        setSize(560, 870); // Altura ajustada para nuevo panel de cliente
         setLocationRelativeTo(parent);
         setResizable(false);
 
@@ -192,64 +188,166 @@ public class DialogoEditarContrato extends JDialog {
         panel.add(txtDireccion);
         y += 85;
 
-        // --- 5. DATOS DEL CLIENTE ---
+        // --- 5. DATOS DEL CLIENTE (MEJORADO CON BÚSQUEDA) ---
         JPanel panelCli = new JPanel(null);
         panelCli.setBackground(new Color(248, 250, 252));
         panelCli.setBorder(
-                BorderFactory.createTitledBorder(null, "Datos del Titular", TitledBorder.DEFAULT_JUSTIFICATION,
+                BorderFactory.createTitledBorder(null, "Titular del Contrato", TitledBorder.DEFAULT_JUSTIFICATION,
                         TitledBorder.DEFAULT_POSITION, new Font("Segoe UI", Font.BOLD, 12)));
-        panelCli.setBounds(20, y, 480, 190);
+        panelCli.setBounds(20, y, 480, 220);
         panel.add(panelCli);
 
-        JLabel lblDni = new JLabel("DNI:");
-        lblDni.setBounds(15, 25, 50, 20);
-        panelCli.add(lblDni);
+        // Campo de búsqueda
+        JLabel lblBuscar = new JLabel("Buscar cliente (nombre, DNI):");
+        lblBuscar.setBounds(15, 25, 200, 20);
+        panelCli.add(lblBuscar);
 
-        txtDniCli = new JTextField();
-        txtDniCli.setBounds(50, 20, 120, 30);
-        panelCli.add(txtDniCli);
+        JTextField txtBuscarCliente = new JTextField();
+        txtBuscarCliente.setBounds(15, 45, 350, 30);
+        txtBuscarCliente.setToolTipText("Escriba para buscar clientes existentes");
+        panelCli.add(txtBuscarCliente);
 
-        btnBuscarDni = new JButton("Buscar");
-        btnBuscarDni.setBounds(180, 20, 50, 30);
-        btnBuscarDni.addActionListener(e -> buscarOActivarFormulario());
-        panelCli.add(btnBuscarDni);
+        // Lista de resultados
+        DefaultListModel<String> listaModelo = new DefaultListModel<>();
+        JList<String> listaClientes = new JList<>(listaModelo);
+        listaClientes.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        listaClientes.setSelectionBackground(new Color(219, 234, 254));
+        JScrollPane scrollLista = new JScrollPane(listaClientes);
+        scrollLista.setBounds(15, 80, 350, 80);
+        panelCli.add(scrollLista);
 
-        JLabel lblNota = new JLabel(
-                "<html><font color='gray' size='2'>* Si no existe, ingrese los datos.</font></html>");
-        lblNota.setBounds(240, 20, 200, 30);
-        panelCli.add(lblNota);
+        // Lista interna para mapear selección a ID
+        java.util.List<Object[]> clientesEncontrados = new java.util.ArrayList<>();
 
-        JLabel lblNom = new JLabel("Nombres:");
-        lblNom.setBounds(15, 65, 80, 20);
-        panelCli.add(lblNom);
+        // Checkbox para cliente nuevo
+        JCheckBox chkNuevoCliente = new JCheckBox("Crear cliente nuevo");
+        chkNuevoCliente.setBackground(new Color(248, 250, 252));
+        chkNuevoCliente.setBounds(375, 45, 100, 30);
+        chkNuevoCliente.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        panelCli.add(chkNuevoCliente);
+
+        // Campos para cliente nuevo (inicialmente ocultos)
+        JLabel lblNomNuevo = new JLabel("Nombres:");
+        lblNomNuevo.setBounds(15, 165, 80, 20);
+        lblNomNuevo.setVisible(false);
+        panelCli.add(lblNomNuevo);
 
         txtNombresCli = new JTextField();
-        txtNombresCli.setBounds(15, 85, 210, 30);
-        txtNombresCli.setEnabled(false);
+        txtNombresCli.setBounds(85, 162, 130, 28);
+        txtNombresCli.setVisible(false);
         panelCli.add(txtNombresCli);
 
-        JLabel lblApe = new JLabel("Apellidos:");
-        lblApe.setBounds(240, 65, 80, 20);
-        panelCli.add(lblApe);
+        JLabel lblApeNuevo = new JLabel("Apellidos:");
+        lblApeNuevo.setBounds(220, 165, 60, 20);
+        lblApeNuevo.setVisible(false);
+        panelCli.add(lblApeNuevo);
 
         txtApellidosCli = new JTextField();
-        txtApellidosCli.setBounds(240, 85, 220, 30);
-        txtApellidosCli.setEnabled(false);
+        txtApellidosCli.setBounds(280, 162, 130, 28);
+        txtApellidosCli.setVisible(false);
         panelCli.add(txtApellidosCli);
 
-        JLabel lblCel = new JLabel("Celular / Telf:");
-        lblCel.setBounds(15, 125, 100, 20);
-        panelCli.add(lblCel);
-
+        txtDniCli = new JTextField();
+        txtDniCli.setVisible(false);
         txtCelularCli = new JTextField();
-        txtCelularCli.setBounds(15, 145, 150, 30);
-        txtCelularCli.setEnabled(false);
-        panelCli.add(txtCelularCli);
+        txtCelularCli.setVisible(false);
+
+        // Listener para búsqueda en tiempo real
+        txtBuscarCliente.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private javax.swing.Timer timer;
+
+            private void buscar() {
+                if (timer != null)
+                    timer.stop();
+                timer = new javax.swing.Timer(300, e -> {
+                    String texto = txtBuscarCliente.getText().trim();
+                    if (texto.length() >= 2) {
+                        new Thread(() -> {
+                            ClienteDAO cliDAO = new ClienteDAO();
+                            java.util.List<Object[]> resultados = cliDAO.buscarClientesParaDropdown(texto);
+                            SwingUtilities.invokeLater(() -> {
+                                clientesEncontrados.clear();
+                                clientesEncontrados.addAll(resultados);
+                                listaModelo.clear();
+                                for (Object[] cli : resultados) {
+                                    String display = cli[1] + " " + cli[2] + " - DNI: "
+                                            + (cli[4] != null ? cli[4] : "---");
+                                    listaModelo.addElement(display);
+                                }
+                            });
+                        }).start();
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
+            }
+
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+        });
+
+        // Listener para selección de cliente
+        listaClientes.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && listaClientes.getSelectedIndex() >= 0) {
+                int idx = listaClientes.getSelectedIndex();
+                if (idx < clientesEncontrados.size()) {
+                    Object[] datos = clientesEncontrados.get(idx);
+                    esNuevoCliente = false;
+                    idClienteSeleccionado = (int) datos[0];
+                    txtBuscarCliente.setText(datos[1] + " " + datos[2]);
+                    txtBuscarCliente.setBackground(new Color(220, 252, 231)); // Verde claro
+                    // Actualizar nombre de suscripción si está vacío
+                    if (txtNombreSuscripcion.getText().isEmpty()) {
+                        txtNombreSuscripcion.setText(datos[1] + " " + datos[2]);
+                    }
+                }
+            }
+        });
+
+        // Listener para checkbox nuevo cliente
+        chkNuevoCliente.addActionListener(e -> {
+            boolean nuevo = chkNuevoCliente.isSelected();
+            esNuevoCliente = nuevo;
+            idClienteSeleccionado = -1;
+
+            // Mostrar/ocultar campos
+            lblNomNuevo.setVisible(nuevo);
+            txtNombresCli.setVisible(nuevo);
+            lblApeNuevo.setVisible(nuevo);
+            txtApellidosCli.setVisible(nuevo);
+
+            // Deshabilitar búsqueda si es nuevo
+            txtBuscarCliente.setEnabled(!nuevo);
+            listaClientes.setEnabled(!nuevo);
+            scrollLista.setEnabled(!nuevo);
+
+            if (nuevo) {
+                txtBuscarCliente.setBackground(Color.LIGHT_GRAY);
+                txtNombresCli.requestFocus();
+            } else {
+                txtBuscarCliente.setBackground(Color.WHITE);
+            }
+        });
+
+        // Si es edición, mostrar cliente actual seleccionado
+        if (idSuscripcion != -1 && nombreCliente != null && !nombreCliente.isEmpty()) {
+            txtBuscarCliente.setText(nombreCliente);
+            txtBuscarCliente.setBackground(new Color(220, 252, 231));
+        }
 
         // --- BOTONES ---
         JButton btnGuardar = new JButton("GUARDAR CONTRATO");
         estilarBoton(btnGuardar, new Color(37, 99, 235), Color.WHITE);
-        btnGuardar.setBounds(150, y + 205, 220, 45); // Ajustado al final
+        btnGuardar.setBounds(150, y + 235, 220, 45); // Ajustado para nuevo panel
         btnGuardar.addActionListener(e -> guardar());
         panel.add(btnGuardar);
 

@@ -17,7 +17,8 @@ public class ClienteDAO {
                 + "ORDER BY apellidos, nombres "
                 + "LIMIT ? OFFSET ?";
 
-        // Uso del try-with-resources para el manejo automático de la conexión y recursos (Mejor práctica en Java)
+        // Uso del try-with-resources para el manejo automático de la conexión y
+        // recursos (Mejor práctica en Java)
         try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, limit);
@@ -34,8 +35,7 @@ public class ClienteDAO {
         }
         return clientes;
     }
-    
-    
+
     // AGREGAR ESTO EN TU CLASE ClienteDAO
 
     public List<Cliente> listarTodo(String busqueda, String orden) {
@@ -45,19 +45,29 @@ public class ClienteDAO {
         // Lógica de Filtros
         if (orden != null) {
             switch (orden) {
-                case "NOMBRE (A-Z)": sql += " ORDER BY nombres ASC"; break;
-                case "APELLIDO (A-Z)": sql += " ORDER BY apellidos ASC"; break;
-                case "SOLO ACTIVOS": sql += " AND activo = 1 ORDER BY nombres ASC"; break;
-                case "SOLO BAJAS": sql += " AND activo = 0 ORDER BY nombres ASC"; break;
-                default: sql += " ORDER BY id_cliente DESC"; break;
+                case "NOMBRE (A-Z)":
+                    sql += " ORDER BY nombres ASC";
+                    break;
+                case "APELLIDO (A-Z)":
+                    sql += " ORDER BY apellidos ASC";
+                    break;
+                case "SOLO ACTIVOS":
+                    sql += " AND activo = 1 ORDER BY nombres ASC";
+                    break;
+                case "SOLO BAJAS":
+                    sql += " AND activo = 0 ORDER BY nombres ASC";
+                    break;
+                default:
+                    sql += " ORDER BY id_cliente DESC";
+                    break;
             }
         } else {
             sql += " ORDER BY id_cliente DESC";
         }
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); 
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
             String pattern = "%" + busqueda + "%";
             ps.setString(1, pattern);
             ps.setString(2, pattern);
@@ -128,10 +138,10 @@ public class ClienteDAO {
 
             while (rs.next()) {
                 Cliente c = new Cliente();
-// Cambia esto:
-// c.setIdCliente(rs.getInt("id_cliente"));
+                // Cambia esto:
+                // c.setIdCliente(rs.getInt("id_cliente"));
 
-// Por esto:
+                // Por esto:
                 c.setIdCliente(rs.getLong("id_cliente"));
                 c.setDniCliente(rs.getString("dni_cliente"));
                 c.setNombres(rs.getString("nombres"));
@@ -163,7 +173,7 @@ public class ClienteDAO {
 
         return lista;
     }
-    
+
     // Agrega esto en DAO/ClienteDAO.java
 
     /**
@@ -172,18 +182,18 @@ public class ClienteDAO {
      */
     public int registrarClienteYObtenerId(String dni, String nom, String ape, String dir, String tel) {
         String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, telefono, activo) VALUES (?, ?, ?, ?, ?, 1)";
-        
+
         try (java.sql.Connection conn = bd.Conexion.getConexion();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
-            
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+
             ps.setString(1, dni);
             ps.setString(2, nom);
             ps.setString(3, ape);
             ps.setString(4, dir); // Usaremos la misma dirección de instalación por defecto
             ps.setString(5, tel);
-            
+
             int affected = ps.executeUpdate();
-            
+
             if (affected > 0) {
                 try (java.sql.ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -203,17 +213,55 @@ public class ClienteDAO {
         // Traemos solo lo necesario para buscar
         String sql = "SELECT dni_cliente, nombres, apellidos FROM cliente WHERE activo = 1";
 
-        try (java.sql.Connection conn = bd.Conexion.getConexion(); java.sql.PreparedStatement ps = conn.prepareStatement(sql); java.sql.ResultSet rs = ps.executeQuery()) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql);
+                java.sql.ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 // Guardamos: [0]=DNI, [1]=Nombre Completo
-                lista.add(new String[]{
-                    rs.getString("dni_cliente"),
-                    rs.getString("nombres") + " " + rs.getString("apellidos")
+                lista.add(new String[] {
+                        rs.getString("dni_cliente"),
+                        rs.getString("nombres") + " " + rs.getString("apellidos")
                 });
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        return lista;
+    }
+
+    /**
+     * Busca clientes para dropdown con ID, nombres, apellidos y teléfono.
+     * Retorna array: [0]=ID, [1]=Nombres, [2]=Apellidos, [3]=Teléfono, [4]=DNI
+     */
+    public List<Object[]> buscarClientesParaDropdown(String criterio) {
+        List<Object[]> lista = new ArrayList<>();
+        String sql = "SELECT id_cliente, nombres, apellidos, telefono, dni_cliente " +
+                "FROM cliente WHERE activo = 1 " +
+                "AND (nombres LIKE ? OR apellidos LIKE ? OR dni_cliente LIKE ?) " +
+                "ORDER BY apellidos, nombres LIMIT 20";
+
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            String pattern = "%" + (criterio != null ? criterio : "") + "%";
+            ps.setString(1, pattern);
+            ps.setString(2, pattern);
+            ps.setString(3, pattern);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new Object[] {
+                            rs.getInt("id_cliente"), // 0: ID
+                            rs.getString("nombres"), // 1: Nombres
+                            rs.getString("apellidos"), // 2: Apellidos
+                            rs.getString("telefono"), // 3: Teléfono
+                            rs.getString("dni_cliente") // 4: DNI
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscando clientes para dropdown: " + e.getMessage());
         }
         return lista;
     }
@@ -224,7 +272,9 @@ public class ClienteDAO {
      */
     public int obtenerTotalClientesActivos() {
         String sql = "SELECT COUNT(id_cliente) FROM cliente WHERE activo = 1";
-        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
 
             if (rs.next()) {
                 return rs.getInt(1);
@@ -356,7 +406,8 @@ public class ClienteDAO {
         String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, correo, fecha_registro, activo, deuda) "
                 + "VALUES (?, ?, ?, ?, ?, NOW(), 1, ?)";
 
-        try (Connection conn = Conexion.getConexion(); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, cliente.getDniCliente());
             stmt.setString(2, cliente.getNombres());
@@ -482,7 +533,8 @@ public class ClienteDAO {
      */
     private Cliente mapearCliente(ResultSet rs) throws SQLException {
         Cliente cliente = new Cliente();
-        // ✅ Uso de nombres de columna exactos: id_cliente, dni_cliente, fecha_registro, activo, deuda
+        // ✅ Uso de nombres de columna exactos: id_cliente, dni_cliente, fecha_registro,
+        // activo, deuda
         cliente.setIdCliente(rs.getLong("id_cliente"));
         cliente.setDniCliente(rs.getString("dni_cliente"));
         cliente.setNombres(rs.getString("nombres"));
@@ -501,8 +553,9 @@ public class ClienteDAO {
      * comentado si necesitas el patrón antiguo.
      */
     /*
-    public List<Cliente> obtenerTodosClientes() {
-         return obtenerClientesPaginados(1000000, 0); // Limitarlo a un número gigante, pero forzar el LIMIT/OFFSET
-    }
+     * public List<Cliente> obtenerTodosClientes() {
+     * return obtenerClientesPaginados(1000000, 0); // Limitarlo a un número
+     * gigante, pero forzar el LIMIT/OFFSET
+     * }
      */
 }

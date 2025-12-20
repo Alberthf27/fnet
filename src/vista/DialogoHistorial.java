@@ -288,34 +288,69 @@ public class DialogoHistorial extends JDialog {
     }
 
     private void abrirDialogoAgregarMes() {
-        JTextField txtPeriodo = new JTextField("Enero 2024");
+        // Meses en español
+        String[] meses = { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+
+        Calendar cal = Calendar.getInstance();
+        int mesActual = cal.get(Calendar.MONTH);
+        int anioActual = cal.get(Calendar.YEAR);
+
+        // Componentes del diálogo
+        JComboBox<String> cmbMes = new JComboBox<>(meses);
+        cmbMes.setSelectedIndex(mesActual);
+
+        JSpinner spnAnio = new JSpinner(new SpinnerNumberModel(anioActual, 2020, 2030, 1));
         JTextField txtMonto = new JTextField(String.format("%.2f", montoMensual));
-        JDateChooser dateVenc = new JDateChooser();
-        dateVenc.setDateFormatString("dd/MM/yyyy");
-        dateVenc.setDate(new java.util.Date());
+
+        // Calcular fecha de vencimiento automáticamente
+        JLabel lblFechaVenc = new JLabel();
+        Runnable actualizarFecha = () -> {
+            int mes = cmbMes.getSelectedIndex();
+            int anio = (int) spnAnio.getValue();
+            int diaVenc = Math.min(diaPago, getDiasEnMes(mes, anio));
+            Calendar calVenc = Calendar.getInstance();
+            calVenc.set(anio, mes, diaVenc);
+            lblFechaVenc.setText(String.format("%02d/%02d/%d", diaVenc, mes + 1, anio));
+        };
+        actualizarFecha.run();
+
+        cmbMes.addActionListener(e -> actualizarFecha.run());
+        spnAnio.addChangeListener(e -> actualizarFecha.run());
+
         JComboBox<String> cmbEstado = new JComboBox<>(new String[] { "PENDIENTE", "PAGADO" });
         JCheckBox chkRegistrarCaja = new JCheckBox("Registrar en caja (si esta pagado)", false);
 
-        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
-        panel.add(new JLabel("Periodo (ej: Enero 2024):"));
-        panel.add(txtPeriodo);
+        JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
+        panel.add(new JLabel("Mes:"));
+        panel.add(cmbMes);
+        panel.add(new JLabel("Año:"));
+        panel.add(spnAnio);
         panel.add(new JLabel("Monto S/.:"));
         panel.add(txtMonto);
-        panel.add(new JLabel("Fecha Vencimiento:"));
-        panel.add(dateVenc);
+        panel.add(new JLabel("Vencimiento (día " + diaPago + "):"));
+        panel.add(lblFechaVenc);
         panel.add(new JLabel("Estado:"));
         panel.add(cmbEstado);
         panel.add(new JLabel(""));
         panel.add(chkRegistrarCaja);
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Agregar Mes Manualmente",
+        int result = JOptionPane.showConfirmDialog(this, panel, "Agregar Mes",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             try {
-                String periodo = txtPeriodo.getText().trim();
+                int mesSelec = cmbMes.getSelectedIndex();
+                int anio = (int) spnAnio.getValue();
+                String periodo = meses[mesSelec] + " " + anio;
                 double monto = Double.parseDouble(txtMonto.getText().replace(",", "."));
-                java.sql.Date fechaVenc = new java.sql.Date(dateVenc.getDate().getTime());
+
+                // Calcular fecha de vencimiento
+                int diaVenc = Math.min(diaPago, getDiasEnMes(mesSelec, anio));
+                Calendar calVenc = Calendar.getInstance();
+                calVenc.set(anio, mesSelec, diaVenc);
+                java.sql.Date fechaVenc = new java.sql.Date(calVenc.getTimeInMillis());
+
                 int estado = cmbEstado.getSelectedIndex() == 0 ? 1 : 2;
                 boolean registrarEnCaja = chkRegistrarCaja.isSelected();
 
@@ -329,7 +364,7 @@ public class DialogoHistorial extends JDialog {
                             cargarDatos();
                             JOptionPane.showMessageDialog(this, "Mes agregado correctamente.");
                         } else {
-                            JOptionPane.showMessageDialog(this, "Error al agregar.");
+                            JOptionPane.showMessageDialog(this, "Error al agregar (puede que ya exista).");
                         }
                     });
                 }).start();
@@ -337,6 +372,13 @@ public class DialogoHistorial extends JDialog {
                 JOptionPane.showMessageDialog(this, "Datos invalidos: " + ex.getMessage());
             }
         }
+    }
+
+    // Helper para calcular días en un mes
+    private int getDiasEnMes(int mes, int anio) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(anio, mes, 1);
+        return cal.getActualMaximum(Calendar.DAY_OF_MONTH);
     }
 
     private void abrirDialogoGenerarAnio() {

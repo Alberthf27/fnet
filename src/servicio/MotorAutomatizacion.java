@@ -1,0 +1,106 @@
+package servicio;
+
+import DAO.ConfiguracionDAO;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Motor principal de automatización que ejecuta el proceso de cobros.
+ * 
+ * Llámalo UNA VEZ al iniciar la aplicación:
+ * new MotorAutomatizacion().iniciarServicio();
+ * 
+ * Este motor ejecuta cada hora:
+ * 1. Generación de facturas (si es día 1 del mes)
+ * 2. Revisión de facturas vencidas → programa recordatorios
+ * 3. Revisión de ultimátums vencidos → ejecuta cortes
+ * 4. Procesamiento de cola de notificaciones WhatsApp
+ */
+public class MotorAutomatizacion {
+
+    private final CobrosAutomaticoService cobrosService;
+    private final ConfiguracionDAO configDAO;
+    private final ScheduledExecutorService scheduler;
+
+    private boolean ejecutandose = false;
+
+    public MotorAutomatizacion() {
+        this.cobrosService = new CobrosAutomaticoService();
+        this.configDAO = new ConfiguracionDAO();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    /**
+     * Inicia el proceso automático.
+     * Llámalo UNA VEZ al arrancar el sistema (en Principal o Login).
+     */
+    public void iniciarServicio() {
+        if (ejecutandose) {
+            System.out.println("⚠️ Motor de Automatización ya está corriendo.");
+            return;
+        }
+
+        ejecutandose = true;
+        System.out.println("🚀 Motor de Automatización Iniciado...");
+        System.out.println("   ⏰ Ejecutará proceso de cobros cada hora.");
+
+        // Ejecutar cada 1 HORA
+        // Para pruebas: cambiar TimeUnit.HOURS a TimeUnit.MINUTES
+        scheduler.scheduleAtFixedRate(this::procesarCiclo, 0, 1, TimeUnit.HOURS);
+    }
+
+    /**
+     * Ejecuta el ciclo de procesamiento.
+     * Delegamos todo el trabajo a CobrosAutomaticoService.
+     */
+    private void procesarCiclo() {
+        try {
+            System.out.println("\n⚙️ [Motor] Ejecutando ciclo de automatización...");
+
+            // Verificar si el sistema de cobros está habilitado
+            boolean whatsappActivo = configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO);
+            boolean routerActivo = configDAO.obtenerValorBoolean(ConfiguracionDAO.ROUTER_HABILITADO);
+
+            if (!whatsappActivo && !routerActivo) {
+                System.out.println("⏸️ Automatización desactivada (WhatsApp y Router en OFF).");
+                System.out.println("   Activa desde Configuración para procesar cobros.");
+                return;
+            }
+
+            // Ejecutar el proceso diario completo
+            cobrosService.ejecutarProcesoDiario();
+
+        } catch (Exception e) {
+            System.err.println("❌ Error crítico en MotorAutomatizacion: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Ejecuta el proceso de cobros manualmente (sin esperar al scheduler).
+     * Útil para testing o ejecución manual desde la UI.
+     */
+    public void ejecutarAhora() {
+        System.out.println("🔄 Ejecutando proceso de cobros manualmente...");
+        procesarCiclo();
+    }
+
+    /**
+     * Detiene el motor de automatización de forma segura.
+     */
+    public void detener() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            System.out.println("🛑 Deteniendo Motor de Automatización...");
+            scheduler.shutdown();
+            ejecutandose = false;
+        }
+    }
+
+    /**
+     * Verifica si el motor está ejecutándose.
+     */
+    public boolean isEjecutandose() {
+        return ejecutandose && !scheduler.isShutdown();
+    }
+}

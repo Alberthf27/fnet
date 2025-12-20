@@ -1,12 +1,15 @@
 package DAO;
 
-import bd.Conexion;
-import modelo.NotificacionPendiente;
-import modelo.NotificacionPendiente.EstadoNotificacion;
-import modelo.NotificacionPendiente.TipoNotificacion;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import bd.Conexion;
+import modelo.NotificacionPendiente;
+import modelo.NotificacionPendiente.TipoNotificacion;
 
 /**
  * DAO para gestionar notificaciones de WhatsApp pendientes.
@@ -50,6 +53,31 @@ public class NotificacionDAO {
                 "JOIN cliente c ON s.id_cliente = c.id_cliente " +
                 "WHERE n.estado = 'PENDIENTE' AND n.fecha_programada <= CURRENT_DATE() " +
                 "ORDER BY n.fecha_programada ASC";
+
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                lista.add(mapearNotificacion(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
+    /**
+     * Obtiene las notificaciones fallidas por falta de número
+     * para mostrarlas en la "Bandeja del Gerente".
+     */
+    public List<NotificacionPendiente> obtenerErroresSinTelefono() {
+        List<NotificacionPendiente> lista = new ArrayList<>();
+        String sql = "SELECT n.*, CONCAT(c.nombres, ' ', c.apellidos) as nombre_cliente, s.codigo_contrato " +
+                "FROM notificacion_pendiente n " +
+                "JOIN suscripcion s ON n.id_suscripcion = s.id_suscripcion " +
+                "JOIN cliente c ON s.id_cliente = c.id_cliente " +
+                "WHERE n.estado = 'SIN_TELEFONO' " +
+                "ORDER BY n.fecha_programada DESC";
 
         try (Connection conn = Conexion.getConexion();
                 PreparedStatement ps = conn.prepareStatement(sql);
