@@ -326,7 +326,8 @@ public class subpanel_Suscripciones extends JPanel {
                 1, // Día de pago default
                 true, // Mes adelantado (default: true)
                 true, // Equipos prestados (default: true)
-                0.0 // Garantía (default: 0)
+                0.0, // Garantía (default: 0)
+                null // Nombre suscripción (se llenara del nombre del cliente)
         );
 
         dialog.setVisible(true);
@@ -596,7 +597,8 @@ public class subpanel_Suscripciones extends JPanel {
                 s.getDiaPago(), // Día de pago del contrato
                 mesAdelantado, // Condición: mes adelantado
                 equiposPrestados, // Condición: equipos prestados
-                garantia // Monto de garantía
+                garantia, // Monto de garantía
+                s.getNombreSuscripcion() // Nombre del contrato
         );
 
         dialog.setVisible(true);

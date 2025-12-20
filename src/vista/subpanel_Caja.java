@@ -108,7 +108,7 @@ public class subpanel_Caja extends JPanel {
         pnlBusqueda.add(btnAdelantar);
 
         // --- B. TABLA DE CLIENTES (RESULTADOS BÚSQUEDA) ---
-        String[] colsC = {"ID_S", "CLIENTE", "DNI", "PLAN / SERVICIO", "ESTADO"};
+        String[] colsC = { "ID_S", "CLIENTE", "DNI", "PLAN / SERVICIO", "ESTADO" };
         modeloClientes = new DefaultTableModel(colsC, 0) {
             public boolean isCellEditable(int row, int col) {
                 return false;
@@ -134,7 +134,7 @@ public class subpanel_Caja extends JPanel {
         });
 
         // --- C. TABLA DE DEUDAS (DEL CLIENTE SELECCIONADO) ---
-        String[] colsD = {"Pagar", "Mes / Concepto", "Vencimiento", "Monto", "ID_F"};
+        String[] colsD = { "Pagar", "Mes / Concepto", "Vencimiento", "Monto", "ID_F" };
         modeloDeudas = new DefaultTableModel(colsD, 0) {
             public boolean isCellEditable(int row, int col) {
                 return col == 0;
@@ -282,8 +282,9 @@ public class subpanel_Caja extends JPanel {
 
         new Thread(() -> {
             SuscripcionDAO dao = new SuscripcionDAO();
-            // Traemos TODOS o los filtrados por BD si se requiere, 
-            // pero para que el filtro local funcione bien, idealmente traemos una lista amplia inicial
+            // Traemos TODOS o los filtrados por BD si se requiere,
+            // pero para que el filtro local funcione bien, idealmente traemos una lista
+            // amplia inicial
             // o lo que el usuario haya buscado con ENTER.
             List<Suscripcion> listaBD = dao.listarTodo(busquedaBD, "NOMBRE (A-Z)");
 
@@ -316,12 +317,12 @@ public class subpanel_Caja extends JPanel {
     private void llenarTablaClientes(List<Suscripcion> lista) {
         modeloClientes.setRowCount(0);
         for (Suscripcion s : lista) {
-            modeloClientes.addRow(new Object[]{
-                s.getIdSuscripcion(),
-                s.getNombreCliente(),
-                "---", // DNI (si lo tienes en el modelo Suscripcion, ponlo aqui: s.getDni())
-                s.getNombreServicio(),
-                (s.getActivo() == 1 ? "ACTIVO" : "CORTADO")
+            modeloClientes.addRow(new Object[] {
+                    s.getIdSuscripcion(),
+                    s.getNombreCliente(),
+                    "---", // DNI (si lo tienes en el modelo Suscripcion, ponlo aqui: s.getDni())
+                    s.getNombreServicio(),
+                    (s.getActivo() == 1 ? "ACTIVO" : "CORTADO")
             });
         }
     }
@@ -348,6 +349,11 @@ public class subpanel_Caja extends JPanel {
     private void cargarDeudasDelCliente(int idSuscripcion) {
         modeloDeudas.setRowCount(0);
 
+        // Mostrar barra de carga
+        if (Principal.instancia != null) {
+            Principal.instancia.mostrarCarga(true);
+        }
+
         new Thread(() -> {
             PagoDAO dao = new PagoDAO();
             // Este método debe existir en tu PagoDAO (ver abajo)
@@ -362,9 +368,14 @@ public class subpanel_Caja extends JPanel {
                     String monto = String.format("%.2f", (Double) d[2]);
                     int idFactura = (int) d[0];
 
-                    modeloDeudas.addRow(new Object[]{check, mes, vence, monto, idFactura});
+                    modeloDeudas.addRow(new Object[] { check, mes, vence, monto, idFactura });
                 }
                 calcularTotalSeleccionado();
+
+                // Ocultar barra de carga
+                if (Principal.instancia != null) {
+                    Principal.instancia.mostrarCarga(false);
+                }
             });
         }).start();
     }
@@ -427,7 +438,9 @@ public class subpanel_Caja extends JPanel {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar pago de S/. " + String.format("%.2f", totalSeleccionado) + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Procesar pago de S/. " + String.format("%.2f", totalSeleccionado) + "?", "Confirmar",
+                JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (Principal.instancia != null) {
                 Principal.instancia.mostrarCarga(true);
@@ -471,7 +484,9 @@ public class subpanel_Caja extends JPanel {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Generar recibo adelantado para " + nombreClienteActual + "?", "Adelantar Mes", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Generar recibo adelantado para " + nombreClienteActual + "?", "Adelantar Mes",
+                JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (Principal.instancia != null) {
                 Principal.instancia.mostrarCarga(true);
@@ -541,7 +556,8 @@ public class subpanel_Caja extends JPanel {
     class ZebraRenderer extends DefaultTableCellRenderer {
 
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int col) {
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
             setBorder(new EmptyBorder(0, 5, 0, 5));
             if (isSelected) {

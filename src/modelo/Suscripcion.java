@@ -8,6 +8,7 @@ public class Suscripcion {
     private int idSuscripcion;
     private int idCliente;
     private int idServicio;
+    private String nombreSuscripcion; // Nombre del contrato (por defecto = nombre cliente)
     private String codigoContrato;
     private Date fechaInicio;
     private String direccionInstalacion;
@@ -131,6 +132,14 @@ public class Suscripcion {
 
     public void setGarantia(double garantia) {
         this.garantia = garantia;
+    }
+
+    public String getNombreSuscripcion() {
+        return nombreSuscripcion;
+    }
+
+    public void setNombreSuscripcion(String nombreSuscripcion) {
+        this.nombreSuscripcion = nombreSuscripcion;
     }
 
     public boolean isMesAdelantado() {

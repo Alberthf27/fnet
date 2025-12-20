@@ -22,6 +22,8 @@ public class Conexion {
             + "&serverTimezone=America/Lima"
             + "&useLegacyDatetimeCode=false"
             + "&autoReconnect=true"
+            + "&characterEncoding=UTF-8"
+            + "&useUnicode=true"
             + "&connectTimeout=10000"; // 10 segundos espera máx por intento
 
     public Connection cadena;
@@ -34,30 +36,33 @@ public class Conexion {
     public Connection conectar() {
         int intentos = 0;
         int maxIntentos = 5; // Intentará 5 veces antes de rendirse
-        
+
         while (intentos < maxIntentos) {
             try {
                 Class.forName(DRIVER);
                 this.cadena = DriverManager.getConnection(URL, USER, PASSWORD);
-                
+
                 // Si llegamos aquí, conectó con éxito. Retornamos inmediatamente.
-                return this.cadena; 
-                
+                return this.cadena;
+
             } catch (ClassNotFoundException | SQLException e) {
                 intentos++;
-                System.out.println("⚠ Intento de conexión " + intentos + "/" + maxIntentos + " fallido (La BD podría estar durmiendo)...");
-                
+                System.out.println("⚠ Intento de conexión " + intentos + "/" + maxIntentos
+                        + " fallido (La BD podría estar durmiendo)...");
+
                 // Si falló, esperamos 2 segundos antes de reintentar para dar tiempo a Railway
                 try {
-                    Thread.sleep(2000); 
+                    Thread.sleep(2000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
             }
         }
 
-        // Si sale del bucle, fallaron los 5 intentos. Recién ahí mostramos el error al usuario.
-        JOptionPane.showMessageDialog(null, "❌ Error Crítico: No se pudo despertar la Base de Datos.\nVerifique su internet o el estado de Railway.");
+        // Si sale del bucle, fallaron los 5 intentos. Recién ahí mostramos el error al
+        // usuario.
+        JOptionPane.showMessageDialog(null,
+                "❌ Error Crítico: No se pudo despertar la Base de Datos.\nVerifique su internet o el estado de Railway.");
         return null;
     }
 

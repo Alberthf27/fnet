@@ -179,7 +179,11 @@ public class PanelDetalleContrato extends JPanel {
         lblPlan.setText("<html>" + plan + " <span style='color:gray'>(S/. " + String.format("%.2f", precio)
                 + ")</span></html>");
         lblDireccion.setText("<html>" + direccion + "</html>");
-        lblContratoID.setText("CONTRATO: " + codigo);
+        // Mostrar nombre del contrato en lugar del código
+        String nombreContrato = s.getNombreSuscripcion() != null && !s.getNombreSuscripcion().isEmpty()
+                ? s.getNombreSuscripcion()
+                : nombre;
+        lblContratoID.setText(nombreContrato);
         // Formato de fecha: dd/MM/yyyy
         if (s.getFechaInicio() != null) {
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");

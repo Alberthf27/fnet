@@ -65,17 +65,18 @@ public class SuscripcionDAO {
     // EN: DAO/SuscripcionDAO.java
     public boolean guardarOActualizarContrato(int idSuscripcion, int idServicio, String direccion, int idCliente,
             java.util.Date fechaInicio, int diaPago,
-            boolean mesAdelantado, boolean equiposPrestados, double garantia) { // <--- NUEVOS PARAMETROS
+            boolean mesAdelantado, boolean equiposPrestados, double garantia,
+            String nombreSuscripcion) { // <--- NUEVO PARÁMETRO
         String sql;
         boolean esNuevo = (idSuscripcion == -1);
 
         if (esNuevo) {
             sql = "INSERT INTO suscripcion (id_servicio, direccion_instalacion, id_cliente, fecha_inicio, dia_pago, "
-                    + "mes_adelantado, equipos_prestados, garantia, codigo_contrato, activo) " // <--- CAMPOS NUEVOS
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                    + "mes_adelantado, equipos_prestados, garantia, codigo_contrato, activo, nombre_suscripcion) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)";
         } else {
             sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ?, id_cliente = ?, fecha_inicio = ?, dia_pago = ?, "
-                    + "mes_adelantado = ?, equipos_prestados = ?, garantia = ? " // <--- CAMPOS NUEVOS
+                    + "mes_adelantado = ?, equipos_prestados = ?, garantia = ?, nombre_suscripcion = ? "
                     + "WHERE id_suscripcion = ?";
         }
 
@@ -88,7 +89,7 @@ public class SuscripcionDAO {
             ps.setDate(4, new java.sql.Date(fechaInicio.getTime()));
             ps.setInt(5, diaPago);
 
-            // --- NUEVOS VALORES ---
+            // --- VALORES DE CONDICIONES ---
             ps.setInt(6, mesAdelantado ? 1 : 0);
             ps.setInt(7, equiposPrestados ? 1 : 0);
             ps.setDouble(8, garantia);
@@ -97,8 +98,10 @@ public class SuscripcionDAO {
             if (esNuevo) {
                 String codigo = "CNT-" + System.currentTimeMillis();
                 ps.setString(9, codigo);
+                ps.setString(10, nombreSuscripcion); // nombre_suscripcion
             } else {
-                ps.setInt(9, idSuscripcion);
+                ps.setString(9, nombreSuscripcion); // nombre_suscripcion
+                ps.setInt(10, idSuscripcion);
             }
 
             return ps.executeUpdate() > 0;
@@ -228,7 +231,7 @@ public class SuscripcionDAO {
 
         String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, "
                 + "s.activo, s.sector, s.dia_pago, s.garantia, "
-                + "s.mes_adelantado, s.equipos_prestados, " // <--- ¡ESTO FALTABA EN LA CADENA SQL!
+                + "s.mes_adelantado, s.equipos_prestados, s.nombre_suscripcion, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, "
                 + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend "
                 + "FROM suscripcion s "
@@ -290,6 +293,13 @@ public class SuscripcionDAO {
                     String ape = rs.getString("apellidos");
                     String nombreCompleto = ((nom != null ? nom : "") + " " + (ape != null ? ape : "")).trim();
                     sus.setNombreCliente(nombreCompleto.toUpperCase());
+
+                    // Nombre de suscripción (fallback a nombre cliente si es null)
+                    String nombreSusc = rs.getString("nombre_suscripcion");
+                    if (nombreSusc == null || nombreSusc.isEmpty()) {
+                        nombreSusc = nombreCompleto;
+                    }
+                    sus.setNombreSuscripcion(nombreSusc.toUpperCase());
 
                     sus.setNombreServicio(rs.getString("descripcion").toUpperCase());
                     sus.setMontoMensual(rs.getDouble("mensualidad"));

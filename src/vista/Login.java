@@ -10,7 +10,7 @@ import java.awt.RenderingHints;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter; // IMPORTANTE
-import java.awt.event.KeyEvent;   // IMPORTANTE
+import java.awt.event.KeyEvent; // IMPORTANTE
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.BorderFactory;
@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 public class Login extends javax.swing.JFrame {
@@ -56,9 +57,17 @@ public class Login extends javax.swing.JFrame {
         btnCerrar.setBounds(860, 10, 30, 30);
         btnCerrar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCerrar.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { System.exit(0); }
-            public void mouseEntered(MouseEvent e) { btnCerrar.setForeground(COLOR_ACCENTO); }
-            public void mouseExited(MouseEvent e) { btnCerrar.setForeground(Color.WHITE); }
+            public void mouseClicked(MouseEvent e) {
+                System.exit(0);
+            }
+
+            public void mouseEntered(MouseEvent e) {
+                btnCerrar.setForeground(COLOR_ACCENTO);
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnCerrar.setForeground(Color.WHITE);
+            }
         });
         mainPanel.add(btnCerrar);
 
@@ -81,7 +90,8 @@ public class Login extends javax.swing.JFrame {
         // Logo y Título
         JLabel lblLogo = new JLabel();
         ImageIcon icono = cargarIcono("/img/logo_fibranet.png", 180, 60);
-        if (icono != null) lblLogo.setIcon(icono);
+        if (icono != null)
+            lblLogo.setIcon(icono);
         else {
             lblLogo.setText("FIBRANET");
             lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 32));
@@ -139,8 +149,13 @@ public class Login extends javax.swing.JFrame {
         btnEntrar.setBounds(40, 300, 270, 50);
 
         btnEntrar.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btnEntrar.setBackground(COLOR_ACCENTO_HOVER); }
-            public void mouseExited(MouseEvent e) { btnEntrar.setBackground(COLOR_ACCENTO); }
+            public void mouseEntered(MouseEvent e) {
+                btnEntrar.setBackground(COLOR_ACCENTO_HOVER);
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnEntrar.setBackground(COLOR_ACCENTO);
+            }
         });
 
         btnEntrar.addActionListener(e -> realizarLogin()); // Método extraído para limpieza
@@ -155,33 +170,43 @@ public class Login extends javax.swing.JFrame {
         lblFooter.setBounds(0, 570, 900, 20);
         mainPanel.add(lblFooter);
     }
-    
+
     // Método separado para la lógica de login (llamado por Clic y por Enter)
     private void realizarLogin() {
         String codigo = txtUsuario.getText();
         String pass = new String(txtPassword.getPassword());
 
-        if(codigo.isEmpty() || codigo.equals("Usuario") || pass.isEmpty() || pass.equals("Contraseña")) {
+        if (codigo.isEmpty() || codigo.equals("Usuario") || pass.isEmpty() || pass.equals("Contraseña")) {
             javax.swing.JOptionPane.showMessageDialog(this, "Por favor, ingrese código y contraseña.");
             return;
         }
 
+        // Deshabilitar botón y mostrar estado de conexión
+        btnEntrar.setEnabled(false);
+        btnEntrar.setText("Conectando...");
         setCursor(new Cursor(Cursor.WAIT_CURSOR));
-        
-        DAO.UsuarioDAO dao = new DAO.UsuarioDAO();
-        modelo.Empleado emp = dao.login(codigo, pass); 
-        
-        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 
-        if (emp != null) {
-            this.dispose();
-            new Principal(emp).setVisible(true);
-        } else {
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Código o contraseña incorrectos.", 
-                "Acceso Denegado", 
-                javax.swing.JOptionPane.ERROR_MESSAGE);
-        }
+        // Ejecutar login en hilo separado
+        new Thread(() -> {
+            DAO.UsuarioDAO dao = new DAO.UsuarioDAO();
+            modelo.Empleado emp = dao.login(codigo, pass);
+
+            SwingUtilities.invokeLater(() -> {
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+
+                if (emp != null) {
+                    this.dispose();
+                    new Principal(emp).setVisible(true);
+                } else {
+                    btnEntrar.setEnabled(true);
+                    btnEntrar.setText("INGRESAR");
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                            "Código o contraseña incorrectos.",
+                            "Acceso Denegado",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        }).start();
     }
 
     private JTextField crearTextFieldPersonalizado(String placeholder) {
@@ -218,6 +243,7 @@ public class Login extends javax.swing.JFrame {
                             BorderFactory.createEmptyBorder(5, 10, 5, 10)));
                 }
             }
+
             public void focusLost(FocusEvent evt) {
                 if (txt.getText().isEmpty()) {
                     txt.setForeground(COLOR_TEXTO_HINT);
@@ -238,14 +264,16 @@ public class Login extends javax.swing.JFrame {
                 java.awt.Image img = new javax.swing.ImageIcon(url).getImage();
                 return new javax.swing.ImageIcon(img.getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH));
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return null;
     }
 
     public static void main(String args[]) {
         try {
             javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {}
+        } catch (Exception ex) {
+        }
         java.awt.EventQueue.invokeLater(() -> new Login().setVisible(true));
     }
 }

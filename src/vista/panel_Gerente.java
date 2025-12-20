@@ -36,13 +36,14 @@ public class panel_Gerente extends JPanel {
 
     public panel_Gerente() {
         setBackground(new Color(241, 245, 249));
-        // Using BorderLayout for the main structure to allow scroll if needed, 
-        // but keeping null layout for internal flexible positioning if desired 
-        // OR shifting to GridBagLayout for true responsiveness. 
+        // Using BorderLayout for the main structure to allow scroll if needed,
+        // but keeping null layout for internal flexible positioning if desired
+        // OR shifting to GridBagLayout for true responsiveness.
         // Given your previous code used null layout for specific pixel placement,
-        // I will use a responsive null layout with component listener logic 
+        // I will use a responsive null layout with component listener logic
         // BUT I strongly recommend MigLayout or GridBagLayout for production.
-        // For this optimization, let's stick to your resizing logic but improve the data loading.
+        // For this optimization, let's stick to your resizing logic but improve the
+        // data loading.
         setLayout(null);
 
         finanzasDAO = new FinanzasDAO();
@@ -122,7 +123,7 @@ public class panel_Gerente extends JPanel {
         lblTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         add(lblTableTitle);
 
-        String[] columnas = {"ID", "Fecha/Hora", "Cliente", "Monto", "Método"};
+        String[] columnas = { "ID", "Fecha/Hora", "Cliente", "Monto", "Método" };
         modelPagos = new DefaultTableModel(columnas, 0) {
             public boolean isCellEditable(int row, int col) {
                 return false;
@@ -155,66 +156,52 @@ public class panel_Gerente extends JPanel {
     // Global ScrollPane reference for resizing
     private JScrollPane scrollPane;
 
-    // --- DATA LOADING LOGIC (ASYNC) ---
+    // --- DATA LOADING LOGIC (OPTIMIZADO: UNA SOLA CONEXIÓN) ---
     private void cargarDatosDashboard() {
-        // Show loading state if main window supports it
+        // Show loading state
         if (Principal.instancia != null) {
             Principal.instancia.mostrarCarga(true);
         }
 
-        // Run heavy lifting in background thread
-        CompletableFuture.runAsync(() -> {
+        // Un solo hilo, una sola conexión
+        new Thread(() -> {
             try {
-                // 1. Load KPI Data (Parallel fetch)
+                // LLAMADA OPTIMIZADA: Todo en una conexión
+                Object[] data = finanzasDAO.obtenerDashboardData();
 
-                int nuevos = finanzasDAO.contarNuevosClientesMes();
-                int bajas = finanzasDAO.contarBajasMes();
-                int cortes = finanzasDAO.contarClientesCortados();
-                // Assuming DAO methods exist. Adjust names to your actual DAO.
-                CompletableFuture<Double> incomeToday = CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerIngresosHoy());
-                CompletableFuture<Double> debtTotal = CompletableFuture.supplyAsync(() -> finanzasDAO.calcularDeudaTotal());
-                CompletableFuture<Integer> activeClients = CompletableFuture.supplyAsync(() -> finanzasDAO.contarClientesActivos());
-                CompletableFuture<Integer> cutClients = CompletableFuture.supplyAsync(() -> finanzasDAO.contarClientesCortados());
-
-                // 2. Load Chart Data
-                CompletableFuture<List<Object[]>> chartData = CompletableFuture.supplyAsync(() -> finanzasDAO.obtenerHistorialMRR());
-
-                // 3. Load Table Data (Recent Payments)
-                CompletableFuture<List<Object[]>> tableData = CompletableFuture.supplyAsync(() -> pagoDAO.obtenerUltimosPagos(10)); // Top 10
-
-                // Wait for all and update UI
-                double ingHoy = incomeToday.join();
-                double deuTot = debtTotal.join();
-                int cliAct = activeClients.join();
-                int cliCor = cutClients.join();
-                List<Object[]> histData = chartData.join();
-                List<Object[]> pagosList = tableData.join();
+                // Extraer datos
+                double ingHoy = (double) data[0];
+                double deuTot = (double) data[1];
+                int cliAct = (int) data[2];
+                int cliCor = (int) data[3];
+                int nuevos = (int) data[4];
+                int bajas = (int) data[5];
+                @SuppressWarnings("unchecked")
+                List<Object[]> histData = (List<Object[]>) data[6];
+                @SuppressWarnings("unchecked")
+                List<Object[]> pagosList = (List<Object[]>) data[7];
 
                 // --- UPDATE UI ON EDT ---
                 SwingUtilities.invokeLater(() -> {
-                    this.cortadosReal = cliCor;
-                    // Update Cards
                     this.nuevosReal = nuevos;
                     this.bajasReal = bajas;
-                    this.cortadosReal = cortes;
+                    this.cortadosReal = cliCor;
+
                     NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("es", "PE"));
                     card1.setData(currency.format(ingHoy), "Hoy");
                     card2.setData(currency.format(deuTot), "Total vencido");
                     card3.setData(String.valueOf(cliAct), "En línea");
                     card4.setData(String.valueOf(cliCor), "Suspendidos");
-                    actualizarResumenVisual(summaryPanel.getWidth()); // <--- AGREGA O ASEGURA ESTA LÍNEA                    
 
-                    // Update Chart
-                    actualizarGrafico(histData);
                     actualizarResumenVisual(summaryPanel.getWidth());
+                    actualizarGrafico(histData);
+
                     // Update Table
                     modelPagos.setRowCount(0);
                     for (Object[] row : pagosList) {
                         modelPagos.addRow(row);
                     }
 
-                    // Update Summary Panel (Simplified logic here, ideally dynamic too)
-                    // For now, refreshing just the static parts or if you added dynamic labels there
                     if (Principal.instancia != null) {
                         Principal.instancia.mostrarCarga(false);
                     }
@@ -228,7 +215,7 @@ public class panel_Gerente extends JPanel {
                     }
                 });
             }
-        });
+        }).start();
     }
 
     private void actualizarGrafico(List<Object[]> historial) {
@@ -240,8 +227,7 @@ public class panel_Gerente extends JPanel {
 
         JFreeChart chart = ChartFactory.createAreaChart(
                 "", "", "", dataset,
-                PlotOrientation.VERTICAL, false, true, false
-        );
+                PlotOrientation.VERTICAL, false, true, false);
 
         // Visual Styling
         chart.setBackgroundPaint(Color.WHITE);
@@ -250,7 +236,8 @@ public class panel_Gerente extends JPanel {
         plot.setOutlineVisible(false);
         plot.setRangeGridlinePaint(new Color(230, 230, 230));
 
-        org.jfree.chart.renderer.category.AreaRenderer renderer = (org.jfree.chart.renderer.category.AreaRenderer) plot.getRenderer();
+        org.jfree.chart.renderer.category.AreaRenderer renderer = (org.jfree.chart.renderer.category.AreaRenderer) plot
+                .getRenderer();
         renderer.setSeriesPaint(0, new Color(37, 99, 235, 180));
         renderer.setSeriesOutlinePaint(0, new Color(37, 99, 235));
 
@@ -301,7 +288,8 @@ public class panel_Gerente extends JPanel {
         chartPanel.setBounds(margenX, chartY, chartW, chartH);
         summaryPanel.setBounds(margenX + chartW + gap, chartY, summaryW, chartH);
 
-        // Re-draw summary data since absolute positioning might need refresh if width changes drastically
+        // Re-draw summary data since absolute positioning might need refresh if width
+        // changes drastically
         actualizarResumenVisual(summaryW); // Optional helper
 
         // 3. TABLE
@@ -328,7 +316,7 @@ public class panel_Gerente extends JPanel {
         lbl.setBounds(20, 15, 200, 20);
         summaryPanel.add(lbl);
 
-        // Ideally these values come from the async load too. 
+        // Ideally these values come from the async load too.
         // For now using static or class member variables.
         agregarDatoResumen(summaryPanel, "Nuevos este mes", String.valueOf(this.nuevosReal), 60, width);
 

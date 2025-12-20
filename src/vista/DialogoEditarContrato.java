@@ -24,6 +24,7 @@ public class DialogoEditarContrato extends JDialog {
     private JCheckBox chkMesAdelantado;
     private JCheckBox chkEquiposPrestados;
     private JTextField txtGarantia;
+    private JTextField txtNombreSuscripcion; // Nombre del contrato
     // ------------------------
 
     // CAMPOS DE CLIENTE
@@ -45,21 +46,22 @@ public class DialogoEditarContrato extends JDialog {
             List<Servicio> planesCache,
             Date fechaInicioActual,
             int diaPagoActual,
-            boolean mesAdelantado, // NUEVO: Condición del contrato
-            boolean equiposPrestados, // NUEVO: Condición del contrato
-            double garantia) { // NUEVO: Monto de garantía
+            boolean mesAdelantado, // Condición del contrato
+            boolean equiposPrestados, // Condición del contrato
+            double garantia,
+            String nombreSuscripcion) { // NUEVO: Nombre del contrato
         super(parent, true);
         this.idSuscripcion = idSuscripcion;
         this.idClienteActual = idClienteOriginal;
         this.idClienteSeleccionado = idClienteOriginal;
 
         setTitle(idSuscripcion == -1 ? "Nuevo Contrato" : "Editar Contrato #" + idSuscripcion);
-        setSize(550, 750); // Aumentamos un poco la altura para las nuevas opciones
+        setSize(550, 800); // Aumentamos altura para el nuevo campo
         setLocationRelativeTo(parent);
         setResizable(false);
 
         initUI(nombrePlanActual, dirActual, nombreClienteOriginal, planesCache, fechaInicioActual, diaPagoActual,
-                mesAdelantado, equiposPrestados, garantia);
+                mesAdelantado, equiposPrestados, garantia, nombreSuscripcion);
 
         if (idSuscripcion != -1 && nombreClienteOriginal != null) {
             llenarDatosClienteExistente();
@@ -68,7 +70,8 @@ public class DialogoEditarContrato extends JDialog {
 
     private void initUI(String planActual, String dirActual, String nombreCliente,
             List<Servicio> planesCache, Date fechaInicio, int diaPago,
-            boolean mesAdelantado, boolean equiposPrestados, double garantia) {
+            boolean mesAdelantado, boolean equiposPrestados, double garantia,
+            String nombreSuscripcion) {
         JPanel panel = new JPanel(null);
         panel.setBackground(Color.WHITE);
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -81,6 +84,15 @@ public class DialogoEditarContrato extends JDialog {
         panel.add(lblTitulo);
 
         int y = 60;
+
+        // --- 0. NOMBRE DE SUSCRIPCIÓN (NUEVO) ---
+        panel.add(crearLabel("Nombre del Contrato:", 20, y));
+        txtNombreSuscripcion = new JTextField(nombreSuscripcion != null ? nombreSuscripcion : nombreCliente);
+        txtNombreSuscripcion.setBounds(20, y + 25, 480, 35);
+        txtNombreSuscripcion.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        txtNombreSuscripcion.setToolTipText("Por defecto usa el nombre del cliente. Puede personalizarlo.");
+        panel.add(txtNombreSuscripcion);
+        y += 75;
 
         // --- 1. PLAN DE SERVICIO ---
         panel.add(crearLabel("Plan de Servicio:", 20, y));
@@ -364,9 +376,10 @@ public class DialogoEditarContrato extends JDialog {
 
             SuscripcionDAO susDao = new SuscripcionDAO();
             // LLAMADA AL DAO ACTUALIZADO
+            String nombreSusc = txtNombreSuscripcion.getText().trim();
             boolean exito = susDao.guardarOActualizarContrato(
                     idSuscripcion, s.getIdServicio(), dir, idFinalCliente, fechaInicio, diaPago,
-                    mesAdelantado, equiposPrestados, garantiaFinal);
+                    mesAdelantado, equiposPrestados, garantiaFinal, nombreSusc);
 
             SwingUtilities.invokeLater(() -> {
                 if (Principal.instancia != null)

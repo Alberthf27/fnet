@@ -58,7 +58,8 @@ public class Principal extends javax.swing.JFrame {
     }
 
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jPanel2 = new javax.swing.JPanel();
@@ -155,50 +156,73 @@ public class Principal extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
-                    .addComponent(btn_clientes, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
-                    .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
-                    .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_usuarios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lbl_usuario, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_finanzas, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE))
-                .addContainerGap(20, Short.MAX_VALUE))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(19, 19, 19)
+                                .addGroup(jPanel1Layout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 154,
+                                                Short.MAX_VALUE)
+                                        .addComponent(btn_clientes, javax.swing.GroupLayout.DEFAULT_SIZE, 154,
+                                                Short.MAX_VALUE)
+                                        .addComponent(btn_pagos, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btn_servicios, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btn_instalaciones, javax.swing.GroupLayout.DEFAULT_SIZE, 154,
+                                                Short.MAX_VALUE)
+                                        .addComponent(btn_equipos, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btn_usuarios, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btn_salir, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(lbl_usuario, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 145,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(btn_finanzas, javax.swing.GroupLayout.DEFAULT_SIZE, 154,
+                                                Short.MAX_VALUE))
+                                .addContainerGap(20, Short.MAX_VALUE)));
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(11, 11, 11)
-                .addComponent(btn_finanzas, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_clientes, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_pagos, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_servicios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_instalaciones, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_equipos, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 204, Short.MAX_VALUE)
-                .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 90,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(11, 11, 11)
+                                .addComponent(btn_finanzas, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_clientes, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_pagos, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_servicios, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_instalaciones, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_equipos, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_usuarios, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 38,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 204,
+                                        Short.MAX_VALUE)
+                                .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)));
 
         content.setBackground(new java.awt.Color(255, 255, 255));
         content.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -206,17 +230,18 @@ public class Principal extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, 0)
-                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1214, Short.MAX_VALUE))
-        );
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, 0)
+                                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1214, Short.MAX_VALUE)));
         jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE));
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
 
@@ -260,12 +285,13 @@ public class Principal extends javax.swing.JFrame {
             if (rol == null || rol.isEmpty()) {
                 rol = "Sin Cargo";
             }
-            lbl_usuario.setText("<html><div style='text-align: right; color: #CCCCCC;'><b>" + nombre + "</b><br><span style='font-size:10px;'>" + rol + "</span></div></html>");
+            lbl_usuario.setText("<html><div style='text-align: right; color: #CCCCCC;'><b>" + nombre
+                    + "</b><br><span style='font-size:10px;'>" + rol + "</span></div></html>");
             this.setTitle("ISP Manager - " + nombre);
         }
     }
 
-// Método auxiliar para mantener la barra pegada al menú azul
+    // Método auxiliar para mantener la barra pegada al menú azul
     private void posicionarBarra() {
         if (jPanel1 != null && barraCarga != null && jPanel1.isShowing()) {
             // 1. TRUCO MATEMÁTICO:
@@ -274,8 +300,7 @@ public class Principal extends javax.swing.JFrame {
             java.awt.Point p = javax.swing.SwingUtilities.convertPoint(
                     jPanel1.getParent(),
                     jPanel1.getLocation(),
-                    getLayeredPane()
-            );
+                    getLayeredPane());
 
             // 2. Aplicamos esa posición exacta a la barra
             // p.x y p.y son el punto exacto donde empieza la esquina del panel azul
@@ -287,54 +312,53 @@ public class Principal extends javax.swing.JFrame {
         }
     }
 
-    private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_clientesActionPerformed
+    private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_clientesActionPerformed
         marcarBotonActivo(btn_clientes);
         // Carga el panel con pestañas de clientes
         MostrarPanel(new vista.PanelClientes());
-    }//GEN-LAST:event_btn_clientesActionPerformed
+    }// GEN-LAST:event_btn_clientesActionPerformed
 
-    private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_principalActionPerformed
+    private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_principalActionPerformed
         marcarBotonActivo(btn_principal);
 
         // AQUÍ ESTÁ EL CAMBIO: Llamamos a panel_Gerente
         MostrarPanel(new vista.panel_Gerente());
-    }//GEN-LAST:event_btn_principalActionPerformed
+    }// GEN-LAST:event_btn_principalActionPerformed
 
-    private void btn_pagosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagosActionPerformed
+    private void btn_pagosActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_pagosActionPerformed
 
         marcarBotonActivo(btn_pagos);
         MostrarPanel(new vista.PanelPagos()); // <--- Llamada al nuevo panel
 
-    }//GEN-LAST:event_btn_pagosActionPerformed
+    }// GEN-LAST:event_btn_pagosActionPerformed
 
-    private void btn_serviciosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_serviciosActionPerformed
+    private void btn_serviciosActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_serviciosActionPerformed
         marcarBotonActivo(btn_servicios);
         MostrarPanel(new vista.panel_Servicios());
-    }//GEN-LAST:event_btn_serviciosActionPerformed
+    }// GEN-LAST:event_btn_serviciosActionPerformed
 
-    private void btn_instalacionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_instalacionesActionPerformed
+    private void btn_instalacionesActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_instalacionesActionPerformed
         marcarBotonActivo(btn_instalaciones);
         MostrarPanel(new vista.PanelInstalaciones());
-    }//GEN-LAST:event_btn_instalacionesActionPerformed
+    }// GEN-LAST:event_btn_instalacionesActionPerformed
 
-    private void btn_equiposActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_equiposActionPerformed
+    private void btn_equiposActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_equiposActionPerformed
         marcarBotonActivo(btn_equipos);
         MostrarPanel(new vista.PanelEquipos());
-    }//GEN-LAST:event_btn_equiposActionPerformed
+    }// GEN-LAST:event_btn_equiposActionPerformed
 
-    private void btn_usuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_usuariosActionPerformed
+    private void btn_usuariosActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_usuariosActionPerformed
         marcarBotonActivo(btn_usuarios);
         MostrarPanel(new vista.PanelUsuarios());
-    }//GEN-LAST:event_btn_usuariosActionPerformed
+    }// GEN-LAST:event_btn_usuariosActionPerformed
 
-    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
+    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_salirActionPerformed
         int confirmacion = javax.swing.JOptionPane.showConfirmDialog(
                 this,
                 "¿Estás seguro de que deseas cerrar sesión?",
                 "Cerrar Sesión",
                 javax.swing.JOptionPane.YES_NO_OPTION,
-                javax.swing.JOptionPane.QUESTION_MESSAGE
-        );
+                javax.swing.JOptionPane.QUESTION_MESSAGE);
 
         if (confirmacion == javax.swing.JOptionPane.YES_OPTION) {
             // 2. Cerrar la ventana actual (Principal)
@@ -344,13 +368,13 @@ public class Principal extends javax.swing.JFrame {
             // Asegúrate de que "vista.Login" sea la ruta correcta a tu clase Login
             new vista.Login().setVisible(true);
         }
-    }//GEN-LAST:event_btn_salirActionPerformed
+    }// GEN-LAST:event_btn_salirActionPerformed
 
-    private void btn_finanzasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_finanzasActionPerformed
+    private void btn_finanzasActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_finanzasActionPerformed
         marcarBotonActivo(btn_finanzas);
         MostrarPanel(new vista.PanelFinanzas());
 
-    }//GEN-LAST:event_btn_finanzasActionPerformed
+    }// GEN-LAST:event_btn_finanzasActionPerformed
 
     /**
      * @param args the command line arguments
@@ -383,8 +407,9 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JLabel lbl_usuario;
+
     // End of variables declaration//GEN-END:variables
-private void configurarDiseñoModerno() {
+    private void configurarDiseñoModerno() {
         // 1. Colores (Iguales que antes)
         java.awt.Color colorSidebar = new java.awt.Color(15, 23, 42);
         java.awt.Color colorBgRight = new java.awt.Color(241, 245, 249);
@@ -393,7 +418,8 @@ private void configurarDiseñoModerno() {
         jPanel2.setBackground(colorBgRight);
 
         // 2. Configurar botones CON TUS IMÁGENES
-        // Asegúrate de que los nombres aquí coincidan con los archivos que pegaste en "img"
+        // Asegúrate de que los nombres aquí coincidan con los archivos que pegaste en
+        // "img"
         configurarBoton(btn_principal, "Dashboard", "/img/dashboard.png");
         configurarBoton(btn_clientes, "Clientes", "/img/clientes.png");
         configurarBoton(btn_pagos, "Pagos", "/img/pagos.png");
@@ -420,7 +446,7 @@ private void configurarDiseñoModerno() {
 
         // 2. Texto y Espaciado
         btn.setText("   " + texto); // Espacio entre icono y texto
-        btn.setIconTextGap(5);      // Separación extra
+        btn.setIconTextGap(5); // Separación extra
 
         // 3. Estilo Visual (Igual que antes)
         btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
@@ -496,9 +522,9 @@ private void configurarDiseñoModerno() {
     private void marcarBotonActivo(javax.swing.JButton btnActivo) {
         // Lista de todos tus botones
         javax.swing.JButton[] todos = {
-            btn_principal, btn_clientes, btn_pagos, btn_servicios,
-            btn_instalaciones, btn_equipos, btn_usuarios, btn_salir,
-            btn_finanzas // <--- ¡AQUÍ FALTABA ESTE!
+                btn_principal, btn_clientes, btn_pagos, btn_servicios,
+                btn_instalaciones, btn_equipos, btn_usuarios, btn_salir,
+                btn_finanzas // <--- ¡AQUÍ FALTABA ESTE!
         };
 
         java.awt.Color colorActivo = new java.awt.Color(37, 99, 235); // AZUL BRILLANTE (Blue 600)
@@ -506,10 +532,10 @@ private void configurarDiseñoModerno() {
 
         for (javax.swing.JButton b : todos) {
             if (b == btnActivo) {
-                b.setBackground(colorActivo);      // Fondo Azul Brillante
+                b.setBackground(colorActivo); // Fondo Azul Brillante
                 b.setForeground(java.awt.Color.WHITE); // Texto Blanco
             } else {
-                b.setBackground(colorInactivo);    // Fondo Oscuro
+                b.setBackground(colorInactivo); // Fondo Oscuro
                 b.setForeground(new java.awt.Color(148, 163, 184)); // Texto Gris
             }
         }
@@ -528,10 +554,17 @@ private void configurarDiseñoModerno() {
     }
 
     /**
+     * Obtener el empleado que está actualmente logueado
+     */
+    public modelo.Empleado getEmpleadoLogueado() {
+        return this.empleadoLogueado;
+    }
+
+    /**
      * Método para cambiar paneles
      */
     private void MostrarPanel(javax.swing.JPanel p) {
-// Configuración básica del panel hijo
+        // Configuración básica del panel hijo
         p.setSize(1080, 720);
         p.setLocation(0, 0);
 
