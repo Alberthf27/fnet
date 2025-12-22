@@ -174,11 +174,10 @@ public class ClienteDAO {
         return lista;
     }
 
-    // Agrega esto en DAO/ClienteDAO.java
-
     /**
      * Registra un cliente y retorna su ID generado.
      * Retorna -1 si hubo error.
+     * DNI puede ser null o vacío (se guardará como NULL en BD).
      */
     public int registrarClienteYObtenerId(String dni, String nom, String ape, String dir, String tel) {
         String sql = "INSERT INTO cliente (dni_cliente, nombres, apellidos, direccion, telefono, activo) VALUES (?, ?, ?, ?, ?, 1)";
@@ -186,7 +185,12 @@ public class ClienteDAO {
         try (java.sql.Connection conn = bd.Conexion.getConexion();
                 java.sql.PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
 
-            ps.setString(1, dni);
+            // DNI: si está vacío, guardar como NULL para evitar duplicados
+            if (dni == null || dni.trim().isEmpty()) {
+                ps.setNull(1, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(1, dni.trim());
+            }
             ps.setString(2, nom);
             ps.setString(3, ape);
             ps.setString(4, dir); // Usaremos la misma dirección de instalación por defecto

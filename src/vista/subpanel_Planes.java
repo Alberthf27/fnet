@@ -1,9 +1,14 @@
 package vista;
 
+import DAO.ServicioDAO;
+import modelo.Servicio;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Font;
+import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -11,25 +16,33 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 
 public class subpanel_Planes extends JPanel {
 
+    private final ServicioDAO servicioDAO;
+
     private JTable tabla;
     private DefaultTableModel modelo;
-    
+    private JTextField txtBuscar;
+
     // Campos del Formulario
     private JTextField txtNombre, txtPrecio, txtVelocidad;
     private JTextArea txtDescripcion;
-    private JComboBox<String> cmbTipo, cmbProveedor;
-    private JButton btnGuardar, btnLimpiar;
+    private JComboBox<String> cmbTipo;
+    private JButton btnGuardar, btnLimpiar, btnEliminar;
+
+    // ID del servicio seleccionado para edición
+    private int idServicioSeleccionado = -1;
 
     public subpanel_Planes() {
+        this.servicioDAO = new ServicioDAO();
         setBackground(Color.WHITE);
         setLayout(null);
         initContenido();
-        cargarDatosSimulados();
+        cargarDatosDesdeDB();
     }
 
     private void initContenido() {
@@ -42,29 +55,54 @@ public class subpanel_Planes extends JPanel {
         lblTitulo.setBounds(30, 20, 300, 30);
         add(lblTitulo);
 
-        JTextField txtBuscar = new JTextField();
+        txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar plan...");
         txtBuscar.setBounds(30, 70, 280, 35);
+        txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                cargarDatosDesdeDB();
+            }
+        });
         add(txtBuscar);
 
-        JButton btnBuscar = new JButton("🔍");
+        JButton btnBuscar = new JButton("Buscar");
         estilarBoton(btnBuscar, new Color(241, 245, 249), new Color(15, 23, 42));
-        btnBuscar.setBounds(320, 70, 50, 35);
+        btnBuscar.setBounds(320, 70, 80, 35);
+        btnBuscar.addActionListener(e -> cargarDatosDesdeDB());
         add(btnBuscar);
 
+        JButton btnRefrescar = new JButton("↻");
+        estilarBoton(btnRefrescar, new Color(241, 245, 249), new Color(15, 23, 42));
+        btnRefrescar.setBounds(410, 70, 50, 35);
+        btnRefrescar.setToolTipText("Actualizar lista");
+        btnRefrescar.addActionListener(e -> {
+            txtBuscar.setText("");
+            cargarDatosDesdeDB();
+        });
+        add(btnRefrescar);
+
         // Tabla
-        String[] cols = {"ID", "Nombre del Plan", "Tipo", "Precio (S/.)", "Velocidad"};
+        String[] cols = { "ID", "Nombre del Plan", "Velocidad", "Precio (S/.)", "Estado" };
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
-        
+
         tabla = new JTable(modelo);
         tabla.setRowHeight(35);
         tabla.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         tabla.getTableHeader().setBackground(new Color(248, 250, 252));
         tabla.setShowVerticalLines(false);
-        
+        tabla.setSelectionBackground(new Color(239, 246, 255));
+
+        // Ocultar columna ID (pero mantenerla para referencia)
+        tabla.getColumnModel().getColumn(0).setMinWidth(0);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(0).setWidth(0);
+
         // Evento: Al hacer clic en la tabla, llenar el formulario
         tabla.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -73,7 +111,7 @@ public class subpanel_Planes extends JPanel {
         });
 
         JScrollPane scroll = new JScrollPane(tabla);
-        scroll.setBounds(30, 120, 600, 560); // Ocupa la mitad izquierda
+        scroll.setBounds(30, 120, 600, 560);
         scroll.getViewport().setBackground(Color.WHITE);
         scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         add(scroll);
@@ -82,9 +120,9 @@ public class subpanel_Planes extends JPanel {
         // COLUMNA DERECHA: FORMULARIO DE EDICIÓN
         // ====================================================================
         JPanel panelForm = new JPanel(null);
-        panelForm.setBackground(new Color(248, 250, 252)); // Gris muy claro
+        panelForm.setBackground(new Color(248, 250, 252));
         panelForm.setBorder(new LineBorder(new Color(226, 232, 240), 1));
-        panelForm.setBounds(660, 0, 554, 760); // Ocupa la mitad derecha hasta el final
+        panelForm.setBounds(660, 0, 554, 760);
         add(panelForm);
 
         JLabel lblForm = new JLabel("Detalles del Servicio");
@@ -99,19 +137,18 @@ public class subpanel_Planes extends JPanel {
         txtNombre.setBounds(30, 105, 490, 35);
         panelForm.add(txtNombre);
 
-        // 2. Tipo de Servicio (Combo: Internet, Cable, Duo)
+        // 2. Tipo de Servicio
         panelForm.add(crearLabel("Tipo:", 30, 150));
-        cmbTipo = new JComboBox<>(new String[]{"INTERNET", "CABLE TV", "DUO (Net+TV)"});
+        cmbTipo = new JComboBox<>(new String[] { "INTERNET", "CABLE TV", "DUO (Net+TV)" });
         cmbTipo.setBounds(30, 175, 230, 35);
         cmbTipo.setBackground(Color.WHITE);
         panelForm.add(cmbTipo);
 
-        // 3. Proveedor (Combo: MikroTik, OLT, etc) -> Viene de tabla Proveedor
-        panelForm.add(crearLabel("Proveedor / Tecnología:", 290, 150));
-        cmbProveedor = new JComboBox<>(new String[]{"MIKROTIK_MAIN", "OLT_HUAWEI", "SATELITAL"});
-        cmbProveedor.setBounds(290, 175, 230, 35);
-        cmbProveedor.setBackground(Color.WHITE);
-        panelForm.add(cmbProveedor);
+        // 3. Velocidad
+        panelForm.add(crearLabel("Velocidad (Megas):", 290, 150));
+        txtVelocidad = new JTextField();
+        txtVelocidad.setBounds(290, 175, 230, 35);
+        panelForm.add(txtVelocidad);
 
         // 4. Precio Mensual
         panelForm.add(crearLabel("Mensualidad (S/.):", 30, 220));
@@ -120,17 +157,11 @@ public class subpanel_Planes extends JPanel {
         txtPrecio.setBounds(30, 245, 230, 35);
         panelForm.add(txtPrecio);
 
-        // 5. Velocidad / Ancho de Banda
-        panelForm.add(crearLabel("Velocidad (Megas):", 290, 220));
-        txtVelocidad = new JTextField();
-        txtVelocidad.setBounds(290, 245, 230, 35);
-        panelForm.add(txtVelocidad);
-
-        // 6. Descripción
+        // 5. Descripción
         panelForm.add(crearLabel("Descripción / Notas:", 30, 290));
         txtDescripcion = new JTextArea();
         txtDescripcion.setLineWrap(true);
-        txtDescripcion.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,200,200)));
+        txtDescripcion.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)));
         txtDescripcion.setBounds(30, 315, 490, 80);
         panelForm.add(txtDescripcion);
 
@@ -143,37 +174,64 @@ public class subpanel_Planes extends JPanel {
         panelForm.add(btnLimpiar);
 
         btnGuardar = new JButton("GUARDAR SERVICIO");
-        estilarBoton(btnGuardar, new Color(37, 99, 235), Color.WHITE); // Azul fuerte
-        btnGuardar.setBounds(200, 420, 320, 40);
+        estilarBoton(btnGuardar, new Color(37, 99, 235), Color.WHITE);
+        btnGuardar.setBounds(200, 420, 200, 40);
         btnGuardar.addActionListener(e -> accionGuardar());
         panelForm.add(btnGuardar);
-        
+
+        btnEliminar = new JButton("ELIMINAR");
+        estilarBoton(btnEliminar, new Color(220, 38, 38), Color.WHITE);
+        btnEliminar.setBounds(420, 420, 100, 40);
+        btnEliminar.setEnabled(false);
+        btnEliminar.addActionListener(e -> accionEliminar());
+        panelForm.add(btnEliminar);
+
         // Mensaje de ayuda
-        JLabel lblHelp = new JLabel("<html><body style='width: 350px; color: gray; font-size: 10px;'>"
-                + "Nota: Al editar el precio de un plan, los contratos existentes "
-                + "mantendrán su precio antiguo hasta que se actualicen manualmente."
-                + "</body></html>");
-        lblHelp.setBounds(30, 480, 400, 40);
+        JLabel lblHelp = new JLabel("<html><body style='width: 450px; color: gray; font-size: 10px;'>" +
+                "Nota: Al editar el precio de un plan, los contratos existentes " +
+                "mantendrán su precio antiguo hasta que se actualicen manualmente. " +
+                "Al eliminar un plan con clientes, se mostrará un diálogo para migrarlos a otro plan." +
+                "</body></html>");
+        lblHelp.setBounds(30, 480, 490, 50);
         panelForm.add(lblHelp);
     }
 
-    // --- LÓGICA ---
+    // --- LÓGICA DE CARGA DESDE BD ---
+
+    private void cargarDatosDesdeDB() {
+        modelo.setRowCount(0);
+        String busqueda = txtBuscar != null ? txtBuscar.getText() : "";
+
+        List<Servicio> servicios = servicioDAO.listar(busqueda);
+
+        for (Servicio s : servicios) {
+            modelo.addRow(new Object[] {
+                    s.getIdServicio(),
+                    s.getDescripcion(),
+                    s.getVelocidadMb() + " MB",
+                    String.format("S/. %.2f", s.getMensualidad()),
+                    s.getActivo() == 1 ? "ACTIVO" : "DESACTIVADO"
+            });
+        }
+    }
 
     private void cargarFormularioDesdeTabla() {
         int fila = tabla.getSelectedRow();
         if (fila >= 0) {
+            idServicioSeleccionado = (int) modelo.getValueAt(fila, 0);
             txtNombre.setText(modelo.getValueAt(fila, 1).toString());
-            cmbTipo.setSelectedItem(modelo.getValueAt(fila, 2).toString());
+            txtVelocidad.setText(modelo.getValueAt(fila, 2).toString().replace(" MB", ""));
             txtPrecio.setText(modelo.getValueAt(fila, 3).toString().replace("S/. ", ""));
-            txtVelocidad.setText(modelo.getValueAt(fila, 4).toString().replace(" MB", ""));
-            
+
             btnGuardar.setText("ACTUALIZAR PLAN");
             btnGuardar.setBackground(new Color(22, 163, 74)); // Verde al editar
+            btnEliminar.setEnabled(true);
         }
     }
 
     private void limpiarFormulario() {
         tabla.clearSelection();
+        idServicioSeleccionado = -1;
         txtNombre.setText("");
         txtPrecio.setText("");
         txtVelocidad.setText("");
@@ -181,27 +239,94 @@ public class subpanel_Planes extends JPanel {
         cmbTipo.setSelectedIndex(0);
         btnGuardar.setText("GUARDAR SERVICIO");
         btnGuardar.setBackground(new Color(37, 99, 235)); // Azul al crear
+        btnEliminar.setEnabled(false);
     }
 
     private void accionGuardar() {
-        // Aquí conectas con ServicioDAO.insertar() o actualizar()
-        String nombre = txtNombre.getText();
-        String precio = txtPrecio.getText();
-        
-        if (nombre.isEmpty() || precio.isEmpty()) {
+        String nombre = txtNombre.getText().trim();
+        String precioStr = txtPrecio.getText().trim();
+        String velocidadStr = txtVelocidad.getText().trim();
+
+        if (nombre.isEmpty() || precioStr.isEmpty()) {
             JOptionPane.showMessageDialog(this, "El nombre y precio son obligatorios.");
             return;
         }
-        
-        JOptionPane.showMessageDialog(this, "Servicio guardado exitosamente:\n" + nombre);
-        // Recargar tabla...
+
+        double precio;
+        int velocidad;
+        try {
+            precio = Double.parseDouble(precioStr.replace(",", "."));
+            velocidad = velocidadStr.isEmpty() ? 0 : Integer.parseInt(velocidadStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "El precio y velocidad deben ser números válidos.");
+            return;
+        }
+
+        Servicio servicio = new Servicio();
+        servicio.setDescripcion(nombre);
+        servicio.setMensualidad(precio);
+        servicio.setVelocidadMb(velocidad);
+        servicio.setActivo(1);
+
+        boolean exito;
+        if (idServicioSeleccionado == -1) {
+            // Crear nuevo
+            exito = servicioDAO.insertar(servicio);
+        } else {
+            // Actualizar existente
+            servicio.setIdServicio(idServicioSeleccionado);
+            exito = servicioDAO.actualizar(servicio);
+        }
+
+        if (exito) {
+            JOptionPane.showMessageDialog(this,
+                    idServicioSeleccionado == -1 ? "Servicio creado exitosamente."
+                            : "Servicio actualizado exitosamente.");
+            limpiarFormulario();
+            cargarDatosDesdeDB();
+        } else {
+            JOptionPane.showMessageDialog(this, "Error al guardar el servicio.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    private void cargarDatosSimulados() {
-        // Esto vendría de ServicioDAO.obtenerTodos()
-        modelo.addRow(new Object[]{"1", "Plan Hogar 50MB", "INTERNET", "S/. 50.00", "50 MB"});
-        modelo.addRow(new Object[]{"2", "Plan Gamer 100MB", "INTERNET", "S/. 80.00", "100 MB"});
-        modelo.addRow(new Object[]{"3", "TV Cable Básico", "CABLE TV", "S/. 30.00", "N/A"});
+    private void accionEliminar() {
+        if (idServicioSeleccionado == -1)
+            return;
+
+        String nombrePlan = txtNombre.getText();
+        int cantidadClientes = servicioDAO.contarSuscripcionesPorServicio(idServicioSeleccionado);
+
+        if (cantidadClientes > 0) {
+            // Tiene clientes afiliados - mostrar diálogo especial
+            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+            DialogoEliminarPlan dialogo = new DialogoEliminarPlan(parentFrame, idServicioSeleccionado, nombrePlan);
+            dialogo.setVisible(true);
+
+            if (dialogo.isAccionRealizada()) {
+                limpiarFormulario();
+                cargarDatosDesdeDB();
+            }
+        } else {
+            // Sin clientes - eliminación directa
+            int confirmacion = JOptionPane.showConfirmDialog(this,
+                    "¿Eliminar el plan '" + nombrePlan + "'?\n\nEsta acción no se puede deshacer.",
+                    "Confirmar Eliminación",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (confirmacion == JOptionPane.YES_OPTION) {
+                boolean eliminado = servicioDAO.eliminar(idServicioSeleccionado);
+
+                if (eliminado) {
+                    JOptionPane.showMessageDialog(this, "Plan eliminado correctamente.");
+                    limpiarFormulario();
+                    cargarDatosDesdeDB();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al eliminar el plan.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
     }
 
     // --- UTILIDADES ---
@@ -218,6 +343,6 @@ public class subpanel_Planes extends JPanel {
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setFocusPainted(false);
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
-}   
+}

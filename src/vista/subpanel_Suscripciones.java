@@ -42,7 +42,7 @@ public class subpanel_Suscripciones extends JPanel {
 
     public subpanel_Suscripciones() {
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
+        setBackground(new Color(255, 253, 245)); // Crema sutil
         setBorder(new EmptyBorder(5, 10, 5, 10));
 
         susDAO = new SuscripcionDAO();
@@ -86,7 +86,7 @@ public class subpanel_Suscripciones extends JPanel {
         // --- 1. PANEL SUPERIOR (HEADER) ---
         JPanel topPanel = new JPanel(null);
         topPanel.setPreferredSize(new Dimension(100, 50));
-        topPanel.setBackground(Color.WHITE);
+        topPanel.setBackground(new Color(255, 253, 245)); // Crema sutil
 
         // Título
         JLabel lblTitulo = new JLabel("CONTRATOS");
@@ -233,7 +233,7 @@ public class subpanel_Suscripciones extends JPanel {
 
         // --- 3. FOOTER (CONTADOR) ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        bottomPanel.setBackground(Color.WHITE);
+        bottomPanel.setBackground(new Color(255, 253, 245)); // Crema sutil
         bottomPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
 
         lblTotalContratos = new JLabel("Total Contratos: 0");
@@ -302,12 +302,19 @@ public class subpanel_Suscripciones extends JPanel {
 
         if (JOptionPane.showConfirmDialog(this, msj, "Confirmar Baja", JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+            // Mostrar carga
+            if (Principal.instancia != null)
+                Principal.instancia.mostrarCarga(true);
+
             new Thread(() -> {
                 // Aquí llamamos al método que actualiza fecha_cancelacion = NOW() y activo = 0
                 susDAO.darDeBajaContrato(s.getIdSuscripcion());
                 SwingUtilities.invokeLater(() -> {
+                    if (Principal.instancia != null)
+                        Principal.instancia.mostrarCarga(false);
                     JOptionPane.showMessageDialog(this, "Contrato finalizado correctamente.");
-                    cargarDatos(txtBuscar.getText());
+                    txtBuscar.setText(""); // Limpiar búsqueda
+                    cargarDatos("");
                 });
             }).start();
         }
@@ -332,6 +339,7 @@ public class subpanel_Suscripciones extends JPanel {
 
         dialog.setVisible(true);
         if (dialog.isGuardado()) {
+            txtBuscar.setText(""); // Limpiar búsqueda para mostrar lista completa
             cargarDatos("");
         }
     }

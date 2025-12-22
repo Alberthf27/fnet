@@ -1,5 +1,20 @@
 {
+    "java.project.sourcePaths": [
+        "src"
+    ],
     "java.project.referencedLibraries": [
         "lib/**/*.jar"
-    ]
+    ],
+    "java.debug.settings.onBuildFailureProceed": true,
+    "files.exclude": {
+        "**/fnet-automation/**": true,
+        "**/fnet-automation-TEMP/**": true
+    },
+    "java.project.resourceFilters": [
+        "node_modules",
+        "\\.git",
+        "fnet-automation",
+        "fnet-automation-TEMP"
+    ],
+    "java.project.explorer.showNonJavaResources": false
 }

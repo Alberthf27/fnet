@@ -34,6 +34,10 @@ public class panel_Gerente extends JPanel {
     private int nuevosReal = 0;
     private int bajasReal = 0;
 
+    // Notificaciones
+    private DAO.AlertaDAO alertaDAO;
+    private JButton btnNotificaciones;
+
     public panel_Gerente() {
         setBackground(new Color(241, 245, 249));
         // Using BorderLayout for the main structure to allow scroll if needed,
@@ -75,6 +79,29 @@ public class panel_Gerente extends JPanel {
         subtitle.setForeground(new Color(100, 116, 139));
         subtitle.setBounds(30, 50, 300, 20);
         add(subtitle);
+
+        // --- BOTÓN DE NOTIFICACIONES ---
+        alertaDAO = new DAO.AlertaDAO();
+        JButton btnNotificaciones = new JButton("🔔 Buzón");
+        btnNotificaciones.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnNotificaciones.setForeground(Color.WHITE);
+        btnNotificaciones.setBackground(new Color(99, 102, 241)); // Indigo 500
+        btnNotificaciones.setFocusPainted(false);
+        btnNotificaciones.setBorderPainted(false);
+        btnNotificaciones.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnNotificaciones.setBounds(this.getWidth() - 150, 20, 120, 35); // Posición inicial (se ajusta en resize)
+
+        // Badge logic (simple text update for now)
+        actualizarBotonNotificaciones(btnNotificaciones);
+
+        btnNotificaciones.addActionListener(e -> {
+            abrirBandejaEntrada();
+            actualizarBotonNotificaciones(btnNotificaciones);
+        });
+
+        // Guardar referencia para resize
+        this.btnNotificaciones = btnNotificaciones;
+        add(btnNotificaciones);
 
         // 2. CREAR TARJETAS (Placeholders initially)
         card1 = new CardPanel("Ingresos de Hoy", "Cargando...", "...", "", new Color(22, 163, 74));
@@ -304,6 +331,11 @@ public class panel_Gerente extends JPanel {
             scrollPane.setBounds(margenX, tableY + 30, anchoUtil, tableH);
         }
 
+        // Posicionar botón de notificaciones (siempre a la derecha)
+        if (btnNotificaciones != null) {
+            btnNotificaciones.setBounds(anchoTotal - 160, 20, 130, 35);
+        }
+
         revalidate();
         repaint();
     }
@@ -343,5 +375,44 @@ public class panel_Gerente extends JPanel {
         sep.setForeground(new Color(240, 240, 240));
         sep.setBounds(20, y + 35, panelWidth - 40, 10);
         panel.add(sep);
+    }
+
+    // --- MÉTODOS DE NOTIFICACIONES ---
+    private void actualizarBotonNotificaciones(JButton btn) {
+        new Thread(() -> {
+            int noLeidas = alertaDAO.contarNoLeidas();
+            SwingUtilities.invokeLater(() -> {
+                if (noLeidas > 0) {
+                    btn.setText("🔔 Buzón (" + noLeidas + ")");
+                    btn.setBackground(new Color(220, 38, 38)); // Rojo si hay pendientes
+                } else {
+                    btn.setText("🔔 Buzón");
+                    btn.setBackground(new Color(99, 102, 241)); // Indigo normal
+                }
+            });
+        }).start();
+    }
+
+    private void abrirBandejaEntrada() {
+        JDialog dialog = new JDialog();
+        dialog.setTitle("Bandeja de Entrada - Gerencia");
+        dialog.setModal(true);
+        dialog.setSize(600, 700);
+        dialog.setLocationRelativeTo(this);
+
+        PanelBandejaEntrada panel = new PanelBandejaEntrada();
+        dialog.add(panel);
+
+        // Al cerrar, actualizar contador
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent windowEvent) {
+                if (btnNotificaciones != null) {
+                    actualizarBotonNotificaciones(btnNotificaciones);
+                }
+            }
+        });
+
+        dialog.setVisible(true);
     }
 }

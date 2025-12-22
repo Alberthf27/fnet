@@ -61,27 +61,28 @@ public class SuscripcionDAO {
     /**
      * Guarda un contrato NUEVO o ACTUALIZA uno existente con todos los campos.
      * Soporta cambio de titular, fecha inicio y día de pago.
+     * 
+     * @return El ID de la suscripción creada/actualizada, o -1 si falla.
      */
-    // EN: DAO/SuscripcionDAO.java
-    public boolean guardarOActualizarContrato(int idSuscripcion, int idServicio, String direccion, int idCliente,
+    public int guardarOActualizarContrato(int idSuscripcion, int idServicio, String direccion, int idCliente,
             java.util.Date fechaInicio, int diaPago,
             boolean mesAdelantado, boolean equiposPrestados, double garantia,
-            String nombreSuscripcion) { // <--- NUEVO PARÁMETRO
+            String nombreSuscripcion, String sector) { // Agregado sector
         String sql;
         boolean esNuevo = (idSuscripcion == -1);
 
         if (esNuevo) {
             sql = "INSERT INTO suscripcion (id_servicio, direccion_instalacion, id_cliente, fecha_inicio, dia_pago, "
-                    + "mes_adelantado, equipos_prestados, garantia, codigo_contrato, activo, nombre_suscripcion) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)";
+                    + "mes_adelantado, equipos_prestados, garantia, codigo_contrato, activo, nombre_suscripcion, sector) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)";
         } else {
             sql = "UPDATE suscripcion SET id_servicio = ?, direccion_instalacion = ?, id_cliente = ?, fecha_inicio = ?, dia_pago = ?, "
-                    + "mes_adelantado = ?, equipos_prestados = ?, garantia = ?, nombre_suscripcion = ? "
+                    + "mes_adelantado = ?, equipos_prestados = ?, garantia = ?, nombre_suscripcion = ?, sector = ? "
                     + "WHERE id_suscripcion = ?";
         }
 
         try (java.sql.Connection conn = bd.Conexion.getConexion();
-                java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, idServicio);
             ps.setString(2, direccion);
@@ -98,18 +99,34 @@ public class SuscripcionDAO {
             if (esNuevo) {
                 String codigo = "CNT-" + System.currentTimeMillis();
                 ps.setString(9, codigo);
-                ps.setString(10, nombreSuscripcion); // nombre_suscripcion
+                ps.setString(10, nombreSuscripcion);
+                ps.setString(11, sector); // Sector
             } else {
-                ps.setString(9, nombreSuscripcion); // nombre_suscripcion
-                ps.setInt(10, idSuscripcion);
+                ps.setString(9, nombreSuscripcion);
+                ps.setString(10, sector); // Sector
+                ps.setInt(11, idSuscripcion);
             }
 
-            return ps.executeUpdate() > 0;
+            int affected = ps.executeUpdate();
+
+            if (affected > 0) {
+                if (esNuevo) {
+                    // Obtener ID generado
+                    try (java.sql.ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            return rs.getInt(1);
+                        }
+                    }
+                } else {
+                    return idSuscripcion; // Retornar el mismo ID si es actualización
+                }
+            }
+            return -1;
 
         } catch (Exception e) {
             System.err.println("Error al guardar/actualizar contrato: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            return -1;
         }
     }
 
@@ -233,7 +250,8 @@ public class SuscripcionDAO {
                 + "s.activo, s.sector, s.dia_pago, s.garantia, "
                 + "s.mes_adelantado, s.equipos_prestados, s.nombre_suscripcion, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, "
-                + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend "
+                + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend, "
+                + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion) as f_total "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -305,14 +323,24 @@ public class SuscripcionDAO {
                     sus.setMontoMensual(rs.getDouble("mensualidad"));
 
                     int pendientes = rs.getInt("f_pend");
+                    int totalFacturas = rs.getInt("f_total");
                     sus.setFacturasPendientes(pendientes);
 
-                    // Historial visual
+                    // Historial visual mejorado:
+                    // - "2" = Sin factura (GRIS) - para contratos nuevos sin historial
+                    // - "1" = Pagado (VERDE)
+                    // - "0" = Pendiente (ROJO)
                     StringBuilder sb = new StringBuilder();
+
                     for (int i = 5; i >= 0; i--) {
-                        if (i < pendientes) {
+                        if (i >= totalFacturas) {
+                            // No hay factura para este mes -> GRIS
+                            sb.append("2");
+                        } else if (i < pendientes) {
+                            // Factura pendiente -> ROJO
                             sb.append("0");
                         } else {
+                            // Factura pagada -> VERDE
                             sb.append("1");
                         }
                     }

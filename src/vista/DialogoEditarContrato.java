@@ -24,6 +24,8 @@ public class DialogoEditarContrato extends JDialog {
     private JCheckBox chkEquiposPrestados;
     private JTextField txtGarantia;
     private JTextField txtNombreSuscripcion; // Nombre del contrato
+    private JComboBox<String> cmbSector; // Sector del cliente
+    private JCheckBox chkEjecutarPagoAdelantado; // Para ejecutar pago al guardar
     // ------------------------
 
     // CAMPOS DE CLIENTE
@@ -52,7 +54,7 @@ public class DialogoEditarContrato extends JDialog {
         this.idClienteSeleccionado = idClienteOriginal;
 
         setTitle(idSuscripcion == -1 ? "Nuevo Contrato" : "Editar Contrato #" + idSuscripcion);
-        setSize(560, 870); // Altura ajustada para nuevo panel de cliente
+        setSize(560, 1020); // Altura aumentada para todos los componentes
         setLocationRelativeTo(parent);
         setResizable(false);
 
@@ -69,7 +71,7 @@ public class DialogoEditarContrato extends JDialog {
             boolean mesAdelantado, boolean equiposPrestados, double garantia,
             String nombreSuscripcion) {
         JPanel panel = new JPanel(null);
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(new Color(255, 253, 245)); // Crema muy sutil para reducir cansancio visual
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
         setContentPane(panel);
 
@@ -81,12 +83,13 @@ public class DialogoEditarContrato extends JDialog {
 
         int y = 60;
 
-        // --- 0. NOMBRE DE SUSCRIPCIÓN (NUEVO) ---
-        panel.add(crearLabel("Nombre del Contrato:", 20, y));
+        // --- 0. NOMBRE DE SUSCRIPCIÓN (automático, editable) ---
+        panel.add(crearLabel("Nombre del Contrato (automático):", 20, y));
         txtNombreSuscripcion = new JTextField(nombreSuscripcion != null ? nombreSuscripcion : nombreCliente);
         txtNombreSuscripcion.setBounds(20, y + 25, 480, 35);
-        txtNombreSuscripcion.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-        txtNombreSuscripcion.setToolTipText("Por defecto usa el nombre del cliente. Puede personalizarlo.");
+        txtNombreSuscripcion.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        txtNombreSuscripcion.setToolTipText("Se autocompleta con el nombre del cliente. Solo editar si es diferente.");
+        txtNombreSuscripcion.setBackground(Color.WHITE); // Fondo blanco
         panel.add(txtNombreSuscripcion);
         y += 75;
 
@@ -180,77 +183,214 @@ public class DialogoEditarContrato extends JDialog {
 
         y += 85;
 
-        // --- 4. DIRECCIÓN ---
+        // --- 4. PANEL INFORMATIVO DE PRÓXIMO PAGO ---
+        JPanel pnlInfoPago = new JPanel(null);
+        pnlInfoPago.setBackground(new Color(240, 253, 244)); // Verde muy claro
+        pnlInfoPago.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(34, 197, 94)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        pnlInfoPago.setBounds(20, y, 480, 100); // Altura aumentada para texto completo
+        panel.add(pnlInfoPago);
+
+        JLabel lblInfoPago = new JLabel();
+        lblInfoPago.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblInfoPago.setBounds(10, 5, 460, 45); // Mayor altura para 2 líneas
+        pnlInfoPago.add(lblInfoPago);
+
+        // Checkbox para ejecutar pago automático (solo visible si adelantado)
+        chkEjecutarPagoAdelantado = new JCheckBox("Registrar primer pago ahora");
+        chkEjecutarPagoAdelantado.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        chkEjecutarPagoAdelantado.setBackground(new Color(254, 249, 195));
+        chkEjecutarPagoAdelantado.setBounds(10, 55, 250, 25); // Movido hacia abajo
+        chkEjecutarPagoAdelantado.setSelected(true);
+        chkEjecutarPagoAdelantado.setVisible(false);
+        pnlInfoPago.add(chkEjecutarPagoAdelantado);
+
+        // Función para actualizar info de pago
+        Runnable actualizarInfoPago = () -> {
+            Date fecha = dateInicio.getDate();
+            int dia = (int) spinDiaPago.getValue();
+            boolean adelantado = chkMesAdelantado.isSelected();
+
+            if (fecha != null) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(fecha);
+                cal.set(java.util.Calendar.DAY_OF_MONTH,
+                        Math.min(dia, cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));
+
+                // Si es adelantado, el primer pago es hoy
+                String infoPrimerPago;
+                if (adelantado) {
+                    infoPrimerPago = "<html><b>💰 PAGO ADELANTADO:</b> El cliente pagará <b>HOY</b> al guardar.<br>" +
+                            "📅 Próximo vencimiento: <b>" +
+                            new java.text.SimpleDateFormat("dd/MM/yyyy").format(cal.getTime()) + "</b></html>";
+                    pnlInfoPago.setBackground(new Color(254, 249, 195));
+                    chkEjecutarPagoAdelantado.setVisible(true);
+                    chkEjecutarPagoAdelantado.setBackground(new Color(254, 249, 195));
+                } else {
+                    infoPrimerPago = "<html>📅 <b>Primer vencimiento:</b> " +
+                            new java.text.SimpleDateFormat("dd/MM/yyyy").format(cal.getTime()) +
+                            " (Día " + dia + " de cada mes)</html>";
+                    pnlInfoPago.setBackground(new Color(240, 253, 244));
+                    chkEjecutarPagoAdelantado.setVisible(false);
+                }
+                lblInfoPago.setText(infoPrimerPago);
+            }
+        };
+
+        // Listeners para actualizar info
+        dateInicio.getDateEditor().addPropertyChangeListener(e -> {
+            if ("date".equals(e.getPropertyName()))
+                actualizarInfoPago.run();
+        });
+        spinDiaPago.addChangeListener(e -> actualizarInfoPago.run());
+        chkMesAdelantado.addActionListener(e -> actualizarInfoPago.run());
+
+        // Ejecutar al inicio
+        actualizarInfoPago.run();
+
+        y += 110; // Aumentado por mayor altura del panel
+
+        // --- 5. DIRECCIÓN ---
         panel.add(crearLabel("Dirección de Instalación:", 20, y));
         txtDireccion = new JTextField(dirActual);
-        txtDireccion.setBounds(20, y + 25, 480, 35);
+        txtDireccion.setBounds(20, y + 25, 320, 35);
         txtDireccion.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         panel.add(txtDireccion);
-        y += 85;
 
-        // --- 5. DATOS DEL CLIENTE (MEJORADO CON BÚSQUEDA) ---
+        // --- SECTOR (al lado de dirección) ---
+        panel.add(crearLabel("Sector:", 360, y));
+        cmbSector = new JComboBox<>(new String[] { "EL MILAGRO", "EL MIRADOR" });
+        cmbSector.setBounds(360, y + 25, 140, 35);
+        cmbSector.setBackground(Color.WHITE);
+        cmbSector.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        panel.add(cmbSector);
+        y += 75;
+
+        // --- 6. DATOS DEL CLIENTE (MEJORADO CON BÚSQUEDA) ---
         JPanel panelCli = new JPanel(null);
         panelCli.setBackground(new Color(248, 250, 252));
         panelCli.setBorder(
                 BorderFactory.createTitledBorder(null, "Titular del Contrato", TitledBorder.DEFAULT_JUSTIFICATION,
                         TitledBorder.DEFAULT_POSITION, new Font("Segoe UI", Font.BOLD, 12)));
-        panelCli.setBounds(20, y, 480, 220);
+        panelCli.setBounds(20, y, 480, 310); // Altura para formulario expandido
         panel.add(panelCli);
 
-        // Campo de búsqueda
-        JLabel lblBuscar = new JLabel("Buscar cliente (nombre, DNI):");
-        lblBuscar.setBounds(15, 25, 200, 20);
+        // Checkbox para cliente nuevo - MARCADO POR DEFECTO (ARRIBA DE TODO)
+        JCheckBox chkNuevoCliente = new JCheckBox("Nuevo cliente");
+        chkNuevoCliente.setBackground(new Color(248, 250, 252));
+        chkNuevoCliente.setBounds(15, 20, 120, 25);
+        chkNuevoCliente.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        chkNuevoCliente.setForeground(new Color(37, 99, 235));
+        chkNuevoCliente.setSelected(true); // Marcado por defecto
+        panelCli.add(chkNuevoCliente);
+
+        // --- PANEL DE CAMPOS PARA CLIENTE NUEVO (VISIBLE POR DEFECTO, ARRIBA) ---
+        JPanel pnlCamposNuevo = new JPanel(null);
+        pnlCamposNuevo.setBackground(new Color(255, 250, 240)); // Crema claro
+        pnlCamposNuevo.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(245, 158, 11)),
+                "Datos del Nuevo Cliente",
+                TitledBorder.DEFAULT_JUSTIFICATION,
+                TitledBorder.DEFAULT_POSITION,
+                new Font("Segoe UI", Font.BOLD, 10),
+                new Color(180, 100, 0)));
+        pnlCamposNuevo.setBounds(15, 48, 450, 130);
+        pnlCamposNuevo.setVisible(true); // Visible por defecto ya que checkbox está marcado
+        panelCli.add(pnlCamposNuevo);
+
+        // Separador visual
+        JLabel lblOpcional = new JLabel("— o buscar cliente existente —");
+        lblOpcional.setFont(new Font("Segoe UI", Font.ITALIC, 10));
+        lblOpcional.setForeground(Color.GRAY);
+        lblOpcional.setBounds(150, 180, 200, 15);
+        panelCli.add(lblOpcional);
+
+        // Campo de búsqueda (ABAJO)
+        JLabel lblBuscar = new JLabel("Buscar cliente existente:");
+        lblBuscar.setBounds(15, 195, 200, 20);
         panelCli.add(lblBuscar);
 
         JTextField txtBuscarCliente = new JTextField();
-        txtBuscarCliente.setBounds(15, 45, 350, 30);
+        txtBuscarCliente.setBounds(15, 215, 350, 28);
         txtBuscarCliente.setToolTipText("Escriba para buscar clientes existentes");
         panelCli.add(txtBuscarCliente);
 
-        // Lista de resultados
+        // Lista de resultados (ABAJO)
         DefaultListModel<String> listaModelo = new DefaultListModel<>();
         JList<String> listaClientes = new JList<>(listaModelo);
-        listaClientes.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        listaClientes.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         listaClientes.setSelectionBackground(new Color(219, 234, 254));
         JScrollPane scrollLista = new JScrollPane(listaClientes);
-        scrollLista.setBounds(15, 80, 350, 80);
+        scrollLista.setBounds(15, 245, 450, 55);
         panelCli.add(scrollLista);
 
         // Lista interna para mapear selección a ID
         java.util.List<Object[]> clientesEncontrados = new java.util.ArrayList<>();
 
-        // Checkbox para cliente nuevo
-        JCheckBox chkNuevoCliente = new JCheckBox("Crear cliente nuevo");
-        chkNuevoCliente.setBackground(new Color(248, 250, 252));
-        chkNuevoCliente.setBounds(375, 45, 100, 30);
-        chkNuevoCliente.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        panelCli.add(chkNuevoCliente);
-
-        // Campos para cliente nuevo (inicialmente ocultos)
-        JLabel lblNomNuevo = new JLabel("Nombres:");
-        lblNomNuevo.setBounds(15, 165, 80, 20);
-        lblNomNuevo.setVisible(false);
-        panelCli.add(lblNomNuevo);
+        // Fila 1: Nombres y Apellidos (mejor alineados)
+        JLabel lblNomNuevo = new JLabel("Nombres*");
+        lblNomNuevo.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblNomNuevo.setBounds(10, 20, 70, 20);
+        pnlCamposNuevo.add(lblNomNuevo);
 
         txtNombresCli = new JTextField();
-        txtNombresCli.setBounds(85, 162, 130, 28);
-        txtNombresCli.setVisible(false);
-        panelCli.add(txtNombresCli);
+        txtNombresCli.setBounds(10, 40, 140, 28);
+        txtNombresCli.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        pnlCamposNuevo.add(txtNombresCli);
 
-        JLabel lblApeNuevo = new JLabel("Apellidos:");
-        lblApeNuevo.setBounds(220, 165, 60, 20);
-        lblApeNuevo.setVisible(false);
-        panelCli.add(lblApeNuevo);
+        JLabel lblApeNuevo = new JLabel("Apellidos");
+        lblApeNuevo.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblApeNuevo.setBounds(160, 20, 70, 20);
+        pnlCamposNuevo.add(lblApeNuevo);
 
         txtApellidosCli = new JTextField();
-        txtApellidosCli.setBounds(280, 162, 130, 28);
-        txtApellidosCli.setVisible(false);
-        panelCli.add(txtApellidosCli);
+        txtApellidosCli.setBounds(160, 40, 140, 28);
+        txtApellidosCli.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        pnlCamposNuevo.add(txtApellidosCli);
+
+        // Fila 2: DNI y Teléfono (mejor alineados)
+        JLabel lblDniNuevo = new JLabel("DNI (opcional)");
+        lblDniNuevo.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblDniNuevo.setForeground(Color.GRAY);
+        lblDniNuevo.setBounds(310, 20, 80, 20);
+        pnlCamposNuevo.add(lblDniNuevo);
 
         txtDniCli = new JTextField();
-        txtDniCli.setVisible(false);
+        txtDniCli.setBounds(310, 40, 90, 28);
+        txtDniCli.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        pnlCamposNuevo.add(txtDniCli);
+
+        JLabel lblTelNuevo = new JLabel("Teléfono*");
+        lblTelNuevo.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblTelNuevo.setBounds(10, 72, 70, 20);
+        pnlCamposNuevo.add(lblTelNuevo);
+
         txtCelularCli = new JTextField();
-        txtCelularCli.setVisible(false);
+        txtCelularCli.setBounds(10, 92, 140, 28);
+        txtCelularCli.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtCelularCli.setToolTipText("Número para notificaciones WhatsApp");
+        pnlCamposNuevo.add(txtCelularCli);
+
+        JLabel lblReq = new JLabel("* Obligatorio");
+        lblReq.setFont(new Font("Segoe UI", Font.ITALIC, 9));
+        lblReq.setForeground(new Color(180, 100, 0));
+        lblReq.setBounds(160, 100, 80, 15);
+        pnlCamposNuevo.add(lblReq);
+
+        // Navegación con Enter entre campos
+        java.awt.event.KeyAdapter enterNav = new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    ((java.awt.Component) e.getSource()).transferFocus();
+                }
+            }
+        };
+        txtNombresCli.addKeyListener(enterNav);
+        txtApellidosCli.addKeyListener(enterNav);
+        txtDniCli.addKeyListener(enterNav);
+        txtCelularCli.addKeyListener(enterNav);
 
         // Listener para búsqueda en tiempo real
         txtBuscarCliente.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
@@ -303,12 +443,11 @@ public class DialogoEditarContrato extends JDialog {
                     Object[] datos = clientesEncontrados.get(idx);
                     esNuevoCliente = false;
                     idClienteSeleccionado = (int) datos[0];
-                    txtBuscarCliente.setText(datos[1] + " " + datos[2]);
+                    String nombreCompleto = (datos[1] + " " + datos[2]).toUpperCase();
+                    txtBuscarCliente.setText(nombreCompleto);
                     txtBuscarCliente.setBackground(new Color(220, 252, 231)); // Verde claro
-                    // Actualizar nombre de suscripción si está vacío
-                    if (txtNombreSuscripcion.getText().isEmpty()) {
-                        txtNombreSuscripcion.setText(datos[1] + " " + datos[2]);
-                    }
+                    // Siempre actualizar nombre de suscripción con el cliente seleccionado
+                    txtNombreSuscripcion.setText(nombreCompleto);
                 }
             }
         });
@@ -319,11 +458,15 @@ public class DialogoEditarContrato extends JDialog {
             esNuevoCliente = nuevo;
             idClienteSeleccionado = -1;
 
-            // Mostrar/ocultar campos
-            lblNomNuevo.setVisible(nuevo);
-            txtNombresCli.setVisible(nuevo);
-            lblApeNuevo.setVisible(nuevo);
-            txtApellidosCli.setVisible(nuevo);
+            // Mostrar/ocultar panel de campos
+            pnlCamposNuevo.setVisible(nuevo);
+
+            // Ajustar tamaño del panel contenedor si es necesario
+            if (nuevo) {
+                panelCli.setPreferredSize(new java.awt.Dimension(480, 280));
+            } else {
+                panelCli.setPreferredSize(new java.awt.Dimension(480, 220));
+            }
 
             // Deshabilitar búsqueda si es nuevo
             txtBuscarCliente.setEnabled(!nuevo);
@@ -336,18 +479,32 @@ public class DialogoEditarContrato extends JDialog {
             } else {
                 txtBuscarCliente.setBackground(Color.WHITE);
             }
+
+            panelCli.revalidate();
+            panelCli.repaint();
         });
 
-        // Si es edición, mostrar cliente actual seleccionado
+        // Si es edición, mostrar cliente actual seleccionado y desmarcar checkbox
         if (idSuscripcion != -1 && nombreCliente != null && !nombreCliente.isEmpty()) {
+            chkNuevoCliente.setSelected(false);
+            esNuevoCliente = false;
+            pnlCamposNuevo.setVisible(false);
+            txtBuscarCliente.setEnabled(true);
             txtBuscarCliente.setText(nombreCliente);
             txtBuscarCliente.setBackground(new Color(220, 252, 231));
+        } else {
+            // Para nuevo contrato, configurar estado inicial
+            esNuevoCliente = true;
+            txtBuscarCliente.setEnabled(false);
+            txtBuscarCliente.setBackground(Color.LIGHT_GRAY);
+            // Focus en el campo de nombres al abrir
+            SwingUtilities.invokeLater(() -> txtNombresCli.requestFocusInWindow());
         }
 
         // --- BOTONES ---
         JButton btnGuardar = new JButton("GUARDAR CONTRATO");
         estilarBoton(btnGuardar, new Color(37, 99, 235), Color.WHITE);
-        btnGuardar.setBounds(150, y + 235, 220, 45); // Ajustado para nuevo panel
+        btnGuardar.setBounds(150, y + 325, 220, 45); // Ajustado para panel expandido
         btnGuardar.addActionListener(e -> guardar());
         panel.add(btnGuardar);
 
@@ -433,8 +590,8 @@ public class DialogoEditarContrato extends JDialog {
 
             if (esNuevoCliente) {
                 String dni = txtDniCli.getText().trim();
-                String nom = txtNombresCli.getText().trim();
-                String ape = txtApellidosCli.getText().trim();
+                String nom = txtNombresCli.getText().trim().toUpperCase(); // Mayúsculas
+                String ape = txtApellidosCli.getText().trim().toUpperCase(); // Mayúsculas
                 String tel = txtCelularCli.getText().trim();
 
                 // DNI es opcional, solo Nombre es obligatorio
@@ -473,17 +630,111 @@ public class DialogoEditarContrato extends JDialog {
             }
 
             SuscripcionDAO susDao = new SuscripcionDAO();
-            // LLAMADA AL DAO ACTUALIZADO
-            String nombreSusc = txtNombreSuscripcion.getText().trim();
-            boolean exito = susDao.guardarOActualizarContrato(
+            // LLAMADA AL DAO ACTUALIZADO - Ahora retorna ID
+            String nombreSusc = txtNombreSuscripcion.getText().trim().toUpperCase(); // Mayúsculas
+            String sector = (String) cmbSector.getSelectedItem(); // Sector seleccionado
+            int idSuscripcionCreada = susDao.guardarOActualizarContrato(
                     idSuscripcion, s.getIdServicio(), dir, idFinalCliente, fechaInicio, diaPago,
-                    mesAdelantado, equiposPrestados, garantiaFinal, nombreSusc);
+                    mesAdelantado, equiposPrestados, garantiaFinal, nombreSusc, sector);
 
+            boolean exito = idSuscripcionCreada > 0;
+
+            // Calcular si es cliente antiguo (más de 3 meses desde fecha inicio)
+            java.util.Calendar hoy = java.util.Calendar.getInstance();
+            java.util.Calendar fechaLimite = java.util.Calendar.getInstance();
+            fechaLimite.setTime(fechaInicio);
+            fechaLimite.add(java.util.Calendar.MONTH, 3);
+            boolean esClienteAntiguo = hoy.after(fechaLimite);
+
+            boolean pagoRegistrado = false;
+            int mesesGenerados = 0;
+
+            if (exito && idSuscripcion == -1 && mesAdelantado) {
+                try {
+                    DAO.PagoDAO pagoDao = new DAO.PagoDAO();
+
+                    // Calcular mes inicial basado en FECHA DE INICIO
+                    java.util.Calendar calInicio = java.util.Calendar.getInstance();
+                    calInicio.setTime(fechaInicio);
+                    int diaDelMes = calInicio.get(java.util.Calendar.DAY_OF_MONTH);
+                    if (diaDelMes > 16) {
+                        calInicio.add(java.util.Calendar.MONTH, 1);
+                    }
+                    calInicio.set(java.util.Calendar.DAY_OF_MONTH, 1); // Normalizar al día 1
+
+                    if (esClienteAntiguo) {
+                        // MIGRACIÓN: Generar TODAS las facturas desde inicio hasta HOY
+                        java.util.Calendar calActual = java.util.Calendar.getInstance();
+                        calActual.set(java.util.Calendar.DAY_OF_MONTH, 1); // Normalizar
+
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMMM yyyy",
+                                new java.util.Locale("es", "ES"));
+
+                        while (!calInicio.after(calActual)) {
+                            String periodoMes = sdf.format(calInicio.getTime()).toUpperCase();
+
+                            // Crear factura PAGADA
+                            boolean ok = pagoDao.crearFacturaManual(
+                                    idSuscripcionCreada,
+                                    periodoMes,
+                                    s.getMensualidad(),
+                                    2, // PAGADO
+                                    new java.sql.Date(calInicio.getTimeInMillis()),
+                                    false, // NO registrar en caja (migración)
+                                    1);
+                            if (ok)
+                                mesesGenerados++;
+                            System.out.println("[MIGRACIÓN] " + periodoMes + " -> PAGADO");
+
+                            calInicio.add(java.util.Calendar.MONTH, 1);
+                        }
+                        pagoRegistrado = mesesGenerados > 0;
+                        System.out.println("Migración completada: " + mesesGenerados + " meses generados");
+
+                    } else {
+                        // CLIENTE NUEVO: Solo primer mes según checkbox
+                        String periodoMes = new java.text.SimpleDateFormat("MMMM yyyy",
+                                new java.util.Locale("es", "ES"))
+                                .format(calInicio.getTime()).toUpperCase();
+
+                        boolean marcarComoPagado = chkEjecutarPagoAdelantado.isSelected();
+
+                        pagoRegistrado = pagoDao.crearFacturaManual(
+                                idSuscripcionCreada,
+                                periodoMes,
+                                s.getMensualidad(),
+                                marcarComoPagado ? 2 : 1,
+                                new java.sql.Date(fechaInicio.getTime()),
+                                marcarComoPagado,
+                                1);
+                        mesesGenerados = 1;
+                        String estado = marcarComoPagado ? "PAGADO" : "PENDIENTE";
+                        System.out.println("Factura " + estado + " creada para: " + periodoMes);
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error creando facturas: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            }
+
+            // Variable para mantener compatibilidad con mensajes
+            final boolean deudaCreada = !pagoRegistrado && mesAdelantado && !esClienteAntiguo;
+            final int mesesFinal = mesesGenerados;
+
+            final boolean exitoFinal = exito;
+            final boolean pagoFinal = pagoRegistrado;
+            final boolean deudaFinal = deudaCreada;
             SwingUtilities.invokeLater(() -> {
                 if (Principal.instancia != null)
                     Principal.instancia.mostrarCarga(false);
-                if (exito) {
-                    JOptionPane.showMessageDialog(null, "Contrato guardado exitosamente.");
+                if (exitoFinal) {
+                    String mensaje = "Contrato guardado exitosamente.";
+                    if (pagoFinal) {
+                        mensaje += "\n✅ Primer pago adelantado registrado en caja.";
+                    } else if (deudaFinal) {
+                        mensaje += "\n⚠️ Primera factura creada como PENDIENTE.";
+                    }
+                    JOptionPane.showMessageDialog(null, mensaje);
                     guardado = true;
                     dispose();
                 } else {
