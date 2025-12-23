@@ -126,7 +126,7 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Lupa
         JButton btnBuscar = new JButton("Buscar");
         estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
-        btnBuscar.setBounds(530, 10, 60, 30);
+        btnBuscar.setBounds(530, 10, 85, 30);
         btnBuscar.addActionListener(e -> cargarDatos(txtBuscar.getText()));
         topPanel.add(btnBuscar);
 

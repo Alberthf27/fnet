@@ -52,23 +52,15 @@ public class MotorAutomatizacion {
 
     /**
      * Ejecuta el ciclo de procesamiento.
-     * Delegamos todo el trabajo a CobrosAutomaticoService.
+     * SIEMPRE genera facturas. Solo las notificaciones y cortes dependen de la
+     * configuración.
      */
     private void procesarCiclo() {
         try {
             System.out.println("\n⚙️ [Motor] Ejecutando ciclo de automatización...");
 
-            // Verificar si el sistema de cobros está habilitado
-            boolean whatsappActivo = configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO);
-            boolean routerActivo = configDAO.obtenerValorBoolean(ConfiguracionDAO.ROUTER_HABILITADO);
-
-            if (!whatsappActivo && !routerActivo) {
-                System.out.println("⏸️ Automatización desactivada (WhatsApp y Router en OFF).");
-                System.out.println("   Activa desde Configuración para procesar cobros.");
-                return;
-            }
-
-            // Ejecutar el proceso diario completo
+            // SIEMPRE ejecutar el proceso de cobros
+            // La generación de facturas es independiente de WhatsApp/Router
             cobrosService.ejecutarProcesoDiario();
 
         } catch (Exception e) {

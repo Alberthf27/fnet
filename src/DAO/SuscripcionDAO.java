@@ -251,7 +251,33 @@ public class SuscripcionDAO {
                 + "s.mes_adelantado, s.equipos_prestados, s.nombre_suscripcion, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, "
                 + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend, "
-                + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion) as f_total "
+                // Historial por mes específico: usa fecha_vencimiento que representa el mes de
+                // servicio
+                // Mes 1 = hace 5 meses, Mes 6 = mes actual
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 5 MONTH)) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 5 MONTH)) LIMIT 1), '2')) as m1, "
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)) LIMIT 1), '2')) as m2, "
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) LIMIT 1), '2')) as m3, "
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)) LIMIT 1), '2')) as m4, "
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) LIMIT 1), '2')) as m5, "
+                + "(SELECT COALESCE("
+                + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
+                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(CURDATE()) "
+                + "   AND YEAR(fecha_vencimiento) = YEAR(CURDATE()) LIMIT 1), '2')) as m6 "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -323,28 +349,26 @@ public class SuscripcionDAO {
                     sus.setMontoMensual(rs.getDouble("mensualidad"));
 
                     int pendientes = rs.getInt("f_pend");
-                    int totalFacturas = rs.getInt("f_total");
                     sus.setFacturasPendientes(pendientes);
 
-                    // Historial visual mejorado:
-                    // - "2" = Sin factura (GRIS) - para contratos nuevos sin historial
-                    // - "1" = Pagado (VERDE)
-                    // - "0" = Pendiente (ROJO)
-                    StringBuilder sb = new StringBuilder();
+                    // Construir historial concatenando los 6 meses individuales
+                    // m1=hace 5 meses, m2=hace 4 meses, ..., m6=mes actual
+                    String m1 = rs.getString("m1"); // Hace 5 meses
+                    String m2 = rs.getString("m2"); // Hace 4 meses
+                    String m3 = rs.getString("m3"); // Hace 3 meses
+                    String m4 = rs.getString("m4"); // Hace 2 meses
+                    String m5 = rs.getString("m5"); // Mes pasado
+                    String m6 = rs.getString("m6"); // Mes actual
 
-                    for (int i = 5; i >= 0; i--) {
-                        if (i >= totalFacturas) {
-                            // No hay factura para este mes -> GRIS
-                            sb.append("2");
-                        } else if (i < pendientes) {
-                            // Factura pendiente -> ROJO
-                            sb.append("0");
-                        } else {
-                            // Factura pagada -> VERDE
-                            sb.append("1");
-                        }
-                    }
-                    sus.setHistorialPagos(sb.toString());
+                    // Concatenar: orden de izquierda a derecha = más antiguo a más reciente
+                    String historialPagos = (m1 != null ? m1 : "2")
+                            + (m2 != null ? m2 : "2")
+                            + (m3 != null ? m3 : "2")
+                            + (m4 != null ? m4 : "2")
+                            + (m5 != null ? m5 : "2")
+                            + (m6 != null ? m6 : "2");
+
+                    sus.setHistorialPagos(historialPagos);
 
                     lista.add(sus);
                 }

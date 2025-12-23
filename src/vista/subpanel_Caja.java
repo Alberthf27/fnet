@@ -4,6 +4,7 @@ import DAO.PagoDAO;
 import DAO.ClienteDAO;
 import DAO.SuscripcionDAO;
 import modelo.Suscripcion;
+import servicio.BoletaPDFService;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -446,13 +447,33 @@ public class subpanel_Caja extends JPanel {
                 Principal.instancia.mostrarCarga(true);
             }
 
+            // Capturar datos para la boleta antes de modificar la tabla
+            final String clienteNombre = nombreClienteActual;
+            final String planServicio = lblPlanSeleccionado.getText().replace("Plan: ", "");
+            final String metodo = metodoPagoSeleccionado;
+            final double montoTotal = totalSeleccionado;
+
+            // Capturar conceptos de los pagos seleccionados
+            StringBuilder conceptos = new StringBuilder();
+            for (int i = 0; i < modeloDeudas.getRowCount(); i++) {
+                if ((boolean) modeloDeudas.getValueAt(i, 0)) {
+                    if (conceptos.length() > 0)
+                        conceptos.append(", ");
+                    conceptos.append(modeloDeudas.getValueAt(i, 1).toString());
+                }
+            }
+            final String conceptoFinal = conceptos.toString();
+
             new Thread(() -> {
                 PagoDAO dao = new PagoDAO();
                 boolean error = false;
+                int primeraFacturaId = -1;
 
                 for (int i = 0; i < modeloDeudas.getRowCount(); i++) {
                     if ((boolean) modeloDeudas.getValueAt(i, 0)) {
                         int idFactura = (int) modeloDeudas.getValueAt(i, 4);
+                        if (primeraFacturaId == -1)
+                            primeraFacturaId = idFactura;
                         double monto = Double.parseDouble(modeloDeudas.getValueAt(i, 3).toString().replace(",", "."));
                         if (!dao.realizarCobro(idFactura, monto, 1)) {
                             error = true;
@@ -461,13 +482,72 @@ public class subpanel_Caja extends JPanel {
                 }
 
                 boolean finalError = error;
+                final int facturaId = primeraFacturaId;
+
+                // Capturar fecha vencimiento para calcular periodo
+                String vencimiento = "";
+                for (int i = 0; i < modeloDeudas.getRowCount(); i++) {
+                    if ((boolean) modeloDeudas.getValueAt(i, 0)) {
+                        vencimiento = modeloDeudas.getValueAt(i, 2).toString();
+                        break;
+                    }
+                }
+                final String fechaVenc = vencimiento;
+
                 SwingUtilities.invokeLater(() -> {
                     if (Principal.instancia != null) {
                         Principal.instancia.mostrarCarga(false);
                     }
                     if (!finalError) {
-                        JOptionPane.showMessageDialog(this, "Pago exitoso.");
-                        cargarDeudasDelCliente(idSuscripcionActual); // Refrescar solo deudas
+                        // Generar y abrir boleta PDF
+                        try {
+                            BoletaPDFService pdfService = new BoletaPDFService();
+                            String numeroBoleta = String.format("%06d", facturaId);
+
+                            // Calcular periodo (del 1 al último día del mes)
+                            String periodoDesde = "";
+                            String periodoHasta = "";
+                            if (!fechaVenc.isEmpty()) {
+                                try {
+                                    // Vencimiento formato yyyy-MM-dd
+                                    String[] partes = fechaVenc.split("-");
+                                    if (partes.length == 3) {
+                                        String anio = partes[0];
+                                        String mes = partes[1];
+                                        periodoDesde = "01/" + mes + "/" + anio;
+                                        // Último día del mes
+                                        java.time.YearMonth ym = java.time.YearMonth.of(
+                                                Integer.parseInt(anio), Integer.parseInt(mes));
+                                        periodoHasta = ym.lengthOfMonth() + "/" + mes + "/" + anio;
+                                    }
+                                } catch (Exception e) {
+                                    periodoDesde = "---";
+                                    periodoHasta = "---";
+                                }
+                            }
+
+                            // Detectar tipo de plan (se puede mejorar leyendo de BD)
+                            String tipoPlan = "MENSUAL";
+
+                            pdfService.generarYAbrirBoleta(
+                                    numeroBoleta,
+                                    clienteNombre,
+                                    "CNT-" + idSuscripcionActual,
+                                    "", // Dirección (opcional)
+                                    conceptoFinal,
+                                    planServicio,
+                                    tipoPlan,
+                                    periodoDesde,
+                                    periodoHasta,
+                                    montoTotal,
+                                    metodo,
+                                    "Sistema");
+                        } catch (Exception ex) {
+                            System.err.println("Error generando boleta: " + ex.getMessage());
+                        }
+
+                        JOptionPane.showMessageDialog(this, "✅ Pago exitoso. Boleta generada.");
+                        cargarDeudasDelCliente(idSuscripcionActual);
                         txtRecibido.setText("");
                         lblVuelto.setText("---");
                     } else {

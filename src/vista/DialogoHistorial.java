@@ -75,7 +75,7 @@ public class DialogoHistorial extends JDialog {
         add(topPanel, BorderLayout.NORTH);
 
         // --- TABLA ---
-        String[] cols = { "ID", "Periodo", "Vencimiento", "Monto", "Estado", "Fecha Pago", "" };
+        String[] cols = { "ID", "Periodo", "F. Creación", "Monto", "Estado", "Fecha Pago", "" };
         modelo = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) {
                 return false; // No editable directamente
