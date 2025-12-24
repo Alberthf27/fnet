@@ -554,4 +554,50 @@ public class PagoDAO {
         }
         return false;
     }
+
+    /**
+     * Obtiene todos los datos necesarios para regenerar una boleta PDF.
+     * 
+     * @param idFactura ID de la factura
+     * @return Map con todos los datos, o null si no existe
+     */
+    public java.util.Map<String, Object> obtenerDatosParaBoleta(int idFactura) {
+        String sql = "SELECT f.id_factura, f.monto_total, f.monto_pagado, f.periodo_mes, " +
+                "f.fecha_vencimiento, f.fecha_emision, f.id_estado, " +
+                "CONCAT(c.nombres, ' ', c.apellidos) as nombre_cliente, " +
+                "sus.id_suscripcion, sus.codigo_contrato, sus.direccion_instalacion, " +
+                "s.descripcion as plan_servicio, s.mensualidad " +
+                "FROM factura f " +
+                "JOIN suscripcion sus ON f.id_suscripcion = sus.id_suscripcion " +
+                "JOIN cliente c ON sus.id_cliente = c.id_cliente " +
+                "JOIN servicio s ON sus.id_servicio = s.id_servicio " +
+                "WHERE f.id_factura = ?";
+
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idFactura);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                java.util.Map<String, Object> datos = new java.util.HashMap<>();
+                datos.put("idFactura", rs.getInt("id_factura"));
+                datos.put("nombreCliente", rs.getString("nombre_cliente"));
+                datos.put("codigoContrato", rs.getString("codigo_contrato"));
+                datos.put("direccion", rs.getString("direccion_instalacion"));
+                datos.put("concepto", rs.getString("periodo_mes"));
+                datos.put("planServicio", rs.getString("plan_servicio"));
+                datos.put("monto",
+                        rs.getDouble("monto_pagado") > 0 ? rs.getDouble("monto_pagado") : rs.getDouble("monto_total"));
+                datos.put("fechaVencimiento", rs.getDate("fecha_vencimiento"));
+                datos.put("fechaEmision", rs.getDate("fecha_emision"));
+                datos.put("idEstado", rs.getInt("id_estado"));
+                datos.put("idSuscripcion", rs.getInt("id_suscripcion"));
+                return datos;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

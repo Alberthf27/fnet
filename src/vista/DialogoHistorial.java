@@ -124,10 +124,12 @@ public class DialogoHistorial extends JDialog {
                         // Determinar que boton se clickeo por posicion X
                         Rectangle cellRect = tabla.getCellRect(fila, col, true);
                         int cellX = e.getX() - cellRect.x;
-                        int btnWidth = 85; // Ancho aproximado de cada boton
+                        int btnWidth = 60; // Ancho aproximado de cada boton (55 + padding)
 
                         if (cellX < btnWidth) {
                             editarFactura(fila, idFactura);
+                        } else if (cellX < btnWidth * 2) {
+                            DialogoHistorial.this.imprimirBoleta(idFactura);
                         } else {
                             eliminarFactura(fila, idFactura);
                         }
@@ -266,25 +268,67 @@ public class DialogoHistorial extends JDialog {
         String periodo = (String) modelo.getValueAt(fila, 1);
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Eliminar la factura de " + periodo + "?\n\n" +
-                        "ADVERTENCIA: Los movimientos de caja asociados NO seran eliminados.",
+                        "ADVERTENCIA: Los movimientos de caja asociados NO seran eliminados.\n" +
+                        "Las boletas PDF asociadas tambien seran eliminadas.",
                 "Confirmar Eliminacion",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             new Thread(() -> {
+                // Eliminar boletas PDF asociadas
+                servicio.BoletaPDFService pdfService = new servicio.BoletaPDFService();
+                int boletasEliminadas = pdfService.eliminarBoletasDeFactura(idFactura);
+
+                // Eliminar factura de la BD
                 boolean exito = pagoDAO.eliminarFactura(idFactura);
+
                 SwingUtilities.invokeLater(() -> {
                     setCursor(Cursor.getDefaultCursor());
                     if (exito) {
                         cargarDatos();
-                        JOptionPane.showMessageDialog(this, "Factura eliminada.");
+                        String msg = "Factura eliminada.";
+                        if (boletasEliminadas > 0) {
+                            msg += "\n" + boletasEliminadas + " boleta(s) PDF eliminada(s).";
+                        }
+                        JOptionPane.showMessageDialog(this, msg);
                     } else {
                         JOptionPane.showMessageDialog(this, "Error al eliminar.");
                     }
                 });
             }).start();
         }
+    }
+
+    /**
+     * Regenera e imprime la boleta PDF para una factura existente.
+     */
+    private void imprimirBoleta(int idFactura) {
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new Thread(() -> {
+            try {
+                servicio.BoletaPDFService pdfService = new servicio.BoletaPDFService();
+                String ruta = pdfService.regenerarBoletaDesdeFactura(idFactura);
+
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    if (ruta != null) {
+                        // El PDF se abre automaticamente
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "No se pudo generar la boleta.",
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    setCursor(Cursor.getDefaultCursor());
+                    JOptionPane.showMessageDialog(this,
+                            "Error: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
     }
 
     private void abrirDialogoAgregarMes() {
@@ -484,26 +528,35 @@ public class DialogoHistorial extends JDialog {
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isS, boolean hasF, int row, int col) {
 
-            // Panel con dos botones visuales
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
+            // Panel con tres botones visuales
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 5));
             panel.setBackground(isS ? new Color(219, 234, 254) : Color.WHITE);
 
             // Boton Editar
             JButton btnEditar = new JButton("Editar");
-            btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             btnEditar.setBackground(new Color(59, 130, 246));
             btnEditar.setForeground(Color.WHITE);
             btnEditar.setFocusPainted(false);
-            btnEditar.setPreferredSize(new Dimension(70, 25));
+            btnEditar.setPreferredSize(new Dimension(55, 24));
             panel.add(btnEditar);
 
+            // Boton Boleta (para reimprimir)
+            JButton btnBoleta = new JButton("Boleta");
+            btnBoleta.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+            btnBoleta.setBackground(new Color(22, 163, 74));
+            btnBoleta.setForeground(Color.WHITE);
+            btnBoleta.setFocusPainted(false);
+            btnBoleta.setPreferredSize(new Dimension(55, 24));
+            panel.add(btnBoleta);
+
             // Boton Eliminar
-            JButton btnEliminar = new JButton("Eliminar");
-            btnEliminar.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            JButton btnEliminar = new JButton("Elimin...");
+            btnEliminar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             btnEliminar.setBackground(new Color(239, 68, 68));
             btnEliminar.setForeground(Color.WHITE);
             btnEliminar.setFocusPainted(false);
-            btnEliminar.setPreferredSize(new Dimension(70, 25));
+            btnEliminar.setPreferredSize(new Dimension(55, 24));
             panel.add(btnEliminar);
 
             return panel;

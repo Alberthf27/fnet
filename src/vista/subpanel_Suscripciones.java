@@ -22,7 +22,11 @@ public class subpanel_Suscripciones extends JPanel {
     private PanelDetalleContrato panelDetalle;
     private JTextField txtBuscar;
     private JComboBox<String> cmbOrden;
+    private JComboBox<String> cmbVista;
     private JLabel lblTotalContratos;
+    private JPanel panelCentral; // Panel que contiene las tablas
+    private JTabbedPane tabbedPane; // Pestañas para las vistas
+    private JSplitPane splitPrincipal; // Split principal (tablas | detalle)
 
     // Botones dinámicos
     private JButton btnEstadoDinamico; // Suspender / Reactivar
@@ -117,35 +121,35 @@ public class subpanel_Suscripciones extends JPanel {
         // Filtro Orden
         cmbOrden = new JComboBox<>(
                 new String[] { "DIA DE PAGO", "MÁS RECIENTES", "MÁS ANTIGUOS", "NOMBRE (A-Z)", "DEUDORES" });
-        cmbOrden.setBounds(390, 10, 130, 30);
-        cmbOrden.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        cmbOrden.setBounds(390, 10, 110, 30);
+        cmbOrden.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         cmbOrden.setBackground(Color.WHITE);
         cmbOrden.addActionListener(e -> cargarDatos(txtBuscar.getText()));
         topPanel.add(cmbOrden);
 
-        // Botón Lupa
-        JButton btnBuscar = new JButton("Buscar");
-        estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
-        btnBuscar.setBounds(530, 10, 85, 30);
-        btnBuscar.addActionListener(e -> cargarDatos(txtBuscar.getText()));
-        topPanel.add(btnBuscar);
+        // Filtro Vista (NUEVO)
+        cmbVista = new JComboBox<>(
+                new String[] { "TODOS", "POR SECTOR", "POR TIPO", "SECTOR + TIPO" });
+        cmbVista.setBounds(510, 10, 100, 30);
+        cmbVista.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        cmbVista.setBackground(Color.WHITE);
+        cmbVista.addActionListener(e -> actualizarVistaTabla());
+        topPanel.add(cmbVista);
 
         // --- BOTONES DE ACCIÓN ---
+        int xAccion = 620;
 
         // Botón Nuevo (+ Contrato)
         JButton btnNuevo = new JButton("+ CONTRATO");
         estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
-        btnNuevo.setBounds(600, 10, 110, 30);
+        btnNuevo.setBounds(xAccion, 10, 95, 30);
         btnNuevo.addActionListener(e -> abrirNuevoContrato());
         topPanel.add(btnNuevo);
-
-        // Coordenada X base para los botones de gestión
-        int xAccion = 700;
 
         // Botón Dinámico (Suspender/Reactivar)
         btnEstadoDinamico = new JButton("SUSPENDER");
         estilarBoton(btnEstadoDinamico, new Color(245, 158, 11), Color.WHITE);
-        btnEstadoDinamico.setBounds(xAccion, 10, 100, 30);
+        btnEstadoDinamico.setBounds(xAccion + 100, 10, 85, 30);
         btnEstadoDinamico.setEnabled(false);
         btnEstadoDinamico.addActionListener(e -> accionBotonDinamico());
         topPanel.add(btnEstadoDinamico);
@@ -153,7 +157,7 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Dar de Baja
         btnDarBaja = new JButton("BAJA");
         estilarBoton(btnDarBaja, new Color(220, 38, 38), Color.WHITE);
-        btnDarBaja.setBounds(xAccion + 110, 10, 70, 30);
+        btnDarBaja.setBounds(xAccion + 190, 10, 55, 30);
         btnDarBaja.setEnabled(false);
         btnDarBaja.addActionListener(e -> accionDarDeBaja());
         topPanel.add(btnDarBaja);
@@ -161,7 +165,7 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Editar
         JButton btnEditar = new JButton("EDITAR");
         estilarBoton(btnEditar, new Color(234, 179, 8), Color.WHITE);
-        btnEditar.setBounds(xAccion + 190, 10, 80, 30);
+        btnEditar.setBounds(xAccion + 250, 10, 65, 30);
         btnEditar.addActionListener(e -> abrirEdicion());
         topPanel.add(btnEditar);
 
@@ -169,6 +173,7 @@ public class subpanel_Suscripciones extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // --- 2. TABLA Y DETALLES ---
+        // Crear tabla principal (usada en modo TODOS)
         String[] cols = { "ID", "CLIENTE", "PLAN", "MONTO", "DIA", "ESTADO", "HISTORIAL", "OBJ" };
         modelo = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) {
@@ -177,29 +182,7 @@ public class subpanel_Suscripciones extends JPanel {
         };
 
         tabla = new JTable(modelo);
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.setShowVerticalLines(true);
-        tabla.setGridColor(new Color(220, 220, 220));
-
-        // Ocultar columnas internas
-        tabla.getColumnModel().getColumn(0).setMinWidth(0);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(0); // ID
-        tabla.getColumnModel().getColumn(7).setMinWidth(0);
-        tabla.getColumnModel().getColumn(7).setMaxWidth(0); // OBJ
-
-        // Anchos
-        tabla.getColumnModel().getColumn(1).setPreferredWidth(220); // Cliente
-        tabla.getColumnModel().getColumn(2).setPreferredWidth(120); // Plan
-        tabla.getColumnModel().getColumn(3).setPreferredWidth(60); // Monto
-        tabla.getColumnModel().getColumn(4).setPreferredWidth(40); // Dia
-        tabla.getColumnModel().getColumn(5).setPreferredWidth(70); // Estado
-        tabla.getColumnModel().getColumn(6).setPreferredWidth(120); // Historial
-
-        // Renderizadores
-        tabla.setDefaultRenderer(Object.class, new GeneralRenderer());
-        tabla.getColumnModel().getColumn(6).setCellRenderer(new HistorialRendererCompacto());
-        tabla.getColumnModel().getColumn(1).setCellRenderer(new ClienteRenderer());
+        configurarTabla(tabla);
 
         JScrollPane scrollTabla = new JScrollPane(tabla);
         scrollTabla.getViewport().setBackground(Color.WHITE);
@@ -207,13 +190,13 @@ public class subpanel_Suscripciones extends JPanel {
 
         panelDetalle = new PanelDetalleContrato();
 
-        // Listener de selección corregido
+        // Listener de selección
         tabla.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 if (tabla.getSelectedRow() != -1) {
                     Suscripcion s = (Suscripcion) modelo.getValueAt(tabla.getSelectedRow(), 7);
                     panelDetalle.mostrarDatos(s);
-                    actualizarEstadoBotones(s); // Lógica de botones
+                    actualizarEstadoBotones(s);
                 } else {
                     btnEstadoDinamico.setEnabled(false);
                     btnDarBaja.setEnabled(false);
@@ -221,15 +204,20 @@ public class subpanel_Suscripciones extends JPanel {
             }
         });
 
-        // Split Pane (Tabla | Detalle)
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollTabla, panelDetalle);
-        split.setBorder(null);
-        split.setDividerSize(3);
-        split.setResizeWeight(1.0); // Tabla ocupa el espacio extra
+        // TabbedPane para vistas múltiples
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tabbedPane.addTab("📋 TODOS", scrollTabla);
+
+        // Split Pane (Tablas | Detalle)
+        splitPrincipal = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, panelDetalle);
+        splitPrincipal.setBorder(null);
+        splitPrincipal.setDividerSize(3);
+        splitPrincipal.setResizeWeight(1.0);
         panelDetalle.setMinimumSize(new Dimension(350, 0));
         panelDetalle.setPreferredSize(new Dimension(380, 0));
 
-        add(split, BorderLayout.CENTER);
+        add(splitPrincipal, BorderLayout.CENTER);
 
         // --- 3. FOOTER (CONTADOR) ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -497,7 +485,182 @@ public class subpanel_Suscripciones extends JPanel {
         lblTotalContratos.setText("Total Contratos: " + listaParaMostrar.size());
     }
 
-    // EN: vista/subpanel_Suscripciones.java
+    /**
+     * Actualiza la vista de la tabla según el modo seleccionado.
+     * Filtra la lista por sector y/o tipo de conexión.
+     */
+    private void actualizarVistaTabla() {
+        String vistaSeleccionada = (String) cmbVista.getSelectedItem();
+
+        if (listaCache == null || listaCache.isEmpty()) {
+            return;
+        }
+
+        switch (vistaSeleccionada) {
+            case "TODOS":
+                // Una sola pestaña con todos
+                tabbedPane.removeAll();
+                tabbedPane.addTab("📋 TODOS (" + listaCache.size() + ")", crearTablaConDatos(listaCache));
+                break;
+
+            case "POR SECTOR":
+                // Pestañas por sector
+                tabbedPane.removeAll();
+                java.util.Map<String, List<Suscripcion>> porSector = agruparPorSector(listaCache);
+                for (String sector : porSector.keySet()) {
+                    List<Suscripcion> lista = porSector.get(sector);
+                    String nombreTab = (sector.isEmpty() ? "SIN SECTOR" : sector) + " (" + lista.size() + ")";
+                    tabbedPane.addTab("📍 " + nombreTab, crearTablaConDatos(lista));
+                }
+                break;
+
+            case "POR TIPO":
+                // Pestañas FIBRA vs INALÁMBRICO
+                tabbedPane.removeAll();
+                List<Suscripcion> fibra = new ArrayList<>();
+                List<Suscripcion> inalambrico = new ArrayList<>();
+                for (Suscripcion s : listaCache) {
+                    if (esFibra(s.getNombreServicio())) {
+                        fibra.add(s);
+                    } else {
+                        inalambrico.add(s);
+                    }
+                }
+                tabbedPane.addTab("🔵 FIBRA (" + fibra.size() + ")", crearTablaConDatos(fibra));
+                tabbedPane.addTab("📡 INALÁMBRICO (" + inalambrico.size() + ")", crearTablaConDatos(inalambrico));
+                break;
+
+            case "SECTOR + TIPO":
+                // Pestañas combinadas: sector + tipo
+                tabbedPane.removeAll();
+                java.util.Map<String, List<Suscripcion>> porSectorTipo = agruparPorSectorYTipo(listaCache);
+                for (String key : porSectorTipo.keySet()) {
+                    List<Suscripcion> lista = porSectorTipo.get(key);
+                    tabbedPane.addTab(key + " (" + lista.size() + ")", crearTablaConDatos(lista));
+                }
+                break;
+
+            default:
+                tabbedPane.removeAll();
+                tabbedPane.addTab("📋 TODOS", crearTablaConDatos(listaCache));
+        }
+
+        // Actualizar contador total
+        int total = listaCache != null ? listaCache.size() : 0;
+        lblTotalContratos.setText("Total Contratos: " + total);
+    }
+
+    /**
+     * Agrupa suscripciones por sector.
+     */
+    private java.util.Map<String, List<Suscripcion>> agruparPorSector(List<Suscripcion> lista) {
+        java.util.Map<String, List<Suscripcion>> mapa = new java.util.LinkedHashMap<>();
+        for (Suscripcion s : lista) {
+            String sector = s.getSector() != null ? s.getSector() : "";
+            mapa.computeIfAbsent(sector, k -> new ArrayList<>()).add(s);
+        }
+        return mapa;
+    }
+
+    /**
+     * Agrupa suscripciones por sector + tipo (Fibra/Inalámbrico).
+     */
+    private java.util.Map<String, List<Suscripcion>> agruparPorSectorYTipo(List<Suscripcion> lista) {
+        java.util.Map<String, List<Suscripcion>> mapa = new java.util.LinkedHashMap<>();
+        for (Suscripcion s : lista) {
+            String sector = s.getSector() != null && !s.getSector().isEmpty() ? s.getSector() : "SIN SECTOR";
+            String tipo = esFibra(s.getNombreServicio()) ? "🔵 FIBRA" : "📡 INALÁMBRICO";
+            String key = "📍 " + sector + " - " + tipo;
+            mapa.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
+        }
+        return mapa;
+    }
+
+    /**
+     * Crea un JScrollPane con una tabla configurada y llena con los datos.
+     */
+    private JScrollPane crearTablaConDatos(List<Suscripcion> lista) {
+        String[] cols = { "ID", "CLIENTE", "PLAN", "MONTO", "DIA", "ESTADO", "HISTORIAL", "OBJ" };
+        DefaultTableModel modeloLocal = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
+
+        JTable tablaLocal = new JTable(modeloLocal);
+        configurarTabla(tablaLocal);
+
+        // Llenar datos
+        for (Suscripcion s : lista) {
+            modeloLocal.addRow(new Object[] {
+                    s.getIdSuscripcion(),
+                    s.getNombreCliente(),
+                    s.getNombreServicio(),
+                    "S/. " + s.getMontoMensual(),
+                    s.getDiaPago(),
+                    s.getActivo() == 1 ? "ACTIVO" : "CORTADO",
+                    s.getHistorialPagos(),
+                    s
+            });
+        }
+
+        // Listener de selección para esta tabla
+        tablaLocal.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && tablaLocal.getSelectedRow() != -1) {
+                Suscripcion s = (Suscripcion) modeloLocal.getValueAt(tablaLocal.getSelectedRow(), 7);
+                panelDetalle.mostrarDatos(s);
+                actualizarEstadoBotones(s);
+                // Actualizar referencia a tabla/modelo activo
+                tabla = tablaLocal;
+                modelo = modeloLocal;
+            }
+        });
+
+        JScrollPane scroll = new JScrollPane(tablaLocal);
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        return scroll;
+    }
+
+    /**
+     * Configura los estilos y renderizadores de una tabla.
+     */
+    private void configurarTabla(JTable t) {
+        t.setRowHeight(25);
+        t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        t.setShowVerticalLines(true);
+        t.setGridColor(new Color(220, 220, 220));
+
+        // Ocultar columnas internas
+        t.getColumnModel().getColumn(0).setMinWidth(0);
+        t.getColumnModel().getColumn(0).setMaxWidth(0); // ID
+        t.getColumnModel().getColumn(7).setMinWidth(0);
+        t.getColumnModel().getColumn(7).setMaxWidth(0); // OBJ
+
+        // Anchos
+        t.getColumnModel().getColumn(1).setPreferredWidth(200); // Cliente
+        t.getColumnModel().getColumn(2).setPreferredWidth(100); // Plan
+        t.getColumnModel().getColumn(3).setPreferredWidth(60); // Monto
+        t.getColumnModel().getColumn(4).setPreferredWidth(35); // Dia
+        t.getColumnModel().getColumn(5).setPreferredWidth(65); // Estado
+        t.getColumnModel().getColumn(6).setPreferredWidth(115); // Historial
+
+        // Renderizadores
+        t.setDefaultRenderer(Object.class, new GeneralRenderer());
+        t.getColumnModel().getColumn(6).setCellRenderer(new HistorialRendererCompacto());
+        t.getColumnModel().getColumn(1).setCellRenderer(new ClienteRenderer());
+    }
+
+    /**
+     * Determina si un plan es de fibra óptica basándose en el nombre.
+     * Busca: "fibra", "ftth", "fib" en el nombre del servicio.
+     */
+    private boolean esFibra(String nombreServicio) {
+        if (nombreServicio == null)
+            return false;
+        String lower = nombreServicio.toLowerCase();
+        return lower.contains("fibra") || lower.contains("ftth") || lower.contains("fib");
+    }
 
     private void cambiarEstadoServicio(int estadoForzado) {
         int fila = tabla.getSelectedRow();

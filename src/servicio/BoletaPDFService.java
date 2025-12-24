@@ -27,7 +27,7 @@ public class BoletaPDFService {
     private Font fuentePequena;
 
     // Datos de la empresa
-    private static final String EMPRESA_NOMBRE = "FNET INTERNET";
+    private static final String EMPRESA_NOMBRE = "FIBRANET";
     private static final String EMPRESA_RUC = "20XXXXXXXXX";
     private static final String EMPRESA_DIRECCION = "Av. Principal 123, Ciudad";
     private static final String EMPRESA_TELEFONO = "Tel: 987 654 321";
@@ -100,7 +100,7 @@ public class BoletaPDFService {
                 Utilities.millimetersToPoints(105),
                 Utilities.millimetersToPoints(148));
 
-        Document documento = new Document(tamanoA6, 15, 15, 15, 15); // márgenes de 15pt
+        Document documento = new Document(tamanoA6, 12, 12, 10, 10); // márgenes reducidos
 
         String fechaHoy = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date());
         String nombreArchivo = BOLETAS_DIR + "/boleta_" + numeroBoleta + "_"
@@ -139,7 +139,6 @@ public class BoletaPDFService {
             tablaEncabezado.addCell(celdaEmpresa);
 
             documento.add(tablaEncabezado);
-            documento.add(new Paragraph(" ")); // Espaciador
 
             // --- TÍTULO BOLETA ---
             Paragraph tituloBoleta = new Paragraph("BOLETA DE PAGO", fuenteGrande);
@@ -152,8 +151,8 @@ public class BoletaPDFService {
 
             Paragraph fecha = new Paragraph("Fecha: " + fechaHoy, fuentePequena);
             fecha.setAlignment(Element.ALIGN_CENTER);
+            fecha.setSpacingAfter(5);
             documento.add(fecha);
-            documento.add(new Paragraph(" "));
 
             // --- LÍNEA SEPARADORA ---
             agregarLineaSeparadora(documento);
@@ -172,7 +171,6 @@ public class BoletaPDFService {
                 agregarFilaTabla(tablaCliente, "Dirección:", direccion);
             }
             documento.add(tablaCliente);
-            documento.add(new Paragraph(" "));
 
             // --- LÍNEA SEPARADORA ---
             agregarLineaSeparadora(documento);
@@ -207,7 +205,7 @@ public class BoletaPDFService {
             celdaLabel.setPaddingBottom(2);
             tablaMonto.addCell(celdaLabel);
 
-            Font fuenteMonto = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD, new BaseColor(22, 163, 74));
+            Font fuenteMonto = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD, COLOR_PRIMARIO);
             PdfPCell celdaMonto = new PdfPCell(new Phrase("S/. " + String.format("%.2f", monto), fuenteMonto));
             celdaMonto.setBorder(Rectangle.NO_BORDER);
             celdaMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -216,6 +214,12 @@ public class BoletaPDFService {
             tablaMonto.addCell(celdaMonto);
 
             documento.add(tablaMonto);
+
+            // --- MONTO EN LETRAS ---
+            Paragraph montoLetras = new Paragraph("SON: " + convertirMontoALetras(monto), fuentePequena);
+            montoLetras.setAlignment(Element.ALIGN_CENTER);
+            montoLetras.setSpacingAfter(3);
+            documento.add(montoLetras);
 
             // --- LÍNEA SEPARADORA ---
             agregarLineaSeparadora(documento);
@@ -269,7 +273,66 @@ public class BoletaPDFService {
         linea.setLineColor(COLOR_LINEA);
         linea.setLineWidth(1);
         documento.add(new Chunk(linea));
-        documento.add(new Paragraph(" "));
+    }
+
+    /**
+     * Convierte un monto numérico a texto en español.
+     * Ejemplo: 50.00 -> "CINCUENTA CON 00/100 SOLES"
+     */
+    private String convertirMontoALetras(double monto) {
+        String[] unidades = { "", "UNO", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE" };
+        String[] decenas = { "", "", "VEINTI", "TREINTA", "CUARENTA", "CINCUENTA",
+                "SESENTA", "SETENTA", "OCHENTA", "NOVENTA" };
+        String[] especiales = { "DIEZ", "ONCE", "DOCE", "TRECE", "CATORCE", "QUINCE",
+                "DIECISEIS", "DIECISIETE", "DIECIOCHO", "DIECINUEVE", "VEINTE" };
+        String[] centenas = { "", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS",
+                "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS" };
+
+        int entero = (int) monto;
+        int centavos = (int) Math.round((monto - entero) * 100);
+
+        StringBuilder resultado = new StringBuilder();
+
+        if (entero == 0) {
+            resultado.append("CERO");
+        } else if (entero == 100) {
+            resultado.append("CIEN");
+        } else if (entero < 10) {
+            resultado.append(unidades[entero]);
+        } else if (entero <= 20) {
+            resultado.append(especiales[entero - 10]);
+        } else if (entero < 30) {
+            resultado.append("VEINTI").append(unidades[entero % 10]);
+        } else if (entero < 100) {
+            int d = entero / 10;
+            int u = entero % 10;
+            resultado.append(decenas[d]);
+            if (u > 0)
+                resultado.append(" Y ").append(unidades[u]);
+        } else if (entero < 1000) {
+            int c = entero / 100;
+            int resto = entero % 100;
+            resultado.append(entero == 100 ? "CIEN" : centenas[c]);
+            if (resto > 0) {
+                resultado.append(" ");
+                if (resto < 10)
+                    resultado.append(unidades[resto]);
+                else if (resto <= 20)
+                    resultado.append(especiales[resto - 10]);
+                else if (resto < 30)
+                    resultado.append("VEINTI").append(unidades[resto % 10]);
+                else {
+                    resultado.append(decenas[resto / 10]);
+                    if (resto % 10 > 0)
+                        resultado.append(" Y ").append(unidades[resto % 10]);
+                }
+            }
+        } else {
+            resultado.append(String.valueOf(entero)); // Para montos muy grandes
+        }
+
+        resultado.append(" CON ").append(String.format("%02d", centavos)).append("/100 SOLES");
+        return resultado.toString();
     }
 
     /**
@@ -284,6 +347,33 @@ public class BoletaPDFService {
         } catch (Exception e) {
             System.err.println("Error abriendo PDF: " + e.getMessage());
         }
+    }
+
+    /**
+     * Elimina todas las boletas PDF asociadas a una factura.
+     * Busca archivos que empiecen con "boleta_XXXXXX" donde XXXXXX es el número de
+     * factura.
+     * 
+     * @param idFactura ID de la factura
+     * @return Cantidad de archivos eliminados
+     */
+    public int eliminarBoletasDeFactura(int idFactura) {
+        String prefijo = "boleta_" + String.format("%06d", idFactura);
+        File dir = new File(BOLETAS_DIR);
+        int eliminados = 0;
+
+        if (dir.exists() && dir.isDirectory()) {
+            File[] archivos = dir.listFiles((d, name) -> name.startsWith(prefijo) && name.endsWith(".pdf"));
+            if (archivos != null) {
+                for (File archivo : archivos) {
+                    if (archivo.delete()) {
+                        eliminados++;
+                        System.out.println("✅ Boleta eliminada: " + archivo.getName());
+                    }
+                }
+            }
+        }
+        return eliminados;
     }
 
     /**
@@ -312,5 +402,60 @@ public class BoletaPDFService {
         }
 
         return ruta;
+    }
+
+    /**
+     * Regenera una boleta PDF desde los datos almacenados en la base de datos.
+     * Siempre genera la misma boleta para el mismo ID de factura.
+     * 
+     * @param idFactura ID de la factura en la BD
+     * @return Ruta del PDF generado, o null si hubo error
+     */
+    public String regenerarBoletaDesdeFactura(int idFactura) {
+        DAO.PagoDAO pagoDAO = new DAO.PagoDAO();
+        java.util.Map<String, Object> datos = pagoDAO.obtenerDatosParaBoleta(idFactura);
+
+        if (datos == null) {
+            System.err.println("No se encontró la factura con ID: " + idFactura);
+            return null;
+        }
+
+        // Extraer datos del Map
+        String numeroBoleta = String.format("%06d", (Integer) datos.get("idFactura"));
+        String nombreCliente = (String) datos.get("nombreCliente");
+        String codigoContrato = (String) datos.get("codigoContrato");
+        String direccion = datos.get("direccion") != null ? (String) datos.get("direccion") : "";
+        String concepto = (String) datos.get("concepto");
+        String planServicio = (String) datos.get("planServicio");
+        double monto = (Double) datos.get("monto");
+
+        // Calcular periodo desde fecha_vencimiento
+        java.sql.Date fechaVenc = (java.sql.Date) datos.get("fechaVencimiento");
+        String periodoDesde = "";
+        String periodoHasta = "";
+        if (fechaVenc != null) {
+            java.time.LocalDate fecha = fechaVenc.toLocalDate();
+            java.time.YearMonth ym = java.time.YearMonth.from(fecha);
+            periodoDesde = "01/" + String.format("%02d", ym.getMonthValue()) + "/" + ym.getYear();
+            periodoHasta = ym.lengthOfMonth() + "/" + String.format("%02d", ym.getMonthValue()) + "/" + ym.getYear();
+        }
+
+        // Determinar estado (para mostrar "PAGADO" o forma de pago)
+        int idEstado = (Integer) datos.get("idEstado");
+        String formaPago = idEstado == 2 ? "PAGADO" : "PENDIENTE";
+
+        return generarYAbrirBoleta(
+                numeroBoleta,
+                nombreCliente != null ? nombreCliente : "---",
+                codigoContrato != null ? codigoContrato : "---",
+                direccion,
+                concepto != null ? concepto : "---",
+                planServicio != null ? planServicio : "---",
+                "MENSUAL",
+                periodoDesde,
+                periodoHasta,
+                monto,
+                formaPago,
+                "Sistema");
     }
 }
