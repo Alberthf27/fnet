@@ -251,33 +251,32 @@ public class SuscripcionDAO {
                 + "s.mes_adelantado, s.equipos_prestados, s.nombre_suscripcion, "
                 + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, "
                 + "(SELECT COUNT(*) FROM factura f WHERE f.id_suscripcion = s.id_suscripcion AND f.id_estado = 1) as f_pend, "
-                // Historial por mes específico: usa fecha_vencimiento que representa el mes de
-                // servicio
-                // Mes 1 = hace 5 meses, Mes 6 = mes actual
+                // Historial por mes: usa periodo_mes (ej: "Enero 2026", "Diciembre 2025")
+                // Busca por nombre del mes en español usando ELT()
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 5 MONTH)) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 5 MONTH)) LIMIT 1), '2')) as m1, "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m1, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)) LIMIT 1), '2')) as m2, "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m2, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) LIMIT 1), '2')) as m3, "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m3, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)) LIMIT 1), '2')) as m4, "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m4, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) LIMIT 1), '2')) as m5, "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(CURDATE()),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m5, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
-                + "   WHERE id_suscripcion = s.id_suscripcion AND MONTH(fecha_vencimiento) = MONTH(CURDATE()) "
-                + "   AND YEAR(fecha_vencimiento) = YEAR(CURDATE()) LIMIT 1), '2')) as m6 "
+                + "   WHERE id_suscripcion = s.id_suscripcion "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_ADD(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m6 "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -352,13 +351,14 @@ public class SuscripcionDAO {
                     sus.setFacturasPendientes(pendientes);
 
                     // Construir historial concatenando los 6 meses individuales
-                    // m1=hace 5 meses, m2=hace 4 meses, ..., m6=mes actual
-                    String m1 = rs.getString("m1"); // Hace 5 meses
-                    String m2 = rs.getString("m2"); // Hace 4 meses
-                    String m3 = rs.getString("m3"); // Hace 3 meses
-                    String m4 = rs.getString("m4"); // Hace 2 meses
-                    String m5 = rs.getString("m5"); // Mes pasado
-                    String m6 = rs.getString("m6"); // Mes actual
+                    // m1=hace 4 meses, m2=hace 3, m3=hace 2, m4=mes pasado, m5=mes actual,
+                    // m6=próximo mes
+                    String m1 = rs.getString("m1"); // Hace 4 meses
+                    String m2 = rs.getString("m2"); // Hace 3 meses
+                    String m3 = rs.getString("m3"); // Hace 2 meses
+                    String m4 = rs.getString("m4"); // Mes pasado
+                    String m5 = rs.getString("m5"); // Mes actual
+                    String m6 = rs.getString("m6"); // Próximo mes
 
                     // Concatenar: orden de izquierda a derecha = más antiguo a más reciente
                     String historialPagos = (m1 != null ? m1 : "2")

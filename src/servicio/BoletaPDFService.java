@@ -38,6 +38,9 @@ public class BoletaPDFService {
     // Carpeta donde se guardan las boletas
     private static final String BOLETAS_DIR = "boletas";
 
+    // Archivo contador de boletas
+    private static final String CONTADOR_FILE = BOLETAS_DIR + "/contador.txt";
+
     public BoletaPDFService() {
         inicializarFuentes();
         crearDirectorioBoletas();
@@ -45,13 +48,13 @@ public class BoletaPDFService {
 
     private void inicializarFuentes() {
         try {
-            // Fuentes más pequeñas para caber en una página A6
-            fuenteTitulo = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD, COLOR_PRIMARIO);
-            fuenteSubtitulo = new Font(Font.FontFamily.HELVETICA, 8, Font.BOLD, COLOR_SECUNDARIO);
-            fuenteNormal = new Font(Font.FontFamily.HELVETICA, 7, Font.NORMAL, BaseColor.BLACK);
-            fuenteNegrita = new Font(Font.FontFamily.HELVETICA, 7, Font.BOLD, BaseColor.BLACK);
-            fuenteGrande = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, COLOR_PRIMARIO);
-            fuentePequena = new Font(Font.FontFamily.HELVETICA, 6, Font.NORMAL, BaseColor.GRAY);
+            // Fuentes aumentadas +1pt para mejor legibilidad
+            fuenteTitulo = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, COLOR_PRIMARIO);
+            fuenteSubtitulo = new Font(Font.FontFamily.HELVETICA, 9, Font.BOLD, COLOR_SECUNDARIO);
+            fuenteNormal = new Font(Font.FontFamily.HELVETICA, 8, Font.NORMAL, BaseColor.BLACK);
+            fuenteNegrita = new Font(Font.FontFamily.HELVETICA, 8, Font.BOLD, BaseColor.BLACK);
+            fuenteGrande = new Font(Font.FontFamily.HELVETICA, 13, Font.BOLD, COLOR_PRIMARIO);
+            fuentePequena = new Font(Font.FontFamily.HELVETICA, 7, Font.NORMAL, BaseColor.GRAY);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -62,6 +65,37 @@ public class BoletaPDFService {
         if (!dir.exists()) {
             dir.mkdirs();
         }
+    }
+
+    /**
+     * Obtiene el siguiente número de boleta, incrementando el contador.
+     * El contador se guarda en un archivo para persistencia.
+     * Empieza desde 1 y aumenta con cada boleta.
+     */
+    private synchronized int obtenerSiguienteNumeroBoleta() {
+        int numero = 1;
+        File contadorFile = new File(CONTADOR_FILE);
+
+        // Leer número actual
+        if (contadorFile.exists()) {
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(contadorFile))) {
+                String linea = reader.readLine();
+                if (linea != null && !linea.isEmpty()) {
+                    numero = Integer.parseInt(linea.trim()) + 1;
+                }
+            } catch (Exception e) {
+                System.err.println("Error leyendo contador: " + e.getMessage());
+            }
+        }
+
+        // Guardar nuevo número
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(contadorFile))) {
+            writer.println(numero);
+        } catch (Exception e) {
+            System.err.println("Error guardando contador: " + e.getMessage());
+        }
+
+        return numero;
     }
 
     /**
@@ -95,12 +129,20 @@ public class BoletaPDFService {
             String formaPago,
             String atendidoPor) {
 
-        // Formato A6: 105mm x 148mm
-        Rectangle tamanoA6 = new Rectangle(
-                Utilities.millimetersToPoints(105),
-                Utilities.millimetersToPoints(148));
+        // Formato A5 HORIZONTAL (landscape): 210mm ancho x 148mm alto
+        // Contenido A6 VERTICAL centrado: 105mm ancho x 148mm alto
+        // Margen horizontal para centrar: (210 - 105) / 2 = 52.5mm cada lado
+        // Margen vertical: 10mm arriba y abajo (mínimo)
+        Rectangle tamanoA5Landscape = new Rectangle(
+                Utilities.millimetersToPoints(210), // ancho A5 landscape
+                Utilities.millimetersToPoints(148)); // alto A5 landscape
 
-        Document documento = new Document(tamanoA6, 12, 12, 10, 10); // márgenes reducidos
+        // Márgenes para centrar contenido A6 en página A5 horizontal
+        float margenHorizontal = Utilities.millimetersToPoints(52.5f); // centra 105mm en 210mm
+        float margenVertical = Utilities.millimetersToPoints(10); // mínimo arriba/abajo
+
+        Document documento = new Document(tamanoA5Landscape, margenHorizontal, margenHorizontal, margenVertical,
+                margenVertical);
 
         String fechaHoy = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date());
         String nombreArchivo = BOLETAS_DIR + "/boleta_" + numeroBoleta + "_"
@@ -115,10 +157,10 @@ public class BoletaPDFService {
             tablaEncabezado.setWidthPercentage(100);
             tablaEncabezado.setWidths(new float[] { 30, 70 });
 
-            // Logo
+            // Logo (más grande: 70x70)
             try {
                 Image logo = Image.getInstance(LOGO_PATH);
-                logo.scaleToFit(50, 50);
+                logo.scaleToFit(70, 70);
                 PdfPCell celdaLogo = new PdfPCell(logo);
                 celdaLogo.setBorder(Rectangle.NO_BORDER);
                 celdaLogo.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -420,8 +462,8 @@ public class BoletaPDFService {
             return null;
         }
 
-        // Extraer datos del Map
-        String numeroBoleta = String.format("%06d", (Integer) datos.get("idFactura"));
+        // Obtener siguiente número secuencial de boleta
+        String numeroBoleta = String.format("%06d", obtenerSiguienteNumeroBoleta());
         String nombreCliente = (String) datos.get("nombreCliente");
         String codigoContrato = (String) datos.get("codigoContrato");
         String direccion = datos.get("direccion") != null ? (String) datos.get("direccion") : "";

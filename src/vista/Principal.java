@@ -45,6 +45,10 @@ public class Principal extends javax.swing.JFrame {
         // 2. Iniciar componentes
         initComponents();
 
+        // 2.5 OCULTAR MÓDULOS NO USADOS
+        btn_instalaciones.setVisible(false);
+        btn_equipos.setVisible(false);
+
         this.empleadoLogueado = empleado;
         this.setLocationRelativeTo(null);
 
@@ -55,6 +59,21 @@ public class Principal extends javax.swing.JFrame {
         btn_principal.doClick();
         configurarDiseñoModerno();
         this.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
+
+        // 5. MOTOR DE AUTOMATIZACIÓN - DESACTIVADO EN APP LOCAL
+        // La generación de facturas se hace SOLO en Railway (fnet-automation)
+        // Para activar en Railway, copiar estos archivos sin el comentario
+        /*
+         * new Thread(() -> {
+         * try {
+         * servicio.MotorAutomatizacion motor = new servicio.MotorAutomatizacion();
+         * motor.iniciarServicio();
+         * } catch (Exception e) {
+         * System.err.println("Error iniciando motor de automatización: " +
+         * e.getMessage());
+         * }
+         * }).start();
+         */
     }
 
     @SuppressWarnings("unchecked")

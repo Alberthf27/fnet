@@ -196,7 +196,16 @@ public class Login extends javax.swing.JFrame {
 
                 if (emp != null) {
                     this.dispose();
-                    new Principal(emp).setVisible(true);
+
+                    // Verificar si es Gerente o Empleado
+                    String cargo = emp.getCargo();
+                    if (cargo != null && cargo.equalsIgnoreCase("Gerente")) {
+                        // Acceso completo - ventana Principal
+                        new Principal(emp).setVisible(true);
+                    } else {
+                        // Acceso restringido - ventana PrincipalEmpleado
+                        new PrincipalEmpleado(emp).setVisible(true);
+                    }
                 } else {
                     btnEntrar.setEnabled(true);
                     btnEntrar.setText("INGRESAR");

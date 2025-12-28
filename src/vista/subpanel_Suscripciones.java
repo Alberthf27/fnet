@@ -142,14 +142,14 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Nuevo (+ Contrato)
         JButton btnNuevo = new JButton("+ CONTRATO");
         estilarBoton(btnNuevo, new Color(37, 99, 235), Color.WHITE);
-        btnNuevo.setBounds(xAccion, 10, 95, 30);
+        btnNuevo.setBounds(xAccion, 10, 110, 30);
         btnNuevo.addActionListener(e -> abrirNuevoContrato());
         topPanel.add(btnNuevo);
 
         // Botón Dinámico (Suspender/Reactivar)
         btnEstadoDinamico = new JButton("SUSPENDER");
         estilarBoton(btnEstadoDinamico, new Color(245, 158, 11), Color.WHITE);
-        btnEstadoDinamico.setBounds(xAccion + 100, 10, 85, 30);
+        btnEstadoDinamico.setBounds(xAccion + 115, 10, 100, 30);
         btnEstadoDinamico.setEnabled(false);
         btnEstadoDinamico.addActionListener(e -> accionBotonDinamico());
         topPanel.add(btnEstadoDinamico);
@@ -157,7 +157,7 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Dar de Baja
         btnDarBaja = new JButton("BAJA");
         estilarBoton(btnDarBaja, new Color(220, 38, 38), Color.WHITE);
-        btnDarBaja.setBounds(xAccion + 190, 10, 55, 30);
+        btnDarBaja.setBounds(xAccion + 220, 10, 70, 30);
         btnDarBaja.setEnabled(false);
         btnDarBaja.addActionListener(e -> accionDarDeBaja());
         topPanel.add(btnDarBaja);
@@ -165,7 +165,7 @@ public class subpanel_Suscripciones extends JPanel {
         // Botón Editar
         JButton btnEditar = new JButton("EDITAR");
         estilarBoton(btnEditar, new Color(234, 179, 8), Color.WHITE);
-        btnEditar.setBounds(xAccion + 250, 10, 65, 30);
+        btnEditar.setBounds(xAccion + 295, 10, 80, 30);
         btnEditar.addActionListener(e -> abrirEdicion());
         topPanel.add(btnEditar);
 
@@ -833,18 +833,25 @@ public class subpanel_Suscripciones extends JPanel {
 
         private String historialActual;
 
+        // Obtiene las letras de los meses a mostrar:
+        // 5 meses pasados + mes actual + siguiente mes (para prepago)
+        // Muestra desde hace 5 meses hasta el próximo mes
         private char[] obtenerLetrasMeses() {
             java.util.Calendar cal = java.util.Calendar.getInstance();
             int mesActual = cal.get(java.util.Calendar.MONTH);
             char[] letras = new char[6];
             String iniciales = "EFMAMJJASOND";
 
+            // Mostrar: 4 meses atrás, mes actual, próximo mes
+            // Ejemplo en Diciembre: A S O N D E (Ago, Sep, Oct, Nov, Dic, Ene)
             for (int i = 0; i < 6; i++) {
-                int indiceMes = (mesActual - i);
+                int indiceMes = (mesActual - 4 + i); // Empezar 4 meses atrás
                 if (indiceMes < 0) {
                     indiceMes += 12;
+                } else if (indiceMes > 11) {
+                    indiceMes -= 12;
                 }
-                letras[5 - i] = iniciales.charAt(indiceMes);
+                letras[i] = iniciales.charAt(indiceMes);
             }
             return letras;
         }

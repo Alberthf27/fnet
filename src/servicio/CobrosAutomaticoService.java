@@ -36,11 +36,21 @@ public class CobrosAutomaticoService {
         this.pagoDAO = new PagoDAO();
         this.mensajeService = new MensajeTemplateService();
 
-        // Usar implementación real o mock según configuración
-        if (configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO)) {
+        // FECHA DE ACTIVACIÓN DE WHATSAPP: 10 de Enero 2026
+        LocalDate fechaActivacionWhatsApp = LocalDate.of(2026, 1, 10);
+        boolean whatsAppActivo = LocalDate.now().isAfter(fechaActivacionWhatsApp) ||
+                LocalDate.now().isEqual(fechaActivacionWhatsApp);
+
+        // Usar implementación real solo si: 1) Está habilitado en config Y 2) Ya pasó
+        // la fecha de activación
+        if (whatsAppActivo && configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO)) {
             this.whatsAppService = new CallMeBotWhatsAppService();
+            System.out.println("📱 WhatsApp REAL activado");
         } else {
             this.whatsAppService = new WhatsAppServiceMock();
+            if (!whatsAppActivo) {
+                System.out.println("📱 WhatsApp DESHABILITADO hasta " + fechaActivacionWhatsApp);
+            }
         }
 
         if (configDAO.obtenerValorBoolean(ConfiguracionDAO.ROUTER_HABILITADO)) {
@@ -59,17 +69,23 @@ public class CobrosAutomaticoService {
         System.out.println("🔄 INICIANDO PROCESO DIARIO DE COBROS - " + LocalDate.now());
         System.out.println("═══════════════════════════════════════════════════════════");
 
-        // 1. Generar facturas para clientes cuyo DÍA DE PAGO es HOY
-        int diaHoy = LocalDate.now().getDayOfMonth();
-        generarFacturasDelDia(diaHoy);
+        // 1. Generar facturas - SOLO 2 veces al día (8AM y 6PM) o al iniciar
+        int horaActual = java.time.LocalTime.now().getHour();
+        if (horaActual == 8 || horaActual == 18 || primeraEjecucionDelDia()) {
+            System.out.println("\n📋 [Generación de Facturas - " + horaActual + ":00]");
+            generarFacturasFaltantes();
+        } else {
+            System.out.println("\n📋 Generación de facturas: Solo a las 8AM y 6PM (actual: " + horaActual + ":00)");
+        }
 
-        // 2. Revisar facturas vencidas y crear notificaciones de recordatorio
+        // 2. Revisar facturas vencidas y crear notificaciones de recordatorio (CADA
+        // HORA)
         revisarFacturasVencidas();
 
-        // 3. Revisar ultimátums vencidos y ejecutar cortes
+        // 3. Revisar ultimátums vencidos y ejecutar cortes (CADA HORA)
         revisarUltimatumsVencidos();
 
-        // 4. Procesar cola de notificaciones pendientes
+        // 4. Procesar cola de notificaciones pendientes (CADA HORA)
         procesarNotificacionesPendientes();
 
         // 5. Limpiar alertas antiguas
@@ -83,48 +99,58 @@ public class CobrosAutomaticoService {
         System.out.println("═══════════════════════════════════════════════════════════");
     }
 
-    /**
-     * Genera las facturas para clientes cuyo día de pago es el especificado.
-     * Se ejecuta diariamente para generar facturas solo cuando corresponde a cada
-     * cliente.
-     */
-    public void generarFacturasDelDia(int diaPago) {
-        System.out.println("\n📋 Revisando facturas para clientes con día de pago = " + diaPago + "...");
+    // Controla si es la primera ejecución del día
+    private static java.time.LocalDate ultimaFechaEjecucion = null;
 
-        // Seleccionar solo suscripciones cuyo día_pago coincide con hoy
+    private boolean primeraEjecucionDelDia() {
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+        if (ultimaFechaEjecucion == null || !ultimaFechaEjecucion.equals(hoy)) {
+            ultimaFechaEjecucion = hoy;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * NUEVO: Genera facturas faltantes para TODOS los clientes activos.
+     * No depende del día de pago - revisa cada suscripción y genera
+     * la factura del siguiente periodo si corresponde.
+     */
+    public void generarFacturasFaltantes() {
+        System.out.println("\n📋 Revisando facturas faltantes para TODOS los clientes...");
+
+        // Seleccionar TODAS las suscripciones activas
         String sql = "SELECT s.id_suscripcion, s.id_cliente, s.mes_adelantado, s.dia_pago, " +
                 "c.nombres, c.apellidos, c.telefono, " +
                 "srv.mensualidad, s.codigo_contrato " +
                 "FROM suscripcion s " +
                 "JOIN cliente c ON s.id_cliente = c.id_cliente " +
                 "JOIN servicio srv ON s.id_servicio = srv.id_servicio " +
-                "WHERE s.activo = 1 AND s.dia_pago = ?";
+                "WHERE s.activo = 1";
 
         int facturasGeneradas = 0;
+        int clientesRevisados = 0;
         int notificacionesProgramadas = 0;
 
         try (Connection conn = Conexion.getConexion();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, diaPago);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    clientesRevisados++;
                     int idSuscripcion = rs.getInt("id_suscripcion");
-                    int idCliente = rs.getInt("id_cliente");
                     boolean mesAdelantado = rs.getInt("mes_adelantado") == 1;
                     String nombreCliente = rs.getString("nombres") + " " + rs.getString("apellidos");
                     String telefono = rs.getString("telefono");
                     double monto = rs.getDouble("mensualidad");
-                    String codigoContrato = rs.getString("codigo_contrato");
 
-                    // Generar la próxima factura
+                    // Intentar generar factura (el método ya valida si corresponde)
                     boolean generada = pagoDAO.generarSiguienteFactura(idSuscripcion);
 
                     if (generada) {
                         facturasGeneradas++;
 
-                        // Si es PREPAGO, programar notificación inmediata
+                        // Si es PREPAGO, programar notificación
                         if (mesAdelantado) {
                             String periodo = mensajeService.formatearPeriodo(LocalDate.now());
                             programarNotificacionRecordatorio(
@@ -140,24 +166,30 @@ public class CobrosAutomaticoService {
             e.printStackTrace();
         }
 
-        if (facturasGeneradas > 0) {
-            System.out.println("   ✅ " + facturasGeneradas + " facturas generadas.");
-            System.out.println("   📱 " + notificacionesProgramadas + " notificaciones programadas (prepago).");
-        } else {
-            System.out.println("   ℹ️ No hay clientes con día de pago " + diaPago + " hoy.");
+        System.out.println("   📊 Clientes revisados: " + clientesRevisados);
+        System.out.println("   ✅ Facturas generadas: " + facturasGeneradas);
+        if (notificacionesProgramadas > 0) {
+            System.out.println("   📱 Notificaciones programadas: " + notificacionesProgramadas);
         }
     }
 
     /**
-     * @deprecated Usar generarFacturasDelDia(int diaPago) en su lugar.
-     *             Genera las facturas del mes para todas las suscripciones activas.
+     * @deprecated Usar generarFacturasFaltantes() en su lugar.
+     *             Genera las facturas para clientes cuyo día de pago es el
+     *             especificado.
+     */
+    @Deprecated
+    public void generarFacturasDelDia(int diaPago) {
+        // Mantener por compatibilidad pero llamar al nuevo método
+        generarFacturasFaltantes();
+    }
+
+    /**
+     * @deprecated Usar generarFacturasFaltantes() en su lugar.
      */
     @Deprecated
     public void generarFacturasMensuales() {
-        // Para compatibilidad, generar para todos los días
-        for (int dia = 1; dia <= 31; dia++) {
-            generarFacturasDelDia(dia);
-        }
+        generarFacturasFaltantes();
     }
 
     /**
@@ -287,6 +319,14 @@ public class CobrosAutomaticoService {
      */
     public void procesarNotificacionesPendientes() {
         System.out.println("\n📤 Procesando notificaciones pendientes...");
+
+        // NO procesar notificaciones hasta el 10 de Enero 2026
+        LocalDate fechaActivacion = LocalDate.of(2026, 1, 10);
+        if (LocalDate.now().isBefore(fechaActivacion)) {
+            System.out.println("   ⏳ Notificaciones DESHABILITADAS hasta " + fechaActivacion);
+            System.out.println("   ℹ️ Las notificaciones se acumularán y enviarán después de esa fecha.");
+            return;
+        }
 
         List<NotificacionPendiente> pendientes = notificacionDAO.obtenerPendientes();
 

@@ -92,22 +92,23 @@ public class PagoDAO {
     }
 
     // EN: DAO/PagoDAO.java
-
-    // 3. ADELANTAR MES (Generación Inteligente de Recibo)
+    // 3. GENERACIÓN DE FACTURA
+    // LÓGICA DEL NEGOCIO:
+    // - PREPAGO: Cobra período ADELANTE (ej: 20 Dic a 20 Ene = concepto Enero)
+    // - POSTPAGO: Cobra período ATRÁS (ej: 20 Nov a 20 Dic = concepto Diciembre)
     public boolean generarSiguienteFactura(int idSuscripcion) {
         Connection conn = null;
         try {
             conn = Conexion.getConexion();
 
-            // A. Obtener datos del contrato (Mes Adelantado?, Costo Plan?)
-            // Necesitamos saber si es Prepago (1) o Postpago (0) para poner el texto
-            // correcto
+            // A. Obtener datos del contrato
             String sqlInfo = "SELECT s.mes_adelantado, s.dia_pago, serv.mensualidad " +
                     "FROM suscripcion s " +
                     "JOIN servicio serv ON s.id_servicio = serv.id_servicio " +
                     "WHERE s.id_suscripcion = ?";
 
-            boolean esMesAdelantado = true; // Por defecto
+            boolean esMesAdelantado = true;
+            int diaPago = LocalDate.now().getDayOfMonth();
             double montoMensual = 0.0;
 
             try (PreparedStatement psInfo = conn.prepareStatement(sqlInfo)) {
@@ -115,14 +116,66 @@ public class PagoDAO {
                 ResultSet rsInfo = psInfo.executeQuery();
                 if (rsInfo.next()) {
                     esMesAdelantado = rsInfo.getInt("mes_adelantado") == 1;
+                    diaPago = rsInfo.getInt("dia_pago");
                     montoMensual = rsInfo.getDouble("mensualidad");
                 }
             }
 
-            // B. Calcular FECHA DE VENCIMIENTO
-            // Buscamos la última factura generada para no saltarnos meses
+            LocalDate hoy = LocalDate.now();
+            int diaHoy = hoy.getDayOfMonth();
+
+            // B. VALIDACIÓN: Solo generar si ya llegó o pasó el día de pago
+            if (diaHoy < diaPago) {
+                System.out.println("   ⏳ Suscripción " + idSuscripcion + " - día de pago es " + diaPago
+                        + ", hoy es " + diaHoy + ". Esperar.");
+                return false;
+            }
+
+            // C. Calcular RANGO DE FECHAS y CONCEPTO según tipo
+            LocalDate fechaInicio, fechaFin, fechaVencimiento;
+            String nombrePeriodo, rangoPeriodo;
+            DateTimeFormatter fmtMes = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "ES"));
+            DateTimeFormatter fmtCorto = DateTimeFormatter.ofPattern("dd/MM/yy");
+
+            if (esMesAdelantado) {
+                // PREPAGO: Cobra período ADELANTE
+                // Rango: dia_pago del mes actual → dia_pago del mes siguiente
+                // Ejemplo: 20 Dic → 20 Ene = concepto Enero (mes donde cae más del período)
+                fechaInicio = hoy.withDayOfMonth(Math.min(diaPago, hoy.lengthOfMonth()));
+                LocalDate mesSiguiente = hoy.plusMonths(1);
+                fechaFin = mesSiguiente.withDayOfMonth(Math.min(diaPago, mesSiguiente.lengthOfMonth()));
+                fechaVencimiento = fechaInicio; // Vence al inicio del período
+
+                // El concepto es el mes donde cae la MAYOR parte del período
+                // Para dia_pago <= 16: la mayoría cae en el mes actual
+                // Para dia_pago > 16: la mayoría cae en el mes siguiente
+                LocalDate mesConcepto = (diaPago <= 16) ? fechaInicio : fechaFin;
+                String mesNombre = mesConcepto.format(fmtMes);
+                nombrePeriodo = mesNombre.substring(0, 1).toUpperCase() + mesNombre.substring(1).toLowerCase();
+
+            } else {
+                // POSTPAGO: Cobra período ATRÁS
+                // Rango: dia_pago del mes anterior → dia_pago del mes actual
+                // Ejemplo: 20 Nov → 20 Dic = concepto Diciembre (mes donde cae más del período)
+                LocalDate mesAnterior = hoy.minusMonths(1);
+                fechaInicio = mesAnterior.withDayOfMonth(Math.min(diaPago, mesAnterior.lengthOfMonth()));
+                fechaFin = hoy.withDayOfMonth(Math.min(diaPago, hoy.lengthOfMonth()));
+                fechaVencimiento = fechaFin; // Vence al final del período
+
+                // El concepto es el mes donde cae la MAYOR parte del período
+                // Para dia_pago <= 16: la mayoría cae en el mes anterior
+                // Para dia_pago > 16: la mayoría cae en el mes actual
+                LocalDate mesConcepto = (diaPago <= 16) ? fechaInicio : fechaFin;
+                String mesNombre = mesConcepto.format(fmtMes);
+                nombrePeriodo = mesNombre.substring(0, 1).toUpperCase() + mesNombre.substring(1).toLowerCase();
+            }
+
+            // Formato del rango: "20/12/25 - 20/01/26"
+            rangoPeriodo = fechaInicio.format(fmtCorto) + " - " + fechaFin.format(fmtCorto);
+
+            // D. Buscar última factura para evitar duplicados
             String sqlUltima = "SELECT fecha_vencimiento FROM factura WHERE id_suscripcion = ? ORDER BY fecha_vencimiento DESC LIMIT 1";
-            LocalDate fechaBase = LocalDate.now();
+            LocalDate ultimaFechaVencimiento = null;
 
             try (PreparedStatement ps = conn.prepareStatement(sqlUltima)) {
                 ps.setInt(1, idSuscripcion);
@@ -130,49 +183,49 @@ public class PagoDAO {
                 if (rs.next()) {
                     Date fechaSql = rs.getDate(1);
                     if (fechaSql != null) {
-                        // La nueva factura vence 1 mes después de la última
-                        fechaBase = fechaSql.toLocalDate().plusMonths(1);
+                        ultimaFechaVencimiento = fechaSql.toLocalDate();
                     }
-                } else {
-                    // Si es la PRIMERA factura de la historia
-                    // Vence el mismo día que se crea (hoy) o el día de pago pactado
-                    fechaBase = LocalDate.now();
                 }
             }
 
-            // C. Construir el TEXTO DEL PERIODO ("Enero 2025" o "15 Ene - 15 Feb")
-            // Usamos lógica de fechas exactas para mayor claridad
-            DateTimeFormatter fmtMes = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "ES"));
-
-            String nombrePeriodo;
-
-            if (esMesAdelantado) {
-                // Prepago: Cobra el mes que VA A INICIAR desde la fecha base
-                LocalDate finPeriodo = fechaBase.plusMonths(1);
-                // Ejemplo: "Servicio FEBRERO 2025" (Si fechaBase es Febrero)
-                String mesNombre = fechaBase.format(fmtMes).toUpperCase();
-                nombrePeriodo = mesNombre.substring(0, 1) + mesNombre.substring(1).toLowerCase(); // Capitalizar
-            } else {
-                // Postpago: Cobra el mes que YA PASÓ
-                // Ejemplo: "Servicio ENERO 2025" (Si estamos cobrando en Febrero, cobramos
-                // Enero)
-                LocalDate inicioReal = fechaBase.minusMonths(1);
-                String mesNombre = inicioReal.format(fmtMes).toUpperCase();
-                nombrePeriodo = mesNombre.substring(0, 1) + mesNombre.substring(1).toLowerCase();
+            // Si ya existe factura con este vencimiento o posterior, no generar
+            if (ultimaFechaVencimiento != null) {
+                if (!ultimaFechaVencimiento.isBefore(fechaVencimiento)) {
+                    System.out.println("   ℹ️ Suscripción " + idSuscripcion + " ya tiene factura");
+                    return false;
+                }
             }
 
-            // D. Insertar Factura
-            String sqlInsert = "INSERT INTO factura (id_suscripcion, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, id_estado, codigo_factura, periodo_mes) "
+            // E. Verificar que no exista factura para este periodo
+            String sqlExiste = "SELECT COUNT(*) FROM factura WHERE id_suscripcion = ? AND periodo_mes = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlExiste)) {
+                ps.setInt(1, idSuscripcion);
+                ps.setString(2, nombrePeriodo);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next() && rs.getInt(1) > 0) {
+                    System.out.println("   ℹ️ Ya existe factura para periodo: " + nombrePeriodo);
+                    return false;
+                }
+            }
+
+            // F. Insertar Factura (con rango_periodo)
+            String sqlInsert = "INSERT INTO factura (id_suscripcion, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, id_estado, codigo_factura, periodo_mes, rango_periodo) "
                     +
-                    "VALUES (?, NOW(), ?, ?, 0.00, 1, CONCAT('F-', FLOOR(RAND()*100000)), ?)";
+                    "VALUES (?, NOW(), ?, ?, 0.00, 1, CONCAT('F-', FLOOR(RAND()*100000)), ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(sqlInsert)) {
                 ps.setInt(1, idSuscripcion);
-                ps.setDate(2, java.sql.Date.valueOf(fechaBase));
+                ps.setDate(2, java.sql.Date.valueOf(fechaVencimiento));
                 ps.setDouble(3, montoMensual);
                 ps.setString(4, nombrePeriodo);
+                ps.setString(5, rangoPeriodo);
 
-                return ps.executeUpdate() > 0;
+                boolean insertado = ps.executeUpdate() > 0;
+                if (insertado) {
+                    String tipo = esMesAdelantado ? "PREPAGO" : "POSTPAGO";
+                    System.out.println("   ✅ [" + tipo + "] " + nombrePeriodo + " (" + rangoPeriodo + ")");
+                }
+                return insertado;
             }
 
         } catch (Exception e) {
@@ -191,7 +244,9 @@ public class PagoDAO {
     public List<Object[]> obtenerHistorialCompleto(int idSuscripcion) {
         List<Object[]> lista = new ArrayList<>();
         // Traemos todo: Pagados (2), Pendientes (1), Anulados (0)
-        String sql = "SELECT periodo_mes, fecha_vencimiento, monto_total, monto_pagado, fecha_pago, id_estado " +
+        // Incluimos rango_periodo (puede ser NULL en registros antiguos)
+        String sql = "SELECT periodo_mes, fecha_vencimiento, monto_total, monto_pagado, fecha_pago, id_estado, " +
+                "COALESCE(rango_periodo, '') as rango_periodo " +
                 "FROM factura WHERE id_suscripcion = ? ORDER BY fecha_vencimiento DESC";
 
         try (Connection conn = Conexion.getConexion();
@@ -213,7 +268,8 @@ public class PagoDAO {
                         rs.getDate("fecha_vencimiento"),
                         rs.getDouble("monto_total"),
                         estado,
-                        rs.getDate("fecha_pago") // Puede ser null
+                        rs.getDate("fecha_pago"), // Puede ser null
+                        rs.getString("rango_periodo") // Nueva columna
                 });
             }
         } catch (Exception e) {
@@ -298,8 +354,9 @@ public class PagoDAO {
      */
     public List<Object[]> obtenerHistorialEditable(int idSuscripcion) {
         List<Object[]> lista = new ArrayList<>();
-        String sql = "SELECT id_factura, periodo_mes, fecha_vencimiento, monto_total, monto_pagado, fecha_pago, id_estado "
+        String sql = "SELECT id_factura, periodo_mes, fecha_vencimiento, monto_total, monto_pagado, fecha_pago, id_estado, "
                 +
+                "COALESCE(rango_periodo, '') as rango_periodo " +
                 "FROM factura WHERE id_suscripcion = ? ORDER BY fecha_vencimiento DESC";
 
         try (Connection conn = Conexion.getConexion();
@@ -313,11 +370,12 @@ public class PagoDAO {
                 lista.add(new Object[] {
                         rs.getInt("id_factura"), // 0: ID (para edición)
                         rs.getString("periodo_mes"), // 1: Periodo
-                        rs.getDate("fecha_vencimiento"), // 2: Vencimiento
-                        rs.getDouble("monto_total"), // 3: Monto
-                        estado, // 4: Estado texto
-                        rs.getDate("fecha_pago"), // 5: Fecha pago (puede ser null)
-                        idEstado // 6: ID Estado numérico
+                        rs.getString("rango_periodo"), // 2: Rango (NUEVO)
+                        rs.getDate("fecha_vencimiento"), // 3: Vencimiento
+                        rs.getDouble("monto_total"), // 4: Monto
+                        estado, // 5: Estado texto
+                        rs.getDate("fecha_pago"), // 6: Fecha pago (puede ser null)
+                        idEstado // 7: ID Estado numérico
                 });
             }
         } catch (Exception e) {

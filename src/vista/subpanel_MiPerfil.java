@@ -29,6 +29,15 @@ public class subpanel_MiPerfil extends JPanel {
         cargarDatos();
     }
 
+    // Constructor para PrincipalEmpleado (recibe empleado directamente)
+    public subpanel_MiPerfil(Empleado empleado) {
+        setLayout(new BorderLayout());
+        setBackground(new Color(241, 245, 249));
+        this.empleadoActual = empleado;
+        initUI();
+        cargarDatos();
+    }
+
     private void initUI() {
         // Panel Header
         JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
@@ -153,6 +162,66 @@ public class subpanel_MiPerfil extends JPanel {
         pnlCentro.add(txtConfirmarContrasena, gbc);
         fila++;
 
+        // Separador visual para preferencias
+        fila++;
+        JSeparator sep2 = new JSeparator();
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        gbc.gridwidth = 2;
+        pnlCentro.add(sep2, gbc);
+        fila++;
+
+        // Sección de preferencias
+        JLabel lblPrefs = new JLabel("Preferencias de Interfaz");
+        lblPrefs.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblPrefs.setForeground(new Color(37, 99, 235));
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        gbc.gridwidth = 2;
+        pnlCentro.add(lblPrefs, gbc);
+        fila++;
+
+        gbc.gridwidth = 1;
+
+        // Toggle modo gris
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        pnlCentro.add(crearLabel("Modo Gris:"), gbc);
+
+        JToggleButton toggleModoGris = new JToggleButton("Desactivado");
+        toggleModoGris.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        toggleModoGris.setPreferredSize(new Dimension(120, 35));
+        toggleModoGris.setFocusPainted(false);
+        toggleModoGris.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Cargar estado previo si existe
+        java.util.prefs.Preferences prefs = java.util.prefs.Preferences.userNodeForPackage(subpanel_MiPerfil.class);
+        boolean modoGrisActivo = prefs.getBoolean("modoGris", false);
+        toggleModoGris.setSelected(modoGrisActivo);
+        toggleModoGris.setText(modoGrisActivo ? "Activado" : "Desactivado");
+        toggleModoGris.setBackground(modoGrisActivo ? new Color(100, 116, 139) : new Color(203, 213, 225));
+
+        toggleModoGris.addActionListener(e -> {
+            boolean activo = toggleModoGris.isSelected();
+            toggleModoGris.setText(activo ? "Activado" : "Desactivado");
+            toggleModoGris.setBackground(activo ? new Color(100, 116, 139) : new Color(203, 213, 225));
+
+            // Guardar preferencia
+            prefs.putBoolean("modoGris", activo);
+
+            // Aplicar colores
+            aplicarModoGris(activo);
+
+            JOptionPane.showMessageDialog(this,
+                    activo ? "Modo gris activado. Reinicia la aplicación para ver todos los cambios."
+                            : "Modo claro activado. Reinicia la aplicación para ver todos los cambios.",
+                    "Preferencia Guardada", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        gbc.gridx = 1;
+        pnlCentro.add(toggleModoGris, gbc);
+        fila++;
+
         // Botón Guardar
         fila++;
         JButton btnGuardar = new JButton("GUARDAR CAMBIOS");
@@ -221,7 +290,7 @@ public class subpanel_MiPerfil extends JPanel {
             }
         }
 
-        // Guardar cambios (TODO: Conectar con UsuarioDAO.actualizarPerfil())
+        // Confirmar cambios
         int confirm = JOptionPane.showConfirmDialog(this,
                 "¿Guardar los cambios en tu perfil?",
                 "Confirmar", JOptionPane.YES_NO_OPTION);
@@ -232,16 +301,21 @@ public class subpanel_MiPerfil extends JPanel {
             empleadoActual.setApellidos(apellidos);
             empleadoActual.setTelefono(telefono);
 
-            // TODO: Llamar a DAO para persistir cambios
-            // new UsuarioDAO().actualizarPerfil(empleadoActual, nuevaPass.isEmpty() ? null
-            // : nuevaPass);
+            // Llamar a DAO para persistir cambios
+            UsuarioDAO dao = new UsuarioDAO();
+            boolean exito = dao.actualizarPerfil(empleadoActual, nuevaPass.isEmpty() ? null : nuevaPass);
 
-            JOptionPane.showMessageDialog(this,
-                    "Cambios guardados correctamente.\n(Nota: Requiere implementar UsuarioDAO.actualizarPerfil)");
+            if (exito) {
+                JOptionPane.showMessageDialog(this, "Cambios guardados correctamente.");
 
-            // Limpiar campos de contraseña
-            txtNuevaContrasena.setText("");
-            txtConfirmarContrasena.setText("");
+                // Limpiar campos de contraseña
+                txtNuevaContrasena.setText("");
+                txtConfirmarContrasena.setText("");
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Error al guardar los cambios. Intente nuevamente.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -260,5 +334,38 @@ public class subpanel_MiPerfil extends JPanel {
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
         return txt;
+    }
+
+    /**
+     * Aplica el modo gris a la interfaz actual (preview inmediato)
+     */
+    private void aplicarModoGris(boolean activo) {
+        if (activo) {
+            // Colores grises suaves
+            setBackground(new Color(226, 232, 240)); // Fondo gris claro
+        } else {
+            // Colores originales
+            setBackground(new Color(241, 245, 249)); // Fondo crema original
+        }
+        repaint();
+    }
+
+    /**
+     * Método estático para verificar si el modo gris está activo
+     */
+    public static boolean isModoGrisActivo() {
+        java.util.prefs.Preferences prefs = java.util.prefs.Preferences.userNodeForPackage(subpanel_MiPerfil.class);
+        return prefs.getBoolean("modoGris", false);
+    }
+
+    /**
+     * Obtiene los colores según el modo actual
+     */
+    public static Color getColorFondo() {
+        return isModoGrisActivo() ? new Color(226, 232, 240) : new Color(241, 245, 249);
+    }
+
+    public static Color getColorPanel() {
+        return isModoGrisActivo() ? new Color(241, 245, 249) : Color.WHITE;
     }
 }

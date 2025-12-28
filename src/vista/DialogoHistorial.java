@@ -32,7 +32,7 @@ public class DialogoHistorial extends JDialog {
         this.diaPago = diaPago;
         this.pagoDAO = new PagoDAO();
 
-        setSize(850, 550);
+        setSize(1050, 550);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
@@ -75,7 +75,7 @@ public class DialogoHistorial extends JDialog {
         add(topPanel, BorderLayout.NORTH);
 
         // --- TABLA ---
-        String[] cols = { "ID", "Periodo", "F. Creación", "Monto", "Estado", "Fecha Pago", "" };
+        String[] cols = { "ID", "Periodo", "Rango", "F. Creación", "Monto", "Estado", "Fecha Pago", "" };
         modelo = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) {
                 return false; // No editable directamente
@@ -95,18 +95,19 @@ public class DialogoHistorial extends JDialog {
         tabla.getColumnModel().getColumn(0).setMaxWidth(0);
 
         // Anchos
-        tabla.getColumnModel().getColumn(1).setPreferredWidth(130); // Periodo
-        tabla.getColumnModel().getColumn(2).setPreferredWidth(100); // Vencimiento
-        tabla.getColumnModel().getColumn(3).setPreferredWidth(80); // Monto
-        tabla.getColumnModel().getColumn(4).setPreferredWidth(110); // Estado
-        tabla.getColumnModel().getColumn(5).setPreferredWidth(100); // Fecha Pago
-        tabla.getColumnModel().getColumn(6).setPreferredWidth(180); // Acciones
+        tabla.getColumnModel().getColumn(1).setPreferredWidth(120); // Periodo
+        tabla.getColumnModel().getColumn(2).setPreferredWidth(130); // Rango (NUEVO)
+        tabla.getColumnModel().getColumn(3).setPreferredWidth(90); // Vencimiento
+        tabla.getColumnModel().getColumn(4).setPreferredWidth(80); // Monto
+        tabla.getColumnModel().getColumn(5).setPreferredWidth(100); // Estado
+        tabla.getColumnModel().getColumn(6).setPreferredWidth(90); // Fecha Pago
+        tabla.getColumnModel().getColumn(7).setPreferredWidth(180); // Acciones
 
         // Renderizador de Estado con colores
-        tabla.getColumnModel().getColumn(4).setCellRenderer(new EstadoRenderer());
+        tabla.getColumnModel().getColumn(5).setCellRenderer(new EstadoRenderer());
 
         // Renderizador de Acciones (botones reales dentro de panel)
-        tabla.getColumnModel().getColumn(6).setCellRenderer(new AccionesRenderer());
+        tabla.getColumnModel().getColumn(7).setCellRenderer(new AccionesRenderer());
 
         // Listener para clicks en la tabla
         tabla.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -117,19 +118,27 @@ public class DialogoHistorial extends JDialog {
 
                 if (fila >= 0) {
                     int idFactura = (int) modelo.getValueAt(fila, 0);
+                    String estado = modelo.getValueAt(fila, 5).toString();
 
-                    if (col == 4) { // Click en Estado -> Alternar
+                    if (col == 5) { // Click en Estado -> Alternar
                         alternarEstado(fila, idFactura);
-                    } else if (col == 6) { // Click en Acciones
+                    } else if (col == 7) { // Click en Acciones
                         // Determinar que boton se clickeo por posicion X
                         Rectangle cellRect = tabla.getCellRect(fila, col, true);
                         int cellX = e.getX() - cellRect.x;
-                        int btnWidth = 60; // Ancho aproximado de cada boton (55 + padding)
+                        int btnWidth = 65; // Ancho de cada boton (60 + padding)
 
                         if (cellX < btnWidth) {
                             editarFactura(fila, idFactura);
                         } else if (cellX < btnWidth * 2) {
-                            DialogoHistorial.this.imprimirBoleta(idFactura);
+                            // Boleta - solo si NO es pendiente
+                            if (!estado.contains("PENDIENTE")) {
+                                DialogoHistorial.this.imprimirBoleta(idFactura);
+                            } else {
+                                JOptionPane.showMessageDialog(DialogoHistorial.this,
+                                        "Solo puede imprimir boletas de facturas PAGADAS",
+                                        "Factura Pendiente", JOptionPane.WARNING_MESSAGE);
+                            }
                         } else {
                             eliminarFactura(fila, idFactura);
                         }
@@ -174,10 +183,11 @@ public class DialogoHistorial extends JDialog {
                     modelo.addRow(new Object[] {
                             d[0], // ID Factura
                             d[1], // Periodo
-                            d[2], // Vencimiento
-                            "S/. " + String.format("%.2f", d[3]), // Monto
-                            d[4], // Estado
-                            d[5] != null ? d[5] : "---", // Fecha Pago
+                            d[2] != null && !d[2].toString().isEmpty() ? d[2] : "---", // Rango (NUEVO)
+                            d[3], // Vencimiento
+                            "S/. " + String.format("%.2f", d[4]), // Monto
+                            d[5], // Estado
+                            d[6] != null ? d[6] : "---", // Fecha Pago
                             "" // Columna de acciones (vacia, el renderer dibuja los botones)
                     });
                 }
@@ -532,31 +542,41 @@ public class DialogoHistorial extends JDialog {
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 5));
             panel.setBackground(isS ? new Color(219, 234, 254) : Color.WHITE);
 
+            // Obtener el estado de la factura (columna 5)
+            String estado = table.getValueAt(row, 5).toString();
+            boolean esPendiente = estado.contains("PENDIENTE");
+
             // Boton Editar
             JButton btnEditar = new JButton("Editar");
             btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             btnEditar.setBackground(new Color(59, 130, 246));
             btnEditar.setForeground(Color.WHITE);
             btnEditar.setFocusPainted(false);
-            btnEditar.setPreferredSize(new Dimension(55, 24));
+            btnEditar.setPreferredSize(new Dimension(60, 24));
             panel.add(btnEditar);
 
-            // Boton Boleta (para reimprimir)
+            // Boton Boleta (para reimprimir) - DESHABILITADO si está pendiente
             JButton btnBoleta = new JButton("Boleta");
             btnBoleta.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            btnBoleta.setBackground(new Color(22, 163, 74));
+            if (esPendiente) {
+                btnBoleta.setBackground(new Color(156, 163, 175)); // Gris
+                btnBoleta.setEnabled(false);
+                btnBoleta.setToolTipText("Solo disponible para facturas pagadas");
+            } else {
+                btnBoleta.setBackground(new Color(22, 163, 74)); // Verde
+            }
             btnBoleta.setForeground(Color.WHITE);
             btnBoleta.setFocusPainted(false);
-            btnBoleta.setPreferredSize(new Dimension(55, 24));
+            btnBoleta.setPreferredSize(new Dimension(60, 24));
             panel.add(btnBoleta);
 
             // Boton Eliminar
-            JButton btnEliminar = new JButton("Elimin...");
+            JButton btnEliminar = new JButton("Eliminar");
             btnEliminar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             btnEliminar.setBackground(new Color(239, 68, 68));
             btnEliminar.setForeground(Color.WHITE);
             btnEliminar.setFocusPainted(false);
-            btnEliminar.setPreferredSize(new Dimension(55, 24));
+            btnEliminar.setPreferredSize(new Dimension(60, 24));
             panel.add(btnEliminar);
 
             return panel;
