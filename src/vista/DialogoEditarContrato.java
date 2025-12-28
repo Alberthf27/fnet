@@ -574,8 +574,8 @@ public class DialogoEditarContrato extends JDialog {
             return;
         }
 
-        if (s == null || dir.isEmpty() || fechaInicio == null) {
-            JOptionPane.showMessageDialog(this, "Plan, Dirección y Fecha Inicio son obligatorios.");
+        if (s == null || fechaInicio == null) {
+            JOptionPane.showMessageDialog(this, "Plan y Fecha Inicio son obligatorios.");
             return;
         }
 
