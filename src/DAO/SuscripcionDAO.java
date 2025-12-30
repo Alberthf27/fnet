@@ -13,8 +13,8 @@ public class SuscripcionDAO {
 
         // --- CORRECCIÓN AQUÍ ---
         // Antes tenías: s.direccion_i
-        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.garantia, "
-                + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad "
+        String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.garantia, s.sector, "
+                + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, s.mes_adelantado, s.equipos_prestados "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -39,6 +39,7 @@ public class SuscripcionDAO {
 
                     sus.setFechaInicio(rs.getDate("fecha_inicio"));
                     sus.setActivo(rs.getInt("activo"));
+                    sus.setSector(rs.getString("sector")); // <--- AÑADIDO
 
                     sus.setGarantia(rs.getDouble("garantia")); // <--- AÑADE ESTA LÍNEA
 

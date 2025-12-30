@@ -94,16 +94,17 @@ public class subpanel_Suscripciones extends JPanel {
 
         // Título
         JLabel lblTitulo = new JLabel("CONTRATOS");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 16)); // Reducido a 16 para que se vea más profesional y no
+                                                                // choque
         lblTitulo.setForeground(new Color(15, 23, 42));
-        lblTitulo.setBounds(0, 10, 120, 30);
+        lblTitulo.setBounds(0, 10, 110, 30);
         topPanel.add(lblTitulo);
 
         // Buscador
         txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar cliente...");
         txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtBuscar.setBounds(130, 10, 250, 30);
+        txtBuscar.setBounds(115, 10, 250, 30); // Ajustado para acercarse un poco más al título achicado
 
         // Listener del Buscador (Enter = BD, Escribir = Filtro Local)
         txtBuscar.addKeyListener(new KeyAdapter() {
@@ -206,7 +207,15 @@ public class subpanel_Suscripciones extends JPanel {
 
         // TabbedPane para vistas múltiples
         tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabbedPane.setFocusable(false);
+
+        // Estilo moderno: Pestañas planas con indicador azul
+        UIManager.put("TabbedPane.selected", Color.WHITE);
+        UIManager.put("TabbedPane.contentAreaColor", Color.WHITE);
+        UIManager.put("TabbedPane.tabInsets", new Insets(8, 20, 8, 20)); // Más altas y anchas
+        UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0)); // Quitar borde de foco
+
         tabbedPane.addTab("📋 TODOS", scrollTabla);
 
         // Split Pane (Tablas | Detalle)
@@ -626,8 +635,8 @@ public class subpanel_Suscripciones extends JPanel {
      * Configura los estilos y renderizadores de una tabla.
      */
     private void configurarTabla(JTable t) {
-        t.setRowHeight(25);
-        t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        t.setRowHeight(28); // Ajustado a 28 (estilo Excel) para que quepan más contratos
+        t.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Fuente un poco más pequeña pero legible
         t.setShowVerticalLines(true);
         t.setGridColor(new Color(220, 220, 220));
 

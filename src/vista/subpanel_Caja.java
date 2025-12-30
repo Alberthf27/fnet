@@ -66,15 +66,15 @@ public class subpanel_Caja extends JPanel {
         pnlBusqueda.setBackground(Color.WHITE);
 
         JLabel lblTitulo = new JLabel("CAJA Y PAGOS");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Aumentado de 18 a 24
         lblTitulo.setForeground(new Color(15, 23, 42));
-        lblTitulo.setBounds(0, 15, 150, 30);
+        lblTitulo.setBounds(0, 15, 200, 30);
         pnlBusqueda.add(lblTitulo);
 
         txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Escribe nombre o DNI...");
-        txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtBuscar.setBounds(160, 15, 250, 35);
+        txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 16)); // Aumentado de 14 a 16
+        txtBuscar.setBounds(210, 15, 250, 35);
 
         // --- LOGICA HÍBRIDA ---
         txtBuscar.addKeyListener(new KeyAdapter() {
@@ -591,8 +591,9 @@ public class subpanel_Caja extends JPanel {
 
     // --- ESTILOS ---
     private void estilarTabla(JTable t) {
-        t.setRowHeight(30);
-        t.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        t.setRowHeight(35); // Aumentado de 30 a 35
+        t.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Aumentado a 15 y BOLD
+        t.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 15)); // Header más grande
         t.setShowVerticalLines(false);
         t.setShowHorizontalLines(true);
         t.setGridColor(new Color(230, 230, 230));

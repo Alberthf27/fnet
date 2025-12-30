@@ -321,15 +321,15 @@ public class subpanel_MiPerfil extends JPanel {
 
     private JLabel crearLabel(String texto) {
         JLabel lbl = new JLabel(texto);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Aumentado de 13 a 15
         lbl.setForeground(new Color(71, 85, 105));
         return lbl;
     }
 
     private JTextField crearTextField() {
         JTextField txt = new JTextField();
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txt.setPreferredSize(new Dimension(250, 35));
+        txt.setFont(new Font("Segoe UI", Font.PLAIN, 16)); // Aumentado de 14 a 16
+        txt.setPreferredSize(new Dimension(300, 40)); // Un poco más grande
         txt.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));

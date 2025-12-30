@@ -408,10 +408,25 @@ public class DialogoHistorial extends JDialog {
                 int estado = cmbEstado.getSelectedIndex() == 0 ? 1 : 2;
                 boolean registrarEnCaja = chkRegistrarCaja.isSelected();
 
+                // Calcular rango del periodo (ej: "20 nov - 20 dic")
+                java.text.SimpleDateFormat sdfRango = new java.text.SimpleDateFormat("dd MMM",
+                        new java.util.Locale("es", "ES"));
+                Calendar calRangoInicio = Calendar.getInstance();
+                calRangoInicio.set(anio, mesSelec - 1, diaPago); // Mes anterior
+                if (mesSelec == 0) { // Enero -> Diciembre del año anterior
+                    calRangoInicio.set(anio - 1, 11, diaPago);
+                }
+                Calendar calRangoFin = Calendar.getInstance();
+                calRangoFin.set(anio, mesSelec, diaPago);
+                String rangoPeriodo = sdfRango.format(calRangoInicio.getTime()) + " - " +
+                        sdfRango.format(calRangoFin.getTime());
+
                 setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+                final String rangoFinal = rangoPeriodo;
                 new Thread(() -> {
                     boolean exito = pagoDAO.crearFacturaManual(idSuscripcion, periodo, monto,
-                            estado, fechaVenc, registrarEnCaja, idUsuario);
+                            estado, fechaVenc, registrarEnCaja, idUsuario, rangoFinal);
                     SwingUtilities.invokeLater(() -> {
                         setCursor(Cursor.getDefaultCursor());
                         if (exito) {

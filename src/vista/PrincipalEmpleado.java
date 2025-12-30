@@ -26,7 +26,7 @@ public class PrincipalEmpleado extends JFrame {
     private static final Color COLOR_TEXTO_INACTIVO = new Color(148, 163, 184);
     private static final Color COLOR_TEXTO_ACTIVO = Color.WHITE;
     private static final Color COLOR_FONDO = new Color(241, 245, 249);
-    private static final Color COLOR_ACTIVO = new Color(37, 99, 235);
+    private static final Color COLOR_ACTIVO = new Color(6, 182, 212); // CIAN VIBRANTE (Cyan 500)
 
     public PrincipalEmpleado(Empleado empleado) {
         this.empleadoLogueado = empleado;
@@ -160,8 +160,8 @@ public class PrincipalEmpleado extends JFrame {
         btn.setIconTextGap(5);
 
         // 3. Estilo Visual
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(COLOR_TEXTO_INACTIVO);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 16)); // Aumentado de 14 a 16
+        btn.setForeground(new Color(203, 213, 225)); // Gris más claro (Slate 300)
 
         // Limpieza de bordes
         btn.setBorderPainted(false);

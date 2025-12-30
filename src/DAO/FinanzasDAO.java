@@ -21,9 +21,9 @@ public class FinanzasDAO {
         Object[] resultado = new Object[8];
 
         try (Connection conn = Conexion.getConexion()) {
-            // 1. Ingresos de Hoy
+            // 1. Ingresos de Hoy (Filtrado desde las 11:00 AM)
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja WHERE DATE(fecha) = CURRENT_DATE() AND monto > 0");
+                    "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja WHERE fecha >= '2025-12-30 11:00:00' AND monto > 0");
                     ResultSet rs = ps.executeQuery()) {
                 resultado[0] = rs.next() ? rs.getDouble(1) : 0.0;
             }
@@ -76,14 +76,15 @@ public class FinanzasDAO {
             }
             resultado[6] = historial;
 
-            // 8. Últimos 10 Pagos
+            // 8. Últimos Pagos (Filtrado desde las 11:00 AM)
             List<Object[]> pagos = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT mc.id_movimiento, DATE_FORMAT(mc.fecha, '%d/%m %H:%i'), " +
                             "COALESCE(mc.descripcion, 'Pago'), mc.monto, COALESCE(cm.nombre, 'Efectivo') " +
                             "FROM movimiento_caja mc " +
                             "LEFT JOIN categoria_movimiento cm ON mc.id_categoria = cm.id_categoria " +
-                            "WHERE mc.monto > 0 ORDER BY mc.fecha DESC LIMIT 10");
+                            "WHERE mc.monto > 0 AND mc.fecha >= '2025-12-30 11:00:00' " +
+                            "ORDER BY mc.fecha DESC LIMIT 10");
                     ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     pagos.add(new Object[] {
@@ -130,10 +131,10 @@ public class FinanzasDAO {
                 resultado[0] = rs.next() ? rs.getDouble(1) : 0.0;
             }
 
-            // 2. Balance del Mes
+            // 2. Balance del Mes (Filtrado desde las 11:00 AM hoy)
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja " +
-                            "WHERE MONTH(fecha) = MONTH(CURRENT_DATE()) AND YEAR(fecha) = YEAR(CURRENT_DATE())");
+                            "WHERE fecha >= '2025-12-30 11:00:00'");
                     ResultSet rs = ps.executeQuery()) {
                 resultado[1] = rs.next() ? rs.getDouble(1) : 0.0;
             }
@@ -179,13 +180,13 @@ public class FinanzasDAO {
             altasBajas.add(new double[] { 6, 0 });
             resultado[5] = altasBajas;
 
-            // 7. Flujo últimos 7 días
+            // 7. Flujo últimos 7 días (Filtrado desde hoy 11 AM)
             List<double[]> flujo = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT DATE(fecha) as dia, " +
                             "SUM(CASE WHEN monto > 0 THEN monto ELSE 0 END) as ingresos, " +
                             "SUM(CASE WHEN monto < 0 THEN ABS(monto) ELSE 0 END) as egresos " +
-                            "FROM movimiento_caja WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+                            "FROM movimiento_caja WHERE fecha >= '2025-12-30 11:00:00' " +
                             "GROUP BY DATE(fecha) ORDER BY dia ASC");
                     ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

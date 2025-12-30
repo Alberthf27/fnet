@@ -69,15 +69,15 @@ public class panel_Gerente extends JPanel {
     private void initContenido() {
         // 1. TÍTULO (Fijo)
         JLabel title = new JLabel("Dashboard");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 28)); // Aumentado de 24 a 28
         title.setForeground(new Color(15, 23, 42));
-        title.setBounds(30, 20, 200, 30);
+        title.setBounds(30, 20, 250, 35);
         add(title);
 
         JLabel subtitle = new JLabel("Resumen general de tu red y facturación");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15)); // Aumentado de 13 a 15
         subtitle.setForeground(new Color(100, 116, 139));
-        subtitle.setBounds(30, 50, 300, 20);
+        subtitle.setBounds(30, 55, 400, 20);
         add(subtitle);
 
         // --- BOTÓN DE NOTIFICACIONES ---
@@ -158,9 +158,9 @@ public class panel_Gerente extends JPanel {
         };
 
         tablePagos = new JTable(modelPagos);
-        tablePagos.setRowHeight(35);
-        tablePagos.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tablePagos.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tablePagos.setRowHeight(40); // Aumentado de 35 a 40
+        tablePagos.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Aumentado de 13 a 15 y puesto en BOLD
+        tablePagos.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 15)); // Aumentado de 13 a 15
         tablePagos.getTableHeader().setBackground(new Color(248, 250, 252));
         tablePagos.setShowVerticalLines(false);
         tablePagos.setGridColor(new Color(240, 240, 240));
@@ -366,9 +366,9 @@ public class panel_Gerente extends JPanel {
         panel.add(lbl);
 
         JLabel val = new JLabel(valor);
-        val.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        val.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Aumentado de 14 a 18
         val.setHorizontalAlignment(SwingConstants.RIGHT);
-        val.setBounds(panelWidth - 100, y, 80, 20);
+        val.setBounds(panelWidth - 120, y, 100, 25);
         panel.add(val);
 
         JSeparator sep = new JSeparator();

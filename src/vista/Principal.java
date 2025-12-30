@@ -468,8 +468,8 @@ public class Principal extends javax.swing.JFrame {
         btn.setIconTextGap(5); // Separación extra
 
         // 3. Estilo Visual (Igual que antes)
-        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
-        btn.setForeground(new java.awt.Color(148, 163, 184)); // Gris inactivo
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16)); // Aumentado de 14 a 16
+        btn.setForeground(new java.awt.Color(203, 213, 225)); // Gris más claro para mejor legibilidad (Slate 300)
 
         // Limpieza de bordes
         btn.setBorderPainted(false);
@@ -546,7 +546,7 @@ public class Principal extends javax.swing.JFrame {
                 btn_finanzas // <--- ¡AQUÍ FALTABA ESTE!
         };
 
-        java.awt.Color colorActivo = new java.awt.Color(37, 99, 235); // AZUL BRILLANTE (Blue 600)
+        java.awt.Color colorActivo = new java.awt.Color(6, 182, 212); // CIAN VIBRANTE (Cyan 500)
         java.awt.Color colorInactivo = new java.awt.Color(15, 23, 42); // AZUL OSCURO
 
         for (javax.swing.JButton b : todos) {

@@ -49,7 +49,7 @@ public class PanelFinanzas extends JPanel {
         headerPanel.setPreferredSize(new Dimension(0, 50));
 
         JLabel lblTitulo = new JLabel("Dashboard Financiero & Estratégico");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 28)); // Aumentado de 24 a 28
         lblTitulo.setForeground(new Color(15, 23, 42));
         headerPanel.add(lblTitulo, BorderLayout.WEST);
 
@@ -174,7 +174,7 @@ public class PanelFinanzas extends JPanel {
         lblT.setForeground(Color.GRAY);
         card.add(lblT, BorderLayout.NORTH);
 
-        lblValor.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        lblValor.setFont(new Font("Segoe UI", Font.BOLD, 32)); // Aumentado de 26 a 32
         lblValor.setForeground(Color.BLACK);
         card.add(lblValor, BorderLayout.CENTER);
 

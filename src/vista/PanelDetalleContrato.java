@@ -71,7 +71,7 @@ public class PanelDetalleContrato extends JPanel {
 
         // --- DATOS DEL CLIENTE ---
         int y = 180;
-        int gap = 55; // Reduje un poco el espacio para que quepa más info
+        int gap = 65; // Aumentado de 55 a 65 para evitar solapamiento visual
 
         add(crearLabelTitulo("Titular:", y));
         lblCliente = crearLabelValor("---", y + 20);
@@ -82,14 +82,14 @@ public class PanelDetalleContrato extends JPanel {
         lblPlan = crearLabelValor("---", y + 20);
         add(lblPlan);
 
-        y += gap;
+        y += gap + 10; // Extra gap for address/sector because it's two-line
         add(crearLabelTitulo("Dirección / Sector:", y));
-        lblDireccion = crearLabelValor("---", y + 20);
+        lblDireccion = crearLabelValor("---", y + 25);
         add(lblDireccion);
 
-        y += gap;
+        y += gap + 15; // Move next label further down
         add(crearLabelTitulo("Fecha Inicio:", y));
-        lblInicio = crearLabelValor("---", y + 20);
+        lblInicio = crearLabelValor("---", y + 25);
         add(lblInicio);
 
         // --- CONDICIONES CONTRACTUALES (SECCIÓN NUEVA) ---
@@ -178,7 +178,12 @@ public class PanelDetalleContrato extends JPanel {
         lblCliente.setText(nombre);
         lblPlan.setText("<html>" + plan + " <span style='color:gray'>(S/. " + String.format("%.2f", precio)
                 + ")</span></html>");
-        lblDireccion.setText("<html>" + direccion + "</html>");
+
+        String sectorStr = (s.getSector() != null && !s.getSector().isEmpty()) ? " [" + s.getSector() + "]" : "";
+        lblDireccion.setText("<html>" + direccion + "<br><span style='color:#3761eb; font-weight:bold;'>Sector: "
+                + (s.getSector() != null ? s.getSector() : "---") + "</span></html>");
+        lblDireccion.setBounds(25, 345, 300, 55); // Ajustado a 345 (y + 25) para alineación perfecta con el título en
+                                                  // y=320
         // Mostrar nombre del contrato en lugar del código
         String nombreContrato = s.getNombreSuscripcion() != null && !s.getNombreSuscripcion().isEmpty()
                 ? s.getNombreSuscripcion()
@@ -252,17 +257,17 @@ public class PanelDetalleContrato extends JPanel {
 
     private JLabel crearLabelTitulo(String texto, int y) {
         JLabel l = new JLabel(texto);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        l.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Aumentado de 11 a 13
         l.setForeground(new Color(148, 163, 184));
-        l.setBounds(25, y, 200, 15);
+        l.setBounds(25, y, 200, 18);
         return l;
     }
 
     private JLabel crearLabelValor(String texto, int y) {
         JLabel l = new JLabel(texto);
-        l.setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Letra un pelín más pequeña para que entre texto largo
+        l.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Mantener en 14 para que no sea muy grande
         l.setForeground(new Color(15, 23, 42));
-        l.setBounds(25, y, 300, 20);
+        l.setBounds(25, y, 300, 25); // Aumentado ligeramente alto de cada valor de 22 a 25
         return l;
     }
 }

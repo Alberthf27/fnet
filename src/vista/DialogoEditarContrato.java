@@ -581,7 +581,8 @@ public class DialogoEditarContrato extends JDialog {
 
         if (Principal.instancia != null)
             Principal.instancia.mostrarCarga(true);
-        setVisible(false);
+        // NO hacer setVisible(false) aquí - rompe la modalidad del diálogo
+        // Se cerrará con dispose() cuando el thread termine
 
         final double garantiaFinal = garantia; // Para uso en lambda
 
@@ -639,16 +640,10 @@ public class DialogoEditarContrato extends JDialog {
 
             boolean exito = idSuscripcionCreada > 0;
 
-            // Calcular si es cliente antiguo (más de 3 meses desde fecha inicio)
-            java.util.Calendar hoy = java.util.Calendar.getInstance();
-            java.util.Calendar fechaLimite = java.util.Calendar.getInstance();
-            fechaLimite.setTime(fechaInicio);
-            fechaLimite.add(java.util.Calendar.MONTH, 3);
-            boolean esClienteAntiguo = hoy.after(fechaLimite);
-
             boolean pagoRegistrado = false;
             int mesesGenerados = 0;
 
+            // Solo generar primer mes si es NUEVO contrato con mes adelantado
             if (exito && idSuscripcion == -1 && mesAdelantado) {
                 try {
                     DAO.PagoDAO pagoDao = new DAO.PagoDAO();
@@ -662,63 +657,44 @@ public class DialogoEditarContrato extends JDialog {
                     }
                     calInicio.set(java.util.Calendar.DAY_OF_MONTH, 1); // Normalizar al día 1
 
-                    if (esClienteAntiguo) {
-                        // MIGRACIÓN: Generar TODAS las facturas desde inicio hasta HOY
-                        java.util.Calendar calActual = java.util.Calendar.getInstance();
-                        calActual.set(java.util.Calendar.DAY_OF_MONTH, 1); // Normalizar
+                    // SOLO PRIMER MES
+                    String periodoMes = new java.text.SimpleDateFormat("MMMM yyyy",
+                            new java.util.Locale("es", "ES"))
+                            .format(calInicio.getTime()).toUpperCase();
 
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMMM yyyy",
-                                new java.util.Locale("es", "ES"));
+                    boolean marcarComoPagado = chkEjecutarPagoAdelantado.isSelected();
 
-                        while (!calInicio.after(calActual)) {
-                            String periodoMes = sdf.format(calInicio.getTime()).toUpperCase();
+                    // Calcular rango del periodo
+                    java.text.SimpleDateFormat sdfRango = new java.text.SimpleDateFormat("dd MMM",
+                            new java.util.Locale("es", "ES"));
+                    java.util.Calendar calRangoInicio = java.util.Calendar.getInstance();
+                    calRangoInicio.setTime(fechaInicio);
+                    calRangoInicio.set(java.util.Calendar.DAY_OF_MONTH, diaPago);
+                    java.util.Calendar calRangoFin = (java.util.Calendar) calRangoInicio.clone();
+                    calRangoFin.add(java.util.Calendar.MONTH, 1);
+                    String rangoPeriodo = sdfRango.format(calRangoInicio.getTime()) + " - " +
+                            sdfRango.format(calRangoFin.getTime());
 
-                            // Crear factura PAGADA
-                            boolean ok = pagoDao.crearFacturaManual(
-                                    idSuscripcionCreada,
-                                    periodoMes,
-                                    s.getMensualidad(),
-                                    2, // PAGADO
-                                    new java.sql.Date(calInicio.getTimeInMillis()),
-                                    false, // NO registrar en caja (migración)
-                                    1);
-                            if (ok)
-                                mesesGenerados++;
-                            System.out.println("[MIGRACIÓN] " + periodoMes + " -> PAGADO");
-
-                            calInicio.add(java.util.Calendar.MONTH, 1);
-                        }
-                        pagoRegistrado = mesesGenerados > 0;
-                        System.out.println("Migración completada: " + mesesGenerados + " meses generados");
-
-                    } else {
-                        // CLIENTE NUEVO: Solo primer mes según checkbox
-                        String periodoMes = new java.text.SimpleDateFormat("MMMM yyyy",
-                                new java.util.Locale("es", "ES"))
-                                .format(calInicio.getTime()).toUpperCase();
-
-                        boolean marcarComoPagado = chkEjecutarPagoAdelantado.isSelected();
-
-                        pagoRegistrado = pagoDao.crearFacturaManual(
-                                idSuscripcionCreada,
-                                periodoMes,
-                                s.getMensualidad(),
-                                marcarComoPagado ? 2 : 1,
-                                new java.sql.Date(fechaInicio.getTime()),
-                                marcarComoPagado,
-                                1);
-                        mesesGenerados = 1;
-                        String estado = marcarComoPagado ? "PAGADO" : "PENDIENTE";
-                        System.out.println("Factura " + estado + " creada para: " + periodoMes);
-                    }
+                    pagoRegistrado = pagoDao.crearFacturaManual(
+                            idSuscripcionCreada,
+                            periodoMes,
+                            s.getMensualidad(),
+                            marcarComoPagado ? 2 : 1,
+                            new java.sql.Date(fechaInicio.getTime()),
+                            marcarComoPagado,
+                            1,
+                            rangoPeriodo);
+                    mesesGenerados = 1;
+                    String estado = marcarComoPagado ? "PAGADO" : "PENDIENTE";
+                    System.out.println("Factura " + estado + " creada para: " + periodoMes + " (" + rangoPeriodo + ")");
                 } catch (Exception ex) {
-                    System.err.println("Error creando facturas: " + ex.getMessage());
+                    System.err.println("Error creando factura: " + ex.getMessage());
                     ex.printStackTrace();
                 }
             }
 
             // Variable para mantener compatibilidad con mensajes
-            final boolean deudaCreada = !pagoRegistrado && mesAdelantado && !esClienteAntiguo;
+            final boolean deudaCreada = !pagoRegistrado && mesAdelantado;
             final int mesesFinal = mesesGenerados;
 
             final boolean exitoFinal = exito;
