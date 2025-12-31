@@ -135,7 +135,9 @@ public class PagoDAO {
             LocalDate fechaInicio, fechaFin, fechaVencimiento;
             String nombrePeriodo, rangoPeriodo;
             DateTimeFormatter fmtMes = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("es", "ES"));
-            DateTimeFormatter fmtCorto = DateTimeFormatter.ofPattern("dd/MM/yy");
+            DateTimeFormatter fmtRango = DateTimeFormatter.ofPattern("dd MMM", new Locale("es", "ES")); // Formato
+                                                                                                        // legible: "17
+                                                                                                        // dic"
 
             if (esMesAdelantado) {
                 // PREPAGO: Cobra período ADELANTE
@@ -170,8 +172,8 @@ public class PagoDAO {
                 nombrePeriodo = mesNombre.substring(0, 1).toUpperCase() + mesNombre.substring(1).toLowerCase();
             }
 
-            // Formato del rango: "20/12/25 - 20/01/26"
-            rangoPeriodo = fechaInicio.format(fmtCorto) + " - " + fechaFin.format(fmtCorto);
+            // Formato del rango: "17 dic - 17 ene"
+            rangoPeriodo = fechaInicio.format(fmtRango) + " - " + fechaFin.format(fmtRango);
 
             // DEBUG: Mostrar qué periodo se está calculando
             System.out.println("   🔍 DEBUG Suscripción " + idSuscripcion + ":");
