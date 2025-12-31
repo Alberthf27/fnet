@@ -14,7 +14,7 @@ public class SuscripcionDAO {
         // --- CORRECCIÓN AQUÍ ---
         // Antes tenías: s.direccion_i
         String sql = "SELECT s.id_suscripcion, s.codigo_contrato, s.direccion_instalacion, s.fecha_inicio, s.activo, s.garantia, s.sector, "
-                + "c.nombres, c.apellidos, sv.descripcion, sv.mensualidad, s.mes_adelantado, s.equipos_prestados "
+                + "c.nombres, c.apellidos, c.dni, c.telefono, sv.descripcion, sv.mensualidad, s.mes_adelantado, s.equipos_prestados "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "
@@ -45,6 +45,8 @@ public class SuscripcionDAO {
 
                     // Datos Extras del JOIN
                     sus.setNombreCliente(rs.getString("nombres") + " " + rs.getString("apellidos"));
+                    sus.setDniCliente(rs.getString("dni"));
+                    sus.setTelefonoCliente(rs.getString("telefono"));
                     sus.setNombreServicio(rs.getString("descripcion"));
                     sus.setMontoMensual(rs.getDouble("mensualidad"));
                     // Dentro del while(rs.next()) de listarPaginado y listarTodo:
@@ -257,27 +259,33 @@ public class SuscripcionDAO {
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m1, "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(DATE_SUB(CURDATE(), INTERVAL 4 MONTH)), '%') LIMIT 1), '2')) as m1, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m2, "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)), '%') LIMIT 1), '2')) as m2, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m3, "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(DATE_SUB(CURDATE(), INTERVAL 2 MONTH)), '%') LIMIT 1), '2')) as m3, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m4, "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)), '%') LIMIT 1), '2')) as m4, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(CURDATE()),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m5, "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(CURDATE()),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(CURDATE()), '%') LIMIT 1), '2')) as m5, "
                 + "(SELECT COALESCE("
                 + "  (SELECT CASE WHEN id_estado = 2 THEN '1' ELSE '0' END FROM factura "
                 + "   WHERE id_suscripcion = s.id_suscripcion "
-                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_ADD(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%') LIMIT 1), '2')) as m6 "
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', LOWER(ELT(MONTH(DATE_ADD(CURDATE(), INTERVAL 1 MONTH)),'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre')), '%')"
+                + "   AND LOWER(periodo_mes) LIKE CONCAT('%', YEAR(DATE_ADD(CURDATE(), INTERVAL 1 MONTH)), '%') LIMIT 1), '2')) as m6 "
                 + "FROM suscripcion s "
                 + "INNER JOIN cliente c ON s.id_cliente = c.id_cliente "
                 + "INNER JOIN servicio sv ON s.id_servicio = sv.id_servicio "

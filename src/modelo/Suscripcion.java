@@ -18,6 +18,8 @@ public class Suscripcion {
     private double garantia; // Nuevo atributo
     // Campos visuales
     private String nombreCliente;
+    private String dniCliente; // DNI del cliente
+    private String telefonoCliente; // Teléfono del cliente
     private String nombreServicio;
     private double montoMensual; // Primitivo double (inicia en 0.0, no null)
     private int facturasPendientes;
@@ -114,8 +116,24 @@ public class Suscripcion {
         return nombreCliente;
     }
 
-    public void setNombreCliente(String n) {
-        this.nombreCliente = n;
+    public void setNombreCliente(String nombreCliente) {
+        this.nombreCliente = nombreCliente;
+    }
+
+    public String getDniCliente() {
+        return dniCliente;
+    }
+
+    public void setDniCliente(String dniCliente) {
+        this.dniCliente = dniCliente;
+    }
+
+    public String getTelefonoCliente() {
+        return telefonoCliente;
+    }
+
+    public void setTelefonoCliente(String telefonoCliente) {
+        this.telefonoCliente = telefonoCliente;
     }
 
     public String getNombreServicio() {

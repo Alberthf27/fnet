@@ -33,7 +33,7 @@ public class subpanel_DirectorioClientes extends JPanel {
     private JList<String> listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
     private List<String[]> clientesCache = new ArrayList<>(); // [0]=DNI, [1]=NOMBRE COMPLETO
-private List<Cliente> listaCache = new ArrayList<>();
+    private List<Cliente> listaCache = new ArrayList<>();
 
     public subpanel_DirectorioClientes() {
         setLayout(new BorderLayout());
@@ -44,13 +44,14 @@ private List<Cliente> listaCache = new ArrayList<>();
         precargarCacheBusqueda(); // Carga nombres y DNI en memoria
         initUI();
         initAutocompletado(); // Activamos el buscador inteligente
-        cargarClientes();     // Carga inicial paginada
+        cargarClientes(); // Carga inicial paginada
     }
 
     private void precargarCacheBusqueda() {
         new Thread(() -> {
             // Usamos obtenerListaSimpleClientes que devuelve [dni, nombre]
-            // Asegúrate de que este método exista en ClienteDAO (lo usamos en Suscripciones)
+            // Asegúrate de que este método exista en ClienteDAO (lo usamos en
+            // Suscripciones)
             clientesCache = clienteDAO.obtenerListaSimpleClientes();
         }).start();
     }
@@ -62,40 +63,40 @@ private List<Cliente> listaCache = new ArrayList<>();
         topPanel.setBackground(Color.WHITE);
 
         JLabel lblTitulo = new JLabel("DIRECTORIO");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 20)); // Aumentado de 18 a 20
         lblTitulo.setForeground(new Color(15, 23, 42));
-        lblTitulo.setBounds(0, 10, 120, 30);
+        lblTitulo.setBounds(0, 10, 150, 30);
         topPanel.add(lblTitulo);
 
         // BUSCADOR
         txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Buscar DNI o Nombre...");
-        txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtBuscar.setBounds(130, 10, 230, 30);
+        txtBuscar.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Aumentado de 12 a 14
+        txtBuscar.setBounds(155, 10, 250, 30);
         topPanel.add(txtBuscar);
 
         // FILTROS
-        cmbFiltro = new JComboBox<>(new String[]{"NOMBRE (A-Z)", "APELLIDO (A-Z)", "SOLO ACTIVOS", "SOLO BAJAS"});
-        cmbFiltro.setBounds(370, 10, 120, 30);
-        cmbFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        cmbFiltro = new JComboBox<>(new String[] { "NOMBRE (A-Z)", "APELLIDO (A-Z)", "SOLO ACTIVOS", "SOLO BAJAS" });
+        cmbFiltro.setBounds(415, 10, 120, 30);
+        cmbFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 12)); // Aumentado de 11 a 12
         cmbFiltro.setBackground(Color.WHITE);
         cmbFiltro.addActionListener(e -> {
-            paginaActual = 0; 
+            paginaActual = 0;
             cargarClientes();
         });
         topPanel.add(cmbFiltro);
 
         JButton btnBuscar = new JButton("🔍");
         estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
-        btnBuscar.setBounds(500, 10, 40, 30);
+        btnBuscar.setBounds(545, 10, 40, 30);
         btnBuscar.addActionListener(e -> buscar(txtBuscar.getText()));
         topPanel.add(btnBuscar);
 
         // BOTONES ACCIÓN
-        int xAccion = 560;
+        int xAccion = 600;
         JButton btnNuevo = new JButton("+ NUEVO");
         estilarBoton(btnNuevo, new Color(22, 163, 74), Color.WHITE);
-        btnNuevo.setBounds(xAccion, 10, 90, 30);
+        btnNuevo.setBounds(xAccion, 10, 95, 30);
         btnNuevo.addActionListener(e -> abrirFormulario(null));
         topPanel.add(btnNuevo);
 
@@ -114,22 +115,26 @@ private List<Cliente> listaCache = new ArrayList<>();
         add(topPanel, BorderLayout.NORTH);
 
         // --- 2. TABLA ---
-        String[] cols = {"ID", "DNI", "NOMBRES", "APELLIDOS", "DIRECCIÓN", "TELÉFONO", "ESTADO", "OBJ"};
+        String[] cols = { "ID", "DNI", "NOMBRES", "APELLIDOS", "DIRECCIÓN", "TELÉFONO", "ESTADO", "OBJ" };
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tabla.setRowHeight(30); // Aumentado de 25 a 30 para mejor legibilidad
+        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 13)); // Aumentado de 12 a 13
         tabla.setIntercellSpacing(new Dimension(0, 0));
         tabla.setShowVerticalLines(true);
         tabla.setShowHorizontalLines(true);
         tabla.setGridColor(new Color(220, 220, 220));
 
         // Ocultar columnas internas
-        tabla.getColumnModel().getColumn(0).setMinWidth(0); tabla.getColumnModel().getColumn(0).setMaxWidth(0);
-        tabla.getColumnModel().getColumn(7).setMinWidth(0); tabla.getColumnModel().getColumn(7).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(0).setMinWidth(0);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(7).setMinWidth(0);
+        tabla.getColumnModel().getColumn(7).setMaxWidth(0);
 
         // Anchos
         tabla.getColumnModel().getColumn(1).setPreferredWidth(80);
@@ -160,7 +165,7 @@ private List<Cliente> listaCache = new ArrayList<>();
         // Centro: Controles Paginación
         JPanel pnlPaginacion = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pnlPaginacion.setBackground(Color.WHITE);
-        
+
         btnAnterior = new JButton("<");
         estilarBoton(btnAnterior, Color.WHITE, Color.BLACK);
         btnAnterior.addActionListener(e -> cambiarPagina(-1));
@@ -175,11 +180,11 @@ private List<Cliente> listaCache = new ArrayList<>();
         pnlPaginacion.add(btnAnterior);
         pnlPaginacion.add(lblPagina);
         pnlPaginacion.add(btnSiguiente);
-        
+
         bottomPanel.add(pnlPaginacion, BorderLayout.CENTER);
-        
+
         // Derecha: Espacio vacío para equilibrar o poner algo más
-        JPanel pnlRight = new JPanel(); 
+        JPanel pnlRight = new JPanel();
         pnlRight.setBackground(Color.WHITE);
         pnlRight.setPreferredSize(new Dimension(100, 10));
         bottomPanel.add(pnlRight, BorderLayout.EAST);
@@ -203,16 +208,16 @@ private List<Cliente> listaCache = new ArrayList<>();
         });
         menuSugerencias.add(new JScrollPane(listaSugerencias));
 
-       txtBuscar.addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyReleased(KeyEvent e) {
-            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                cargarClientes(); // Recarga desde BD si da Enter
-            } else {
-                filtrarLocalmente(txtBuscar.getText()); // Filtra en memoria mientras escribe
+        txtBuscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    cargarClientes(); // Recarga desde BD si da Enter
+                } else {
+                    filtrarLocalmente(txtBuscar.getText()); // Filtra en memoria mientras escribe
+                }
             }
-        }
-    });
+        });
 
         listaSugerencias.addKeyListener(new KeyAdapter() {
             @Override
@@ -233,8 +238,9 @@ private List<Cliente> listaCache = new ArrayList<>();
         }
         int count = 0;
         for (String[] cli : clientesCache) {
-            if (count > 10) break;
-            
+            if (count > 10)
+                break;
+
             String dni = cli[0];
             String nombre = cli[1];
 
@@ -263,25 +269,26 @@ private List<Cliente> listaCache = new ArrayList<>();
             buscar(sel);
         }
     }
-    
+
     // Método auxiliar para agregar una fila al modelo de la tabla
     private void agregarFila(Cliente c) {
-        modelo.addRow(new Object[]{
-            c.getIdCliente(),
-            c.getDniCliente() != null ? c.getDniCliente() : "---",
-            c.getNombres(),
-            c.getApellidos() != null ? c.getApellidos() : "",
-            c.getDireccion() != null ? c.getDireccion() : "",
-            c.getTelefono() != null ? c.getTelefono() : "---",
-            (c.getActivo() == 1 ? "ACTIVO" : "BAJA"), // Estado visual
-            c // Objeto oculto en la columna 7 (importante para editar/eliminar)
+        modelo.addRow(new Object[] {
+                c.getIdCliente(),
+                c.getDniCliente() != null ? c.getDniCliente() : "---",
+                c.getNombres(),
+                c.getApellidos() != null ? c.getApellidos() : "",
+                c.getDireccion() != null ? c.getDireccion() : "",
+                c.getTelefono() != null ? c.getTelefono() : "---",
+                (c.getActivo() == 1 ? "ACTIVO" : "BAJA"), // Estado visual
+                c // Objeto oculto en la columna 7 (importante para editar/eliminar)
         });
     }
 
     // --- CARGA DE DATOS ---
     // REEMPLAZA TU MÉTODO cargarClientes() POR ESTE:
     private void cargarClientes() {
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        if (Principal.instancia != null)
+            Principal.instancia.mostrarCarga(true);
         modelo.setRowCount(0);
 
         new Thread(() -> {
@@ -289,15 +296,18 @@ private List<Cliente> listaCache = new ArrayList<>();
                 String filtro = (String) cmbFiltro.getSelectedItem();
                 // Usamos el nuevo método del DAO para traer TODO
                 List<Cliente> listaTraida = clienteDAO.listarTodo("", filtro);
-                
+
                 // Guardamos en memoria
                 listaCache = new ArrayList<>(listaTraida);
 
                 SwingUtilities.invokeLater(() -> {
                     llenarTabla(listaCache);
-                    if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+                    if (Principal.instancia != null)
+                        Principal.instancia.mostrarCarga(false);
                 });
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }).start();
     }
 
@@ -309,8 +319,8 @@ private List<Cliente> listaCache = new ArrayList<>();
         for (Cliente c : listaCache) {
             // Buscamos coincidencia en cualquier campo importante
             if ((c.getNombres() != null && c.getNombres().toLowerCase().contains(busqueda)) ||
-                (c.getApellidos() != null && c.getApellidos().toLowerCase().contains(busqueda)) ||
-                (c.getDniCliente() != null && c.getDniCliente().contains(busqueda))) {
+                    (c.getApellidos() != null && c.getApellidos().toLowerCase().contains(busqueda)) ||
+                    (c.getDniCliente() != null && c.getDniCliente().contains(busqueda))) {
                 resultados.add(c);
             }
         }
@@ -334,7 +344,8 @@ private List<Cliente> listaCache = new ArrayList<>();
             return;
         }
 
-        if (Principal.instancia != null) Principal.instancia.mostrarCarga(true);
+        if (Principal.instancia != null)
+            Principal.instancia.mostrarCarga(true);
         modelo.setRowCount(0);
 
         new Thread(() -> {
@@ -342,21 +353,21 @@ private List<Cliente> listaCache = new ArrayList<>();
             List<Cliente> lista = clienteDAO.buscarClientes(texto);
             SwingUtilities.invokeLater(() -> {
                 llenarTabla(lista);
-                
+
                 lblPagina.setText("Resultados: " + lista.size());
                 btnAnterior.setEnabled(false);
                 btnSiguiente.setEnabled(false);
-                
-                if (Principal.instancia != null) Principal.instancia.mostrarCarga(false);
+
+                if (Principal.instancia != null)
+                    Principal.instancia.mostrarCarga(false);
             });
         }).start();
     }
-    
-
 
     private void cambiarPagina(int dir) {
         paginaActual += dir;
-        if (paginaActual < 0) paginaActual = 0;
+        if (paginaActual < 0)
+            paginaActual = 0;
         cargarClientes();
     }
 
@@ -388,7 +399,8 @@ private List<Cliente> listaCache = new ArrayList<>();
             return;
         }
         Cliente c = (Cliente) modelo.getValueAt(fila, 7);
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Dar de baja a " + c.getNombres() + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Dar de baja a " + c.getNombres() + "?", "Confirmar",
+                JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (clienteDAO.eliminarCliente(c.getIdCliente())) {
                 cargarClientes();
@@ -408,7 +420,8 @@ private List<Cliente> listaCache = new ArrayList<>();
 
     class GeneralRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row, int col) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isS, boolean hasF, int row,
+                int col) {
             super.getTableCellRendererComponent(table, value, isS, hasF, row, col);
 
             if (col == 6) { // Estado

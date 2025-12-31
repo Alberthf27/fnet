@@ -207,14 +207,9 @@ public class subpanel_Suscripciones extends JPanel {
 
         // TabbedPane para vistas múltiples
         tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Fuente más grande para mejor visibilidad
         tabbedPane.setFocusable(false);
-
-        // Estilo moderno: Pestañas planas con indicador azul
-        UIManager.put("TabbedPane.selected", Color.WHITE);
-        UIManager.put("TabbedPane.contentAreaColor", Color.WHITE);
-        UIManager.put("TabbedPane.tabInsets", new Insets(8, 20, 8, 20)); // Más altas y anchas
-        UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0)); // Quitar borde de foco
+        tabbedPane.setBackground(Color.WHITE);
 
         tabbedPane.addTab("📋 TODOS", scrollTabla);
 
