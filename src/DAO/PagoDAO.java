@@ -173,38 +173,31 @@ public class PagoDAO {
             // Formato del rango: "20/12/25 - 20/01/26"
             rangoPeriodo = fechaInicio.format(fmtCorto) + " - " + fechaFin.format(fmtCorto);
 
-            // D. Buscar última factura para evitar duplicados
-            String sqlUltima = "SELECT fecha_vencimiento FROM factura WHERE id_suscripcion = ? ORDER BY fecha_vencimiento DESC LIMIT 1";
-            LocalDate ultimaFechaVencimiento = null;
+            // DEBUG: Mostrar qué periodo se está calculando
+            System.out.println("   🔍 DEBUG Suscripción " + idSuscripcion + ":");
+            System.out.println("      - Día pago: " + diaPago + ", Hoy: " + hoy);
+            System.out.println("      - Tipo: " + (esMesAdelantado ? "PREPAGO" : "POSTPAGO"));
+            System.out.println("      - Rango calculado: " + rangoPeriodo);
+            System.out.println("      - Periodo calculado: " + nombrePeriodo);
 
-            try (PreparedStatement ps = conn.prepareStatement(sqlUltima)) {
-                ps.setInt(1, idSuscripcion);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    Date fechaSql = rs.getDate(1);
-                    if (fechaSql != null) {
-                        ultimaFechaVencimiento = fechaSql.toLocalDate();
-                    }
-                }
-            }
-
-            // Si ya existe factura con este vencimiento o posterior, no generar
-            if (ultimaFechaVencimiento != null) {
-                if (!ultimaFechaVencimiento.isBefore(fechaVencimiento)) {
-                    System.out.println("   ℹ️ Suscripción " + idSuscripcion + " ya tiene factura");
-                    return false;
-                }
-            }
-
-            // E. Verificar que no exista factura para este periodo
+            // D. Verificar que no exista factura para este periodo (ÚNICA VALIDACIÓN
+            // CONFIABLE)
             String sqlExiste = "SELECT COUNT(*) FROM factura WHERE id_suscripcion = ? AND periodo_mes = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlExiste)) {
                 ps.setInt(1, idSuscripcion);
                 ps.setString(2, nombrePeriodo);
+
+                System.out.println("      - SQL: " + sqlExiste);
+                System.out.println("      - Parámetros: id_suscripcion=" + idSuscripcion + ", periodo_mes='"
+                        + nombrePeriodo + "'");
+
                 ResultSet rs = ps.executeQuery();
                 if (rs.next() && rs.getInt(1) > 0) {
-                    System.out.println("   ℹ️ Ya existe factura para periodo: " + nombrePeriodo);
+                    int count = rs.getInt(1);
+                    System.out.println("      ❌ Ya existe " + count + " factura(s) para periodo: " + nombrePeriodo);
                     return false;
+                } else {
+                    System.out.println("      ✅ No existe factura para " + nombrePeriodo + " - Generando...");
                 }
             }
 
@@ -357,7 +350,7 @@ public class PagoDAO {
         String sql = "SELECT id_factura, periodo_mes, fecha_vencimiento, monto_total, monto_pagado, fecha_pago, id_estado, "
                 +
                 "COALESCE(rango_periodo, '') as rango_periodo " +
-                "FROM factura WHERE id_suscripcion = ? ORDER BY fecha_vencimiento DESC";
+                "FROM factura WHERE id_suscripcion = ? ORDER BY fecha_emision DESC, id_factura DESC";
 
         try (Connection conn = Conexion.getConexion();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -670,5 +663,29 @@ public class PagoDAO {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Cuenta cuántas facturas pendientes tiene una suscripción.
+     * Usado para determinar si enviar advertencia de corte (3+ meses).
+     */
+    public int contarFacturasPendientes(int idSuscripcion) {
+        String sql = "SELECT COUNT(*) as total FROM factura WHERE id_suscripcion = ? AND id_estado = 1";
+
+        try (Connection conn = Conexion.getConexion();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idSuscripcion);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error contando facturas pendientes: " + e.getMessage());
+        }
+
+        return 0;
     }
 }

@@ -36,21 +36,13 @@ public class CobrosAutomaticoService {
         this.pagoDAO = new PagoDAO();
         this.mensajeService = new MensajeTemplateService();
 
-        // FECHA DE ACTIVACIÓN DE WHATSAPP: 10 de Enero 2026
-        LocalDate fechaActivacionWhatsApp = LocalDate.of(2026, 1, 10);
-        boolean whatsAppActivo = LocalDate.now().isAfter(fechaActivacionWhatsApp) ||
-                LocalDate.now().isEqual(fechaActivacionWhatsApp);
-
-        // Usar implementación real solo si: 1) Está habilitado en config Y 2) Ya pasó
-        // la fecha de activación
-        if (whatsAppActivo && configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO)) {
-            this.whatsAppService = new CallMeBotWhatsAppService();
-            System.out.println("📱 WhatsApp REAL activado");
+        // WhatsApp con Twilio - ACTIVADO INMEDIATAMENTE
+        if (configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO)) {
+            this.whatsAppService = new TwilioWhatsAppService(); // Twilio en lugar de CallMeBot
+            System.out.println("📱 WhatsApp REAL activado (Twilio)");
         } else {
             this.whatsAppService = new WhatsAppServiceMock();
-            if (!whatsAppActivo) {
-                System.out.println("📱 WhatsApp DESHABILITADO hasta " + fechaActivacionWhatsApp);
-            }
+            System.out.println("📱 WhatsApp DESHABILITADO en configuración");
         }
 
         if (configDAO.obtenerValorBoolean(ConfiguracionDAO.ROUTER_HABILITADO)) {
@@ -117,11 +109,11 @@ public class CobrosAutomaticoService {
      * la factura del siguiente periodo si corresponde.
      */
     public void generarFacturasFaltantes() {
-        System.out.println("\n📋 Revisando facturas faltantes para TODOS los clientes...");
+        System.out.println("\n📋 [v2.0-DEBUG] Revisando facturas faltantes para TODOS los clientes...");
 
         // Seleccionar TODAS las suscripciones activas
         String sql = "SELECT s.id_suscripcion, s.id_cliente, s.mes_adelantado, s.dia_pago, " +
-                "c.nombres, c.apellidos, c.telefono, " +
+                "c.nombres, c.apellidos, c.telefono, c.dni_cliente, " + // CORREGIDO: c.dni_cliente
                 "srv.mensualidad, s.codigo_contrato " +
                 "FROM suscripcion s " +
                 "JOIN cliente c ON s.id_cliente = c.id_cliente " +
@@ -142,6 +134,7 @@ public class CobrosAutomaticoService {
                     boolean mesAdelantado = rs.getInt("mes_adelantado") == 1;
                     String nombreCliente = rs.getString("nombres") + " " + rs.getString("apellidos");
                     String telefono = rs.getString("telefono");
+                    String dni = rs.getString("dni_cliente"); // CORREGIDO: dni_cliente
                     double monto = rs.getDouble("mensualidad");
 
                     // Intentar generar factura (el método ya valida si corresponde)
@@ -150,13 +143,38 @@ public class CobrosAutomaticoService {
                     if (generada) {
                         facturasGeneradas++;
 
-                        // Si es PREPAGO, programar notificación
-                        if (mesAdelantado) {
+                        // Contar facturas pendientes DESPUÉS de generar la nueva
+                        int facturasPendientes = pagoDAO.contarFacturasPendientes(idSuscripcion);
+
+                        // ⚠️ MODO PRUEBA: Solo enviar a DNI 60799166
+                        boolean esPrueba = "60799166".equals(dni);
+
+                        if (esPrueba) {
+                            // NOTIFICACIÓN MENSUAL: Siempre enviar cuando se genera factura
                             String periodo = mensajeService.formatearPeriodo(LocalDate.now());
-                            programarNotificacionRecordatorio(
-                                    idSuscripcion, nombreCliente, telefono,
-                                    periodo, monto, LocalDate.now());
+                            String mensajePago = String.format(
+                                    "Hola %s, te recordamos que ya está disponible tu pago del mes de %s por S/. %.2f. ¡Gracias!",
+                                    nombreCliente, periodo, monto);
+                            whatsAppService.enviarMensaje(telefono, mensajePago);
                             notificacionesProgramadas++;
+                            System.out.println("   📱 Notificación enviada a cliente de prueba: " + nombreCliente);
+                        } else {
+                            System.out.println(
+                                    "   ⏭️ Cliente omitido (no es prueba): " + nombreCliente + " - DNI: " + dni);
+                        }
+
+                        // ADVERTENCIA DE CORTE: Si llega a 3 meses de deuda (solo para cliente de
+                        // prueba)
+                        if (esPrueba && facturasPendientes >= 3) {
+                            double deudaTotal = monto * facturasPendientes;
+                            String mensajeUrgente = String.format(
+                                    "⚠️ AVISO IMPORTANTE %s: Tienes %d meses de deuda acumulada (S/. %.2f). " +
+                                            "Debes regularizar tu pago en los próximos 5 días para evitar el corte de servicio. "
+                                            +
+                                            "Comunícate con nosotros para coordinar tu pago.",
+                                    nombreCliente, facturasPendientes, deudaTotal);
+                            whatsAppService.enviarMensaje(telefono, mensajeUrgente);
+                            System.out.println("   ⚠️ Advertencia de corte enviada a: " + nombreCliente);
                         }
                     }
                 }
