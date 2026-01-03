@@ -22,6 +22,8 @@ public class MotorAutomatizacion {
     private final CobrosAutomaticoService cobrosService;
     private final ConfiguracionDAO configDAO;
     private final ScheduledExecutorService scheduler;
+    private final EmailMonitorService emailMonitor;
+    private final YapePagoProcessor yapeProcesador;
 
     private boolean ejecutandose = false;
 
@@ -29,6 +31,8 @@ public class MotorAutomatizacion {
         this.cobrosService = new CobrosAutomaticoService();
         this.configDAO = new ConfiguracionDAO();
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        this.emailMonitor = new EmailMonitorService();
+        this.yapeProcesador = new YapePagoProcessor();
     }
 
     /**
@@ -62,6 +66,23 @@ public class MotorAutomatizacion {
             // SIEMPRE ejecutar el proceso de cobros
             // La generación de facturas es independiente de WhatsApp/Router
             cobrosService.ejecutarProcesoDiario();
+
+            // Procesar pagos Yape
+            try {
+                System.out.println("\n💰 Procesando pagos Yape...");
+                java.util.List<java.io.File> excels = emailMonitor.descargarNuevosReportes();
+
+                for (java.io.File excel : excels) {
+                    yapeProcesador.procesarExcel(excel);
+                }
+
+                // Limpiar archivos procesados
+                emailMonitor.limpiarArchivosAntiguos();
+
+            } catch (Exception e) {
+                System.err.println("❌ Error procesando pagos Yape: " + e.getMessage());
+                e.printStackTrace();
+            }
 
         } catch (Exception e) {
             System.err.println("❌ Error crítico en MotorAutomatizacion: " + e.getMessage());

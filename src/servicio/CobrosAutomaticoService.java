@@ -36,10 +36,10 @@ public class CobrosAutomaticoService {
         this.pagoDAO = new PagoDAO();
         this.mensajeService = new MensajeTemplateService();
 
-        // WhatsApp con Twilio - ACTIVADO INMEDIATAMENTE
+        // WhatsApp con Evolution API - ACTIVADO INMEDIATAMENTE
         if (configDAO.obtenerValorBoolean(ConfiguracionDAO.WHATSAPP_HABILITADO)) {
-            this.whatsAppService = new TwilioWhatsAppService(); // Twilio en lugar de CallMeBot
-            System.out.println("📱 WhatsApp REAL activado (Twilio)");
+            this.whatsAppService = new WhatsappService(); // Evolution API (gratis, sin límites)
+            System.out.println("📱 WhatsApp REAL activado (Evolution API)");
         } else {
             this.whatsAppService = new WhatsAppServiceMock();
             System.out.println("📱 WhatsApp DESHABILITADO en configuración");
@@ -146,16 +146,30 @@ public class CobrosAutomaticoService {
                         // Contar facturas pendientes DESPUÉS de generar la nueva
                         int facturasPendientes = pagoDAO.contarFacturasPendientes(idSuscripcion);
 
-                        // ⚠️ MODO PRUEBA: Solo enviar a DNI 60799166
-                        boolean esPrueba = "60799166".equals(dni);
+                        // ⚠️ MODO PRUEBA: Solo enviar a DNI 44085317
+                        boolean esPrueba = "44085317".equals(dni);
 
                         if (esPrueba) {
-                            // NOTIFICACIÓN MENSUAL: Siempre enviar cuando se genera factura
-                            String periodo = mensajeService.formatearPeriodo(LocalDate.now());
-                            String mensajePago = String.format(
-                                    "Hola %s, te recordamos que ya está disponible tu pago del mes de %s por S/. %.2f. ¡Gracias!",
-                                    nombreCliente, periodo, monto);
-                            whatsAppService.enviarMensaje(telefono, mensajePago);
+                            // Obtener información de la factura recién generada
+                            String facturaInfo = pagoDAO.obtenerUltimaFacturaInfo(idSuscripcion);
+
+                            // Obtener lista de facturas pendientes
+                            String facturasPendientesDetalle = pagoDAO.obtenerFacturasPendientesDetalle(idSuscripcion);
+
+                            // Construir mensaje mejorado
+                            StringBuilder mensaje = new StringBuilder();
+                            mensaje.append("Hola ").append(nombreCliente).append(", ");
+                            mensaje.append("te recordamos que ya está disponible tu pago ").append(facturaInfo);
+                            mensaje.append(" por S/. ").append(String.format("%.2f", monto)).append(".");
+
+                            // Agregar facturas pendientes si hay más de una
+                            if (facturasPendientes > 1) {
+                                mensaje.append("\n\n📋 Facturas pendientes:\n").append(facturasPendientesDetalle);
+                            }
+
+                            mensaje.append("\n\n¡Gracias!");
+
+                            whatsAppService.enviarMensaje(telefono, mensaje.toString());
                             notificacionesProgramadas++;
                             System.out.println("   📱 Notificación enviada a cliente de prueba: " + nombreCliente);
                         } else {
@@ -338,12 +352,15 @@ public class CobrosAutomaticoService {
     public void procesarNotificacionesPendientes() {
         System.out.println("\n📤 Procesando notificaciones pendientes...");
 
-        // NO procesar notificaciones hasta el 10 de Enero 2026
+        // MODO PRUEBA: Notificaciones habilitadas SOLO para DNI 44085317
+        // Fecha de activación general: 10 de Enero 2026
         LocalDate fechaActivacion = LocalDate.of(2026, 1, 10);
-        if (LocalDate.now().isBefore(fechaActivacion)) {
-            System.out.println("   ⏳ Notificaciones DESHABILITADAS hasta " + fechaActivacion);
-            System.out.println("   ℹ️ Las notificaciones se acumularán y enviarán después de esa fecha.");
-            return;
+        boolean modoPrueba = LocalDate.now().isBefore(fechaActivacion);
+
+        if (modoPrueba) {
+            System.out.println("   🧪 MODO PRUEBA ACTIVO");
+            System.out.println("   ⏳ Notificaciones generales deshabilitadas hasta " + fechaActivacion);
+            System.out.println("   ✅ Solo se enviarán notificaciones al cliente DNI: 44085317");
         }
 
         List<NotificacionPendiente> pendientes = notificacionDAO.obtenerPendientes();
@@ -351,8 +368,20 @@ public class CobrosAutomaticoService {
         int enviados = 0;
         int sinTelefono = 0;
         int errores = 0;
+        int filtrados = 0;
 
         for (NotificacionPendiente n : pendientes) {
+            // FILTRO DE PRUEBA: Solo enviar a DNI 44085317 si estamos en modo prueba
+            if (modoPrueba) {
+                // Obtener DNI del cliente desde la suscripción
+                String dniCliente = suscripcionDAO.obtenerDNICliente(n.getIdSuscripcion());
+                if (!"44085317".equals(dniCliente)) {
+                    filtrados++;
+                    continue; // Saltar este cliente
+                }
+                System.out.println("   🎯 Cliente de prueba detectado (DNI: 44085317) - Enviando notificación...");
+            }
+
             if (!n.tieneTelefono()) {
                 notificacionDAO.marcarSinTelefono(n.getIdNotificacion());
                 alertaDAO.crearAlertaSinTelefono(
@@ -382,6 +411,9 @@ public class CobrosAutomaticoService {
         }
 
         System.out.println("   ✅ Enviados: " + enviados);
+        if (modoPrueba && filtrados > 0) {
+            System.out.println("   🚫 Filtrados (modo prueba): " + filtrados);
+        }
         System.out.println("   📵 Sin teléfono: " + sinTelefono);
         System.out.println("   ❌ Errores: " + errores);
     }

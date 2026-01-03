@@ -468,4 +468,28 @@ public class SuscripcionDAO {
         return null;
     }
 
+    /**
+     * Obtiene el DNI del cliente asociado a una suscripción.
+     * Útil para filtros de prueba.
+     * 
+     * @param idSuscripcion ID de la suscripción
+     * @return DNI del cliente, o null si no se encuentra
+     */
+    public String obtenerDNICliente(int idSuscripcion) {
+        String sql = "SELECT c.dni_cliente FROM cliente c " +
+                "INNER JOIN suscripcion s ON s.id_cliente = c.id_cliente " +
+                "WHERE s.id_suscripcion = ?";
+        try (Connection con = bd.Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idSuscripcion);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("dni_cliente");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

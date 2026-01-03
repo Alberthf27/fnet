@@ -1,0 +1,36 @@
+// ============================================
+// AGREGAR ESTE MÉTODO AL FINAL DE ClienteDAO.java
+// ANTES DEL ÚLTIMO }
+// ============================================
+
+    /**
+     * Busca un cliente por DNI y retorna sus datos en un Map.
+     * Usado para procesamiento automático de pagos Yape.
+     * 
+     * @param dni DNI del cliente a buscar
+     * @return Map con datos del cliente o null si no existe
+     */
+    public java.util.Map<String, Object> buscarPorDNI(String dni) {
+        String sql = "SELECT id_cliente, dni_cliente, nombres, apellidos, telefono FROM cliente " +
+                     "WHERE dni_cliente = ? AND activo = 1";
+        
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, dni);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                java.util.Map<String, Object> cliente = new java.util.HashMap<>();
+                cliente.put("id_cliente", rs.getInt("id_cliente"));
+                cliente.put("dni_cliente", rs.getString("dni_cliente"));
+                cliente.put("nombres", rs.getString("nombres"));
+                cliente.put("apellidos", rs.getString("apellidos"));
+                cliente.put("telefono", rs.getString("telefono"));
+                return cliente;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscando cliente por DNI: " + e.getMessage());
+        }
+        
+        return null;
+    }

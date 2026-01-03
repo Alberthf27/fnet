@@ -66,10 +66,13 @@ public class DialogoHistorial extends JDialog {
         btnAgregar.addActionListener(e -> abrirDialogoAgregarMes());
         pnlAcciones.add(btnAgregar);
 
-        JButton btnGenerarAnio = new JButton("Generar Anio Completo");
-        estilarBoton(btnGenerarAnio, new Color(22, 163, 74), Color.WHITE);
-        btnGenerarAnio.addActionListener(e -> abrirDialogoGenerarAnio());
-        pnlAcciones.add(btnGenerarAnio);
+        // DESHABILITADO: Botón Generar Año Completo
+        /*
+         * JButton btnGenerarAnio = new JButton("Generar Anio Completo");
+         * estilarBoton(btnGenerarAnio, new Color(22, 163, 74), Color.WHITE);
+         * btnGenerarAnio.addActionListener(e -> abrirDialogoGenerarAnio());
+         * pnlAcciones.add(btnGenerarAnio);
+         */
 
         topPanel.add(pnlAcciones, BorderLayout.EAST);
         add(topPanel, BorderLayout.NORTH);
@@ -561,14 +564,16 @@ public class DialogoHistorial extends JDialog {
             String estado = table.getValueAt(row, 5).toString();
             boolean esPendiente = estado.contains("PENDIENTE");
 
-            // Boton Editar
-            JButton btnEditar = new JButton("Editar");
-            btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            btnEditar.setBackground(new Color(59, 130, 246));
-            btnEditar.setForeground(Color.WHITE);
-            btnEditar.setFocusPainted(false);
-            btnEditar.setPreferredSize(new Dimension(60, 24));
-            panel.add(btnEditar);
+            // DESHABILITADO: Botón Editar
+            /*
+             * JButton btnEditar = new JButton("Editar");
+             * btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+             * btnEditar.setBackground(new Color(59, 130, 246));
+             * btnEditar.setForeground(Color.WHITE);
+             * btnEditar.setFocusPainted(false);
+             * btnEditar.setPreferredSize(new Dimension(60, 24));
+             * panel.add(btnEditar);
+             */
 
             // Boton Boleta (para reimprimir) - DESHABILITADO si está pendiente
             JButton btnBoleta = new JButton("Boleta");
