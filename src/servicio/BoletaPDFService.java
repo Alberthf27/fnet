@@ -277,14 +277,11 @@ public class BoletaPDFService {
             }
             documento.add(tablaAdicional);
 
-            // --- MENSAJE FINAL ---
-            Paragraph gracias = new Paragraph("¡Gracias por su preferencia!", fuenteSubtitulo);
-            gracias.setAlignment(Element.ALIGN_CENTER);
-            documento.add(gracias);
-
-            Paragraph conservar = new Paragraph("Conserve esta boleta como comprobante de pago", fuentePequena);
-            conservar.setAlignment(Element.ALIGN_CENTER);
-            documento.add(conservar);
+            // --- MENSAJE FINAL (compacto para caber en 1 hoja) ---
+            Paragraph footer = new Paragraph("¡Gracias! Conserve esta boleta como comprobante de pago", fuentePequena);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            footer.setSpacingBefore(5f); // Espacio mínimo
+            documento.add(footer);
 
             documento.close();
 

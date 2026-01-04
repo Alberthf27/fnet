@@ -1,86 +1,130 @@
 package vista;
 
+import java.awt.*;
+import javax.swing.*;
+
 public class PanelPagos extends javax.swing.JPanel {
 
-    public PanelPagos() {
-        // 1. Dejar que NetBeans inicialice su diseño básico
-        initComponents();
+        public PanelPagos() {
+                // 1. Dejar que NetBeans inicialice su diseño básico
+                initComponents();
 
-        // 2. AHORA SOBRESCRIBIMOS EL DISEÑO
-        // Usamos la variable que NetBeans creó (jTabbedPane2 en tu caso)
-        // Limpiar las pestañas vacías (jPanel1, jPanel2) que puso el diseñador
-        jTabbedPane2.removeAll();
+                // 2. AHORA SOBRESCRIBIMOS EL DISEÑO
+                // Usamos la variable que NetBeans creó (jTabbedPane2 en tu caso)
+                // Limpiar las pestañas vacías (jPanel1, jPanel2) que puso el diseñador
+                jTabbedPane2.removeAll();
 
-        // Agregar nuestros paneles reales
-        jTabbedPane2.addTab("Caja / Registrar Pago",
-                cargarIcono("/img/pagos.png"),
-                new subpanel_Caja()); // <--- Tu clase potente
+                // Agregar nuestros paneles reales
+                jTabbedPane2.addTab("Caja / Registrar Pago",
+                                cargarIcono("/img/pagos.png"),
+                                new subpanel_Caja()); // <--- Tu clase potente
 
-        jTabbedPane2.addTab("Cierre de Caja",
-                cargarIcono("/img/list.png"),
-                new subpanel_HistorialCaja()); // <--- Tu clase potente
-    }
+                jTabbedPane2.addTab("Cierre de Caja",
+                                cargarIcono("/img/list.png"),
+                                new subpanel_HistorialCaja()); // <--- Tu clase potente
 
-    // Método auxiliar seguro para iconos
-    private javax.swing.Icon cargarIcono(String ruta) {
-        try {
-            java.net.URL url = getClass().getResource(ruta);
-            return (url != null) ? new javax.swing.ImageIcon(url) : null;
-        } catch (Exception e) {
-            return null;
+                // Agregar pestaña de Yape solo para gerente (lazy loading)
+                try {
+                        modelo.Empleado empleado = Principal.instancia.getEmpleadoLogueado();
+
+                        // DEBUG
+                        System.out.println("=== DEBUG YAPE TAB ===");
+                        if (empleado != null) {
+                                System.out.println("Empleado: " + empleado.getNombres());
+                                System.out.println("ID Rol: " + empleado.getRolIdRol());
+                        } else {
+                                System.out.println("Empleado es NULL");
+                        }
+
+                        // Verificar si es gerente (rol ID 1 o nombre "Gerente")
+                        boolean esGerente = empleado != null &&
+                                        (empleado.getRolIdRol() != null && empleado.getRolIdRol().longValue() == 1L);
+
+                        System.out.println("Es gerente: " + esGerente);
+
+                        if (esGerente) {
+                                System.out.println("AGREGANDO PESTANA YAPE...");
+                                // Crear placeholder para Yape (carga lazy)
+                                JPanel placeholderYape = new JPanel(new BorderLayout());
+                                placeholderYape.setBackground(Color.WHITE);
+                                JLabel lblCargando = new JLabel("Cargando...", SwingConstants.CENTER);
+                                placeholderYape.add(lblCargando);
+
+                                jTabbedPane2.addTab("Procesar Yape",
+                                                cargarIcono("/img/yape.png"),
+                                                placeholderYape);
+
+                                System.out.println("Total pestanas: " + jTabbedPane2.getTabCount());
+
+                                // Cargar panel real solo cuando se seleccione
+                                jTabbedPane2.addChangeListener(e -> {
+                                        int idx = jTabbedPane2.getSelectedIndex();
+                                        if (idx == 2 && jTabbedPane2.getComponentAt(idx) == placeholderYape) {
+                                                jTabbedPane2.setComponentAt(idx, new PanelSubirYape());
+                                        }
+                                });
+                        }
+                } catch (Exception e) {
+                        // Si no hay empleado logueado, no mostrar pestaña Yape
+                        System.err.println("Error verificando rol: " + e.getMessage());
+                        e.printStackTrace();
+                }
         }
-    }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+        // Método auxiliar seguro para iconos
+        private javax.swing.Icon cargarIcono(String ruta) {
+                try {
+                        java.net.URL url = getClass().getResource(ruta);
+                        return (url != null) ? new javax.swing.ImageIcon(url) : null;
+                } catch (Exception e) {
+                        return null;
+                }
+        }
 
-        jTabbedPane2 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
-        jPanel2 = new javax.swing.JPanel();
+        @SuppressWarnings("unchecked")
+        // <editor-fold defaultstate="collapsed" desc="Generated
+        // Code">//GEN-BEGIN:initComponents
+        private void initComponents() {
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1214, Short.MAX_VALUE)
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 693, Short.MAX_VALUE)
-        );
+                jTabbedPane2 = new javax.swing.JTabbedPane();
+                jPanel1 = new javax.swing.JPanel();
+                jPanel2 = new javax.swing.JPanel();
 
-        jTabbedPane2.addTab("Registrar Pagos", jPanel1);
+                javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+                jPanel1.setLayout(jPanel1Layout);
+                jPanel1Layout.setHorizontalGroup(
+                                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGap(0, 1214, Short.MAX_VALUE));
+                jPanel1Layout.setVerticalGroup(
+                                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGap(0, 693, Short.MAX_VALUE));
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1214, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 693, Short.MAX_VALUE)
-        );
+                jTabbedPane2.addTab("Registrar Pagos", jPanel1);
 
-        jTabbedPane2.addTab("Historial Caja", jPanel2);
+                javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+                jPanel2.setLayout(jPanel2Layout);
+                jPanel2Layout.setHorizontalGroup(
+                                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGap(0, 1214, Short.MAX_VALUE));
+                jPanel2Layout.setVerticalGroup(
+                                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGap(0, 693, Short.MAX_VALUE));
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane2)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane2)
-        );
-    }// </editor-fold>//GEN-END:initComponents
+                jTabbedPane2.addTab("Historial Caja", jPanel2);
 
+                javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+                this.setLayout(layout);
+                layout.setHorizontalGroup(
+                                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addComponent(jTabbedPane2));
+                layout.setVerticalGroup(
+                                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addComponent(jTabbedPane2));
+        }// </editor-fold>//GEN-END:initComponents
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JTabbedPane jTabbedPane2;
-    // End of variables declaration//GEN-END:variables
+        // Variables declaration - do not modify//GEN-BEGIN:variables
+        private javax.swing.JPanel jPanel1;
+        private javax.swing.JPanel jPanel2;
+        private javax.swing.JTabbedPane jTabbedPane2;
+        // End of variables declaration//GEN-END:variables
 }

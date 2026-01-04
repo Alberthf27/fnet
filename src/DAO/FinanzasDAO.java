@@ -486,4 +486,150 @@ public class FinanzasDAO {
             return false;
         }
     }
+
+    // ========== MÉTODOS ISP PARA PANEL DE FINANZAS ==========
+
+    public int obtenerClientesActivos() {
+        String sql = "SELECT COUNT(*) FROM suscripcion WHERE activo = 1";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public double obtenerTasaCobro() {
+        String sql = "SELECT " +
+                "(COUNT(CASE WHEN id_estado = 2 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as tasa " +
+                "FROM factura " +
+                "WHERE MONTH(fecha_emision) = MONTH(CURDATE()) " +
+                "AND YEAR(fecha_emision) = YEAR(CURDATE())";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getDouble("tasa");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+
+    public double obtenerIngresosMesActual() {
+        String sql = "SELECT COALESCE(SUM(monto), 0) as total " +
+                "FROM pago " +
+                "WHERE MONTH(fecha_pago) = MONTH(CURDATE()) " +
+                "AND YEAR(fecha_pago) = YEAR(CURDATE())";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getDouble("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+
+    public int obtenerFacturasVencidas() {
+        String sql = "SELECT COUNT(*) FROM factura " +
+                "WHERE id_estado = 1 AND fecha_vencimiento < CURDATE()";
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<Object[]> obtenerIngresosUltimos6Meses() {
+        List<Object[]> datos = new ArrayList<>();
+        String sql = "SELECT " +
+                "DATE_FORMAT(MIN(fecha_pago), '%b %Y') as mes, " +
+                "COALESCE(SUM(monto), 0) as total " +
+                "FROM pago " +
+                "WHERE fecha_pago >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) " +
+                "GROUP BY YEAR(fecha_pago), MONTH(fecha_pago) " +
+                "ORDER BY YEAR(fecha_pago) ASC, MONTH(fecha_pago) ASC";
+
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                datos.add(new Object[] {
+                        rs.getString("mes"),
+                        rs.getDouble("total")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return datos; // Retorna lista vacía si hay error, nunca null
+    }
+
+    public List<Object[]> obtenerDistribucionServicios() {
+        List<Object[]> datos = new ArrayList<>();
+        String sql = "SELECT " +
+                "CONCAT(s.velocidad, ' Mbps') as servicio, " +
+                "COUNT(*) as cantidad " +
+                "FROM suscripcion sub " +
+                "INNER JOIN servicio s ON sub.id_servicio = s.id_servicio " +
+                "WHERE sub.activo = 1 " +
+                "GROUP BY s.velocidad " +
+                "ORDER BY cantidad DESC";
+
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                datos.add(new Object[] {
+                        rs.getString("servicio"),
+                        rs.getInt("cantidad")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return datos;
+    }
+
+    public List<Object[]> obtenerEstadoPagos() {
+        List<Object[]> datos = new ArrayList<>();
+        String sql = "SELECT " +
+                "CASE " +
+                "  WHEN id_estado = 2 THEN 'Al dia' " +
+                "  WHEN id_estado = 1 AND fecha_vencimiento < CURDATE() THEN 'Vencidas' " +
+                "  ELSE 'Pendientes' " +
+                "END as estado_pago, " +
+                "COUNT(*) as cantidad " +
+                "FROM factura " +
+                "WHERE MONTH(fecha_emision) = MONTH(CURDATE()) " +
+                "AND YEAR(fecha_emision) = YEAR(CURDATE()) " +
+                "GROUP BY estado_pago";
+
+        try (Connection con = Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                datos.add(new Object[] {
+                        rs.getString("estado"),
+                        rs.getInt("cantidad")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return datos;
+    }
 }

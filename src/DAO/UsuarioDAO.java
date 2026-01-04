@@ -16,7 +16,7 @@ public class UsuarioDAO {
         Empleado empleado = null;
 
         // SQL: Traemos id_empleado y rol desde la tabla usuario
-        String sql = "SELECT e.id_empleado, e.nombres, e.apellidos, r.nombre AS rol_nombre "
+        String sql = "SELECT e.id_empleado, e.nombres, e.apellidos, u.id_rol, r.nombre AS rol_nombre "
                 + "FROM usuario u "
                 + "INNER JOIN empleado e ON u.id_empleado = e.id_empleado "
                 + "INNER JOIN rol r ON u.id_rol = r.id_rol "
@@ -38,8 +38,10 @@ public class UsuarioDAO {
                     empleado.setNombres(rs.getString("nombres"));
                     empleado.setApellidos(rs.getString("apellidos"));
 
-                    // 3. ¡DESCOMENTA ESTO! (Para que salga el rol en el Dashboard)
-                    // Asegúrate de que tu consulta SQL tenga: "r.nombre AS rol_nombre"
+                    // 3. ROL ID (CRÍTICO para pestaña Yape)
+                    empleado.setRolIdRol(rs.getLong("id_rol"));
+
+                    // 4. Cargo/Rol en texto (Para que salga el rol en el Dashboard)
                     empleado.setCargo(rs.getString("rol_nombre"));
 
                     System.out.println("✅ Login exitoso: " + empleado.getNombres());

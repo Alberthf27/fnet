@@ -19,7 +19,7 @@ public class subpanel_Instalaciones extends JPanel {
     private JTable tabla;
     private DefaultTableModel modelo;
     private JComboBox<String> cmbFiltroEstado;
-    
+
     // Campos del formulario derecho
     private JTextField txtCliente, txtDireccion, txtFecha;
     private JComboBox<String> cmbTecnico;
@@ -48,28 +48,30 @@ public class subpanel_Instalaciones extends JPanel {
         lblFiltro.setBounds(30, 70, 100, 35);
         add(lblFiltro);
 
-        cmbFiltroEstado = new JComboBox<>(new String[]{"PENDIENTES", "REALIZADAS", "CANCELADAS"});
+        cmbFiltroEstado = new JComboBox<>(new String[] { "PENDIENTES", "REALIZADAS", "CANCELADAS" });
         cmbFiltroEstado.setBounds(100, 70, 150, 35);
         add(cmbFiltroEstado);
 
-        JButton btnRefrescar = new JButton("🔄 Actualizar");
+        JButton btnRefrescar = new JButton("Actualizar");
         estilarBoton(btnRefrescar, new Color(241, 245, 249), new Color(15, 23, 42));
         btnRefrescar.setBounds(260, 70, 120, 35);
         add(btnRefrescar);
 
         // Tabla de Visitas
-        String[] cols = {"ID", "Fecha", "Cliente", "Dirección", "Estado"};
+        String[] cols = { "ID", "Fecha", "Cliente", "Dirección", "Estado" };
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
-        
+
         tabla = new JTable(modelo);
         tabla.setRowHeight(35);
         tabla.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         tabla.getTableHeader().setBackground(new Color(248, 250, 252));
         tabla.setShowVerticalLines(false);
-        
+
         // Simular clic en la tabla para llenar la derecha
         tabla.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -118,7 +120,7 @@ public class subpanel_Instalaciones extends JPanel {
 
         // 3. Asignación de Técnico (Empleado)
         panelDetalle.add(crearLabel("Técnico Asignado:", 30, y));
-        cmbTecnico = new JComboBox<>(new String[]{"Sin Asignar", "Juan Técnico", "Carlos Instalador"});
+        cmbTecnico = new JComboBox<>(new String[] { "Sin Asignar", "Juan Técnico", "Carlos Instalador" });
         cmbTecnico.setBounds(30, y + 25, 230, 35);
         cmbTecnico.setBackground(Color.WHITE);
         panelDetalle.add(cmbTecnico);
@@ -144,7 +146,7 @@ public class subpanel_Instalaciones extends JPanel {
         estilarBoton(btnFinalizar, new Color(22, 163, 74), Color.WHITE); // Verde
         btnFinalizar.setBounds(200, y, 320, 45);
         panelDetalle.add(btnFinalizar);
-        
+
         JButton btnReprogramar = new JButton("📅 Reprogramar");
         estilarBoton(btnReprogramar, new Color(234, 179, 8), Color.WHITE); // Amarillo
         btnReprogramar.setBounds(30, y, 150, 45);
@@ -154,9 +156,9 @@ public class subpanel_Instalaciones extends JPanel {
     // --- MÉTODOS DE SOPORTE ---
 
     private void cargarDatosSimulados() {
-        modelo.addRow(new Object[]{"101", "15/10/2025", "Restaurante El Gusto", "Av. Principal 123", "PENDIENTE"});
-        modelo.addRow(new Object[]{"102", "16/10/2025", "Familia Gomez", "Calle Los Olivos 44", "PENDIENTE"});
-        modelo.addRow(new Object[]{"103", "16/10/2025", "CyberCafe Zona", "Jr. Comercio 88", "REALIZADO"});
+        modelo.addRow(new Object[] { "101", "15/10/2025", "Restaurante El Gusto", "Av. Principal 123", "PENDIENTE" });
+        modelo.addRow(new Object[] { "102", "16/10/2025", "Familia Gomez", "Calle Los Olivos 44", "PENDIENTE" });
+        modelo.addRow(new Object[] { "103", "16/10/2025", "CyberCafe Zona", "Jr. Comercio 88", "REALIZADO" });
     }
 
     private void cargarDetalleSimulado() {

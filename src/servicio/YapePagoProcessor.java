@@ -2,6 +2,7 @@ package servicio;
 
 import DAO.ClienteDAO;
 import DAO.PagoDAO;
+import DAO.YapeConfigDAO;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -20,11 +21,15 @@ public class YapePagoProcessor {
 
     private final ClienteDAO clienteDAO;
     private final PagoDAO pagoDAO;
+    private final YapeConfigDAO yapeConfigDAO;
     private final int idUsuarioSistema = 1; // Usuario "Sistema" para pagos automáticos
+    private Date ultimaFechaProcesada;
+    private Date nuevaUltimaFecha;
 
     public YapePagoProcessor() {
         this.clienteDAO = new ClienteDAO();
         this.pagoDAO = new PagoDAO();
+        this.yapeConfigDAO = new YapeConfigDAO();
     }
 
     /**
@@ -37,6 +42,18 @@ public class YapePagoProcessor {
         ResumenProcesamiento resumen = new ResumenProcesamiento();
 
         System.out.println("\n📊 Procesando Excel: " + archivoExcel.getName());
+
+        // Obtener última fecha procesada para evitar duplicados
+        ultimaFechaProcesada = yapeConfigDAO.obtenerUltimaFechaProcesada();
+        nuevaUltimaFecha = ultimaFechaProcesada;
+
+        if (ultimaFechaProcesada != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            System.out.println("📅 Última fecha procesada: " + sdf.format(ultimaFechaProcesada));
+            System.out.println("   Solo se procesarán transacciones posteriores a esta fecha.");
+        } else {
+            System.out.println("📅 Primera vez procesando - se procesarán todas las transacciones");
+        }
 
         try (FileInputStream fis = new FileInputStream(archivoExcel);
                 Workbook workbook = new XSSFWorkbook(fis)) {
@@ -67,6 +84,12 @@ public class YapePagoProcessor {
             e.printStackTrace();
         }
 
+        // Actualizar última fecha procesada si hubo transacciones nuevas
+        if (nuevaUltimaFecha != null
+                && (ultimaFechaProcesada == null || nuevaUltimaFecha.after(ultimaFechaProcesada))) {
+            yapeConfigDAO.actualizarUltimaFechaProcesada(nuevaUltimaFecha);
+        }
+
         mostrarResumen(resumen);
         return resumen;
     }
@@ -92,8 +115,20 @@ public class YapePagoProcessor {
 
         resumen.totalFilas++;
 
-        // Solo procesar pagos recibidos (PAGASTE significa que te pagaron)
-        if (!"PAGASTE".equalsIgnoreCase(tipoTransaccion)) {
+        // Filtrar transacciones ya procesadas
+        if (ultimaFechaProcesada != null && !fechaOperacion.after(ultimaFechaProcesada)) {
+            resumen.yaProcesados++;
+            return; // Ya fue procesada anteriormente
+        }
+
+        // Actualizar la fecha más reciente encontrada
+        if (nuevaUltimaFecha == null || fechaOperacion.after(nuevaUltimaFecha)) {
+            nuevaUltimaFecha = fechaOperacion;
+        }
+
+        // Solo procesar pagos recibidos (TE PAGÓ o PAGASTE)
+        String tipo = tipoTransaccion.toUpperCase().trim();
+        if (!tipo.contains("PAGO") && !tipo.contains("PAGASTE")) {
             resumen.ignorados++;
             return;
         }
@@ -114,11 +149,14 @@ public class YapePagoProcessor {
             return;
         }
 
-        // Registrar pago
+        // Registrar pago con monto mensual para división por meses
         int idCliente = (int) cliente.get("id_cliente");
         String nombreCliente = cliente.get("nombres") + " " + cliente.get("apellidos");
+        Double montoMensual = cliente.get("monto_mensual") != null
+                ? ((Number) cliente.get("monto_mensual")).doubleValue()
+                : null;
 
-        boolean exito = registrarPago(idCliente, nombreCliente, dni, monto, fechaOperacion);
+        boolean exito = registrarPago(idCliente, nombreCliente, dni, monto, fechaOperacion, montoMensual);
 
         if (exito) {
             resumen.pagosRegistrados++;
@@ -136,47 +174,212 @@ public class YapePagoProcessor {
             return null;
         }
 
+        // DEBUG: Ver qué mensaje estamos procesando
+        System.out.println("🔍 DEBUG - Mensaje: '" + mensaje + "'");
+
         // Buscar 8 dígitos consecutivos
         Pattern pattern = Pattern.compile("\\b\\d{8}\\b");
         Matcher matcher = pattern.matcher(mensaje);
 
         if (matcher.find()) {
-            return matcher.group();
+            String dni = matcher.group();
+            System.out.println("✅ DEBUG - DNI encontrado: " + dni);
+            return dni;
         }
 
+        System.out.println("❌ DEBUG - NO se encontró DNI en: '" + mensaje + "'");
         return null;
     }
 
     /**
-     * Registra un pago automáticamente.
+     * Registra un pago automáticamente dividiéndolo por meses según el monto
+     * mensual del servicio.
      */
     private boolean registrarPago(int idCliente, String nombreCliente, String dni,
+            double monto, Date fechaOperacion, Double montoMensual) {
+        try {
+            // Si no hay monto mensual, usar lógica antigua (distribuir entre deudas)
+            if (montoMensual == null || montoMensual <= 0) {
+                System.out.println("   ⚠️ Cliente sin suscripción activa - usando distribución simple");
+                return registrarPagoSimple(idCliente, nombreCliente, dni, monto, fechaOperacion);
+            }
+
+            // Calcular número de meses a pagar
+            int mesesAPagar = (int) Math.floor(monto / montoMensual);
+            double sobrante = monto - (mesesAPagar * montoMensual);
+
+            if (mesesAPagar == 0) {
+                System.out.println(String.format("   ⚠️ Monto insuficiente (S/. %.2f) para un mes completo (S/. %.2f)",
+                        monto, montoMensual));
+                return false;
+            }
+
+            System.out.println(String.format("\\n   💰 Procesando pago de S/. %.2f (%d meses × S/. %.2f):",
+                    monto, mesesAPagar, montoMensual));
+
+            // Buscar facturas pendientes del cliente (ordenadas por antigüedad)
+            List<Object[]> deudasList = pagoDAO.buscarDeudasPorCliente(dni);
+
+            int facturasPagadas = 0;
+            int mesesRestantes = mesesAPagar;
+            StringBuilder resumen = new StringBuilder();
+
+            // 1. Pagar facturas pendientes primero
+            if (deudasList != null && !deudasList.isEmpty()) {
+                for (Object[] deuda : deudasList) {
+                    if (mesesRestantes <= 0)
+                        break;
+
+                    int idFactura = (int) deuda[0];
+                    String periodoMes = (String) deuda[4];
+
+                    // Pagar con el monto mensual
+                    boolean exito = pagoDAO.realizarCobro(idFactura, montoMensual, idUsuarioSistema, "YAPE");
+
+                    if (exito) {
+                        facturasPagadas++;
+                        mesesRestantes--;
+                        resumen.append(String.format("      ✅ %s - PAGADA: S/. %.2f\\n",
+                                periodoMes, montoMensual));
+                    } else {
+                        resumen.append(String.format("      ❌ Error pagando %s\\n", periodoMes));
+                    }
+                }
+            }
+
+            // 2. Si quedan meses por pagar, generar facturas adelantadas
+            if (mesesRestantes > 0) {
+                resumen.append(String.format("\\n      📅 Generando %d pago(s) adelantado(s):\\n", mesesRestantes));
+
+                // Obtener id_suscripcion del cliente
+                Integer idSuscripcion = obtenerIdSuscripcion(dni);
+
+                if (idSuscripcion != null) {
+                    for (int i = 0; i < mesesRestantes; i++) {
+                        // Generar factura adelantada
+                        boolean exito = generarFacturaAdelantada(idSuscripcion, montoMensual, i + 1);
+                        if (exito) {
+                            facturasPagadas++;
+                            resumen.append(String.format("      ✅ Mes +%d - ADELANTADO: S/. %.2f\\n",
+                                    i + 1, montoMensual));
+                        }
+                    }
+                } else {
+                    System.out.println("      ⚠️ No se pudo generar pagos adelantados (sin suscripción)");
+                }
+            }
+
+            // Mostrar resumen
+            System.out.println(resumen.toString());
+
+            if (sobrante > 0) {
+                System.out.println(String.format("   ℹ️ Sobrante de S/. %.2f (no alcanza para otro mes)", sobrante));
+            }
+
+            if (facturasPagadas > 0) {
+                crearNotificacionPago(nombreCliente, dni, monto - sobrante, fechaOperacion);
+                return true;
+            }
+
+            return false;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error registrando pago: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Lógica simple de distribución (cuando no hay monto mensual).
+     */
+    private boolean registrarPagoSimple(int idCliente, String nombreCliente, String dni,
             double monto, Date fechaOperacion) {
         try {
-            // Buscar facturas pendientes del cliente
-            Object[][] deudas = pagoDAO.buscarDeudasPorCliente(dni);
+            List<Object[]> deudasList = pagoDAO.buscarDeudasPorCliente(dni);
 
-            if (deudas == null || deudas.length == 0) {
+            if (deudasList == null || deudasList.isEmpty()) {
                 System.out.println("   ℹ️ Cliente " + nombreCliente + " no tiene deudas pendientes");
                 return false;
             }
 
-            // Registrar pago en la primera factura pendiente
-            int idFactura = (int) deudas[0][0];
-            double montoFactura = (double) deudas[0][6];
+            double montoRestante = monto;
+            int facturasPagadas = 0;
+            StringBuilder resumen = new StringBuilder();
+            resumen.append("\\n   💰 Distribuyendo pago de S/. ").append(String.format("%.2f", monto)).append(":\\n");
 
-            // Realizar cobro
-            boolean exito = pagoDAO.realizarCobro(idFactura, monto, idUsuarioSistema);
+            for (Object[] deuda : deudasList) {
+                if (montoRestante <= 0)
+                    break;
 
-            if (exito) {
-                // Crear notificación de pago procesado
-                crearNotificacionPago(nombreCliente, dni, monto, fechaOperacion);
+                int idFactura = (int) deuda[0];
+                String periodoMes = (String) deuda[4];
+                double montoFactura = deuda[6] instanceof Integer
+                        ? ((Integer) deuda[6]).doubleValue()
+                        : (double) deuda[6];
+
+                double montoPagar = Math.min(montoRestante, montoFactura);
+                boolean exito = pagoDAO.realizarCobro(idFactura, montoPagar, idUsuarioSistema, "YAPE");
+
+                if (exito) {
+                    facturasPagadas++;
+                    montoRestante -= montoPagar;
+                    String estado = (montoPagar >= montoFactura) ? "PAGADA" : "PAGO PARCIAL";
+                    resumen.append(String.format("      ✅ %s - %s: S/. %.2f\\n",
+                            periodoMes, estado, montoPagar));
+                }
             }
 
-            return exito;
+            System.out.println(resumen.toString());
+            return facturasPagadas > 0;
 
         } catch (Exception e) {
-            System.err.println("❌ Error registrando pago: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene el ID de suscripción activa del cliente.
+     */
+    private Integer obtenerIdSuscripcion(String dni) {
+        try {
+            Map<String, Object> cliente = clienteDAO.buscarPorDNI(dni);
+            if (cliente != null && cliente.get("id_suscripcion") != null) {
+                return (Integer) cliente.get("id_suscripcion");
+            }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo id_suscripcion: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Genera una factura adelantada y la marca como pagada.
+     */
+    private boolean generarFacturaAdelantada(int idSuscripcion, double monto, int mesesAdelante) {
+        try {
+            // Calcular período futuro
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.add(java.util.Calendar.MONTH, mesesAdelante);
+
+            String periodoMes = new SimpleDateFormat("MMMM yyyy", new java.util.Locale("es", "ES"))
+                    .format(cal.getTime());
+
+            java.sql.Date fechaVencimiento = new java.sql.Date(cal.getTimeInMillis());
+
+            // Crear factura adelantada y marcarla como pagada
+            return pagoDAO.crearFacturaManual(
+                    idSuscripcion,
+                    periodoMes,
+                    monto,
+                    2, // Estado PAGADO
+                    fechaVencimiento,
+                    true, // Registrar en caja
+                    idUsuarioSistema);
+
+        } catch (Exception e) {
+            System.err.println("Error generando factura adelantada: " + e.getMessage());
             return false;
         }
     }
@@ -214,6 +417,7 @@ public class YapePagoProcessor {
         System.out.println("=".repeat(60));
         System.out.println("   📋 Total de filas: " + resumen.totalFilas);
         System.out.println("   ✅ Pagos registrados: " + resumen.pagosRegistrados);
+        System.out.println("   🔄 Ya procesados (duplicados): " + resumen.yaProcesados);
         System.out.println("   ⏭️ Ignorados (no son pagos): " + resumen.ignorados);
         System.out.println("   📝 Sin DNI en mensaje: " + resumen.sinDNI);
         System.out.println("   ⚠️ DNI no encontrado: " + resumen.dniNoEncontrado);
@@ -285,5 +489,6 @@ public class YapePagoProcessor {
         public int sinDNI = 0;
         public int dniNoEncontrado = 0;
         public int errores = 0;
+        public int yaProcesados = 0; // Transacciones ya procesadas anteriormente
     }
 }

@@ -693,15 +693,15 @@ public class subpanel_Suscripciones extends JPanel {
 
             // Verificamos si tiene equipos prestados (SEMA/SIFM)
             if (s.isEquiposPrestados()) {
-                alerta.append("⚠️ ¡ATENCIÓN! CLIENTE TIENE EQUIPOS PRESTADOS.\n");
+                alerta.append("ATENCION! CLIENTE TIENE EQUIPOS PRESTADOS.\n");
                 alerta.append("   -> Debe recuperar: Router / ONU / Antena.\n\n");
             } else {
-                alerta.append("ℹ️ Equipos propios (No requiere devolución).\n\n");
+                alerta.append("Equipos propios (No requiere devolucion).\n\n");
             }
 
             // Verificamos si tiene garantía
             if (s.getGarantia() > 0) {
-                alerta.append("💰 ¡ALERTA! HAY GARANTÍA POR DEVOLVER: S/. ")
+                alerta.append("ALERTA! HAY GARANTIA POR DEVOLVER: S/. ")
                         .append(String.format("%.2f", s.getGarantia())).append("\n");
             }
 

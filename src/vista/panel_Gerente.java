@@ -82,7 +82,7 @@ public class panel_Gerente extends JPanel {
 
         // --- BOTÓN DE NOTIFICACIONES ---
         alertaDAO = new DAO.AlertaDAO();
-        JButton btnNotificaciones = new JButton("🔔 Buzón");
+        JButton btnNotificaciones = new JButton("Buzon");
         btnNotificaciones.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnNotificaciones.setForeground(Color.WHITE);
         btnNotificaciones.setBackground(new Color(99, 102, 241)); // Indigo 500
@@ -383,10 +383,10 @@ public class panel_Gerente extends JPanel {
             int noLeidas = alertaDAO.contarNoLeidas();
             SwingUtilities.invokeLater(() -> {
                 if (noLeidas > 0) {
-                    btn.setText("🔔 Buzón (" + noLeidas + ")");
+                    btn.setText("Buzon (" + noLeidas + ")");
                     btn.setBackground(new Color(220, 38, 38)); // Rojo si hay pendientes
                 } else {
-                    btn.setText("🔔 Buzón");
+                    btn.setText("Buzon");
                     btn.setBackground(new Color(99, 102, 241)); // Indigo normal
                 }
             });
