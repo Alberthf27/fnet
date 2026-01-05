@@ -236,21 +236,21 @@ public class PanelSubirYape extends JPanel {
 
     private void mostrarResumen(YapePagoProcessor.ResumenProcesamiento resumen, String nombreArchivo) {
         StringBuilder sb = new StringBuilder();
-        sb.append("✅ Archivo procesado: ").append(nombreArchivo).append("\n\n");
+        sb.append("Archivo procesado: ").append(nombreArchivo).append("\n\n");
         sb.append("═══════════════════════════════════════════════════\n");
         sb.append("RESUMEN DE PROCESAMIENTO\n");
         sb.append("═══════════════════════════════════════════════════\n\n");
-        sb.append("📋 Total de filas procesadas: ").append(resumen.totalFilas).append("\n");
-        sb.append("✅ Pagos registrados exitosamente: ").append(resumen.pagosRegistrados).append("\n");
+        sb.append("Total de filas procesadas: ").append(resumen.totalFilas).append("\n");
+        sb.append("Pagos registrados exitosamente: ").append(resumen.pagosRegistrados).append("\n");
         sb.append("Ya procesados (duplicados evitados): ").append(resumen.yaProcesados).append("\n");
         sb.append("Transacciones ignoradas: ").append(resumen.ignorados).append("\n");
         sb.append("📝 Sin DNI en mensaje: ").append(resumen.sinDNI).append("\n");
         sb.append("DNI no encontrado en BD: ").append(resumen.dniNoEncontrado).append("\n");
-        sb.append("❌ Errores: ").append(resumen.errores).append("\n\n");
+        sb.append("Errores: ").append(resumen.errores).append("\n\n");
 
         if (resumen.pagosRegistrados > 0) {
             sb.append("🎉 Los pagos se han sincronizado con la base de datos.\n");
-            lblEstado.setText("✅ Procesamiento completado - " + resumen.pagosRegistrados + " pagos registrados");
+            lblEstado.setText("Procesamiento completado - " + resumen.pagosRegistrados + " pagos registrados");
             lblEstado.setForeground(new Color(22, 163, 74));
         } else if (resumen.yaProcesados > 0) {
             sb.append("Todas las transacciones ya fueron procesadas anteriormente.\n");
@@ -266,8 +266,8 @@ public class PanelSubirYape extends JPanel {
     }
 
     private void mostrarError(String mensaje) {
-        txtResultado.setText("❌ ERROR\n\n" + mensaje);
-        lblEstado.setText("❌ Error en el procesamiento");
+        txtResultado.setText("ERROR\n\n" + mensaje);
+        lblEstado.setText("Error en el procesamiento");
         lblEstado.setForeground(new Color(239, 68, 68));
     }
 }

@@ -30,7 +30,7 @@ public class DialogoConfiguracion extends JDialog {
     private static final Font FONT_NORMAL = new Font("Segoe UI", Font.PLAIN, 13);
 
     public DialogoConfiguracion(Frame parent) {
-        super(parent, "⚙️ Configuración del Sistema", true);
+        super(parent, "Configuracion del Sistema", true);
         this.configDAO = new ConfiguracionDAO();
 
         inicializarUI();
@@ -58,11 +58,11 @@ public class DialogoConfiguracion extends JDialog {
         panelCentral.setBackground(COLOR_FONDO);
 
         // Sección: Plazos
-        panelCentral.add(crearSeccion("📅 Plazos de Pago", crearPanelPlazos()));
+        panelCentral.add(crearSeccion("Plazos de Pago", crearPanelPlazos()));
         panelCentral.add(Box.createVerticalStrut(15));
 
         // Sección: WhatsApp
-        panelCentral.add(crearSeccion("📱 WhatsApp (CallMeBot)", crearPanelWhatsApp()));
+        panelCentral.add(crearSeccion("WhatsApp (CallMeBot)", crearPanelWhatsApp()));
         panelCentral.add(Box.createVerticalStrut(15));
 
         // Sección: Router
@@ -232,7 +232,7 @@ public class DialogoConfiguracion extends JDialog {
         configDAO.guardarValor(ConfiguracionDAO.MIKROTIK_PASSWORD, new String(txtMikroTikPassword.getPassword()));
 
         JOptionPane.showMessageDialog(this,
-                "✅ Configuración guardada correctamente.",
+                "Configuracion guardada correctamente.",
                 "Éxito",
                 JOptionPane.INFORMATION_MESSAGE);
 

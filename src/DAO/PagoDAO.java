@@ -95,12 +95,12 @@ public class PagoDAO {
                 psFactura.executeUpdate();
             }
 
-            // 4. Registrar en tabla PAGO (esto faltaba!)
-            String sqlPago = "INSERT INTO pago (id_factura, monto, fecha_pago, metodo_pago) VALUES (?, ?, NOW(), ?)";
+            // 4. Registrar en tabla PAGO (usando columnas reales de la tabla)
+            String sqlPago = "INSERT INTO pago (monto, fecha_pago, metodo_pago, id_empleado) VALUES (?, NOW(), ?, ?)";
             try (PreparedStatement psPago = conn.prepareStatement(sqlPago)) {
-                psPago.setInt(1, idFactura);
-                psPago.setDouble(2, monto);
-                psPago.setString(3, metodoPago);
+                psPago.setDouble(1, monto);
+                psPago.setString(2, metodoPago);
+                psPago.setInt(3, idUsuario);
                 psPago.executeUpdate();
             }
 
@@ -246,12 +246,12 @@ public class PagoDAO {
                 }
             }
 
-            // F. Insertar Factura (con rango_periodo)
+            // F. Insertar Factura (con rango_periodo) - codigo_factura se actualiza después
             String sqlInsert = "INSERT INTO factura (id_suscripcion, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, id_estado, codigo_factura, periodo_mes, rango_periodo) "
                     +
-                    "VALUES (?, NOW(), ?, ?, 0.00, 1, CONCAT('F-', FLOOR(RAND()*100000)), ?, ?)";
+                    "VALUES (?, NOW(), ?, ?, 0.00, 1, '', ?, ?)";
 
-            try (PreparedStatement ps = conn.prepareStatement(sqlInsert)) {
+            try (PreparedStatement ps = conn.prepareStatement(sqlInsert, java.sql.Statement.RETURN_GENERATED_KEYS)) {
                 ps.setInt(1, idSuscripcion);
                 ps.setDate(2, java.sql.Date.valueOf(fechaVencimiento));
                 ps.setDouble(3, montoMensual);
@@ -259,9 +259,24 @@ public class PagoDAO {
                 ps.setString(5, rangoPeriodo);
 
                 boolean insertado = ps.executeUpdate() > 0;
+
                 if (insertado) {
+                    // Obtener el id_factura generado y actualizar codigo_factura
+                    ResultSet rsKeys = ps.getGeneratedKeys();
+                    if (rsKeys.next()) {
+                        int idFactura = rsKeys.getInt(1);
+                        String codigoFactura = String.format("%04d", idFactura); // 0001, 0002, etc.
+
+                        String sqlUpdateCodigo = "UPDATE factura SET codigo_factura = ? WHERE id_factura = ?";
+                        try (PreparedStatement psUpd = conn.prepareStatement(sqlUpdateCodigo)) {
+                            psUpd.setString(1, codigoFactura);
+                            psUpd.setInt(2, idFactura);
+                            psUpd.executeUpdate();
+                        }
+                    }
+
                     String tipo = esMesAdelantado ? "PREPAGO" : "POSTPAGO";
-                    System.out.println("   ✅ [" + tipo + "] " + nombrePeriodo + " (" + rangoPeriodo + ")");
+                    System.out.println("   [" + tipo + "] " + nombrePeriodo + " (" + rangoPeriodo + ")");
                 }
                 return insertado;
             }
@@ -796,37 +811,93 @@ public class PagoDAO {
     /**
      * Obtiene los movimientos de caja del día actual.
      * Retorna: [fecha_pago, cliente, concepto, metodo_pago, monto]
+     * 
+     * Primero intenta usar la tabla 'pago' (más precisa).
+     * Si la tabla no existe, usa 'movimiento_caja' como fallback.
      */
     public Object[][] obtenerMovimientosDelDia() {
-        String sql = "SELECT p.fecha_pago, " +
-                "CONCAT(c.nombres, ' ', c.apellidos) as cliente, " +
-                "CONCAT('Factura ', f.periodo_mes) as concepto, " +
-                "COALESCE(p.metodo_pago, 'EFECTIVO') as metodo, " +
-                "p.monto " +
-                "FROM pago p " +
-                "INNER JOIN factura f ON p.id_factura = f.id_factura " +
-                "INNER JOIN suscripcion s ON f.id_suscripcion = s.id_suscripcion " +
-                "INNER JOIN cliente c ON s.id_cliente = c.id_cliente " +
-                "WHERE DATE(p.fecha_pago) = CURDATE() " +
-                "ORDER BY p.fecha_pago DESC";
-
         java.util.List<Object[]> movimientos = new java.util.ArrayList<>();
+
+        // Usar movimiento_caja que tiene la info completa de cobros
+        // La tabla pago no tiene id_factura para hacer JOIN con clientes
+        String sql = "SELECT mc.fecha, mc.descripcion, mc.monto " +
+                "FROM movimiento_caja mc " +
+                "WHERE DATE(mc.fecha) = CURDATE() " +
+                "AND mc.id_categoria = 1 " + // Categoria 1 = Cobros
+                "ORDER BY mc.fecha DESC";
 
         try (Connection con = bd.Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
+                String descripcion = rs.getString("descripcion");
+                String metodo = "EFECTIVO";
+
+                // Detectar método de pago por descripción
+                if (descripcion != null && descripcion.toUpperCase().contains("YAPE")) {
+                    metodo = "YAPE";
+                }
+
                 movimientos.add(new Object[] {
-                        rs.getTimestamp("fecha_pago"),
-                        rs.getString("cliente"),
-                        rs.getString("concepto"),
-                        rs.getString("metodo_pago"),
+                        rs.getTimestamp("fecha"),
+                        descripcion, // cliente/concepto
+                        descripcion, // concepto
+                        metodo,
                         rs.getDouble("monto")
                 });
             }
         } catch (SQLException e) {
             System.err.println("Error obteniendo movimientos del día: " + e.getMessage());
+        }
+
+        return movimientos.toArray(new Object[0][]);
+    }
+
+    /**
+     * Fallback: Obtiene movimientos del día desde movimiento_caja.
+     * Usado cuando la tabla 'pago' no tiene la estructura esperada.
+     */
+    private Object[][] obtenerMovimientosDelDiaFallback() {
+        java.util.List<Object[]> movimientos = new java.util.ArrayList<>();
+
+        // Consulta simplificada usando solo movimiento_caja
+        // La descripción contiene info como "Cobro Factura #123" o "Pago - Enero 2026
+        // (Factura #456)"
+        String sql = "SELECT mc.fecha, mc.descripcion, mc.monto " +
+                "FROM movimiento_caja mc " +
+                "WHERE DATE(mc.fecha) = CURDATE() " +
+                "AND mc.id_categoria = 1 " + // Solo ingresos de cobros
+                "ORDER BY mc.fecha DESC";
+
+        try (Connection con = bd.Conexion.getConexion();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String descripcion = rs.getString("descripcion");
+
+                // Extraer nombre de cliente de la descripción si es posible
+                // Formato esperado: "Cobro Factura #123" o similar
+                String cliente = descripcion;
+                String concepto = descripcion;
+                String metodo = "EFECTIVO";
+
+                // Si la descripción menciona Yape, marcar como tal
+                if (descripcion != null && descripcion.toUpperCase().contains("YAPE")) {
+                    metodo = "YAPE";
+                }
+
+                movimientos.add(new Object[] {
+                        rs.getTimestamp("fecha"),
+                        cliente,
+                        concepto,
+                        metodo,
+                        rs.getDouble("monto")
+                });
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo movimientos (fallback): " + e.getMessage());
         }
 
         return movimientos.toArray(new Object[0][]);

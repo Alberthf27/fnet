@@ -35,7 +35,7 @@ public class subpanel_HistorialCaja extends JPanel {
         panelSuperior.setBackground(Color.WHITE);
 
         // Título
-        JLabel lblTitulo = new JLabel("📊 Registro de Pagos");
+        JLabel lblTitulo = new JLabel("Registro de Pagos");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitulo.setForeground(new Color(37, 99, 235));
         panelSuperior.add(lblTitulo, BorderLayout.WEST);
@@ -54,7 +54,7 @@ public class subpanel_HistorialCaja extends JPanel {
         comboMetodo.addActionListener(e -> cargarMovimientosDelDia());
         panelFiltros.add(comboMetodo);
 
-        JButton btnActualizar = new JButton("🔄 Actualizar");
+        JButton btnActualizar = new JButton("Actualizar");
         btnActualizar.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         btnActualizar.setBackground(new Color(37, 99, 235));
         btnActualizar.setForeground(Color.WHITE);
@@ -68,7 +68,7 @@ public class subpanel_HistorialCaja extends JPanel {
 
         // Fecha
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        JLabel lblFecha = new JLabel("📅 " + sdf.format(new Date()));
+        JLabel lblFecha = new JLabel(sdf.format(new Date()));
         lblFecha.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lblFecha.setForeground(new Color(107, 114, 128));
         panelSuperior.add(lblFecha, BorderLayout.EAST);
@@ -113,7 +113,7 @@ public class subpanel_HistorialCaja extends JPanel {
         panelEfectivo.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(134, 239, 172), 2),
                 BorderFactory.createEmptyBorder(10, 15, 10, 15)));
-        JLabel lblTituloEfectivo = new JLabel("💵 Efectivo");
+        JLabel lblTituloEfectivo = new JLabel("Efectivo");
         lblTituloEfectivo.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTituloEfectivo.setForeground(new Color(22, 101, 52));
         lblTotalEfectivo = new JLabel("S/. 0.00");
@@ -129,7 +129,7 @@ public class subpanel_HistorialCaja extends JPanel {
         panelYape.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(147, 197, 253), 2),
                 BorderFactory.createEmptyBorder(10, 15, 10, 15)));
-        JLabel lblTituloYape = new JLabel("📱 Yape");
+        JLabel lblTituloYape = new JLabel("Yape");
         lblTituloYape.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTituloYape.setForeground(new Color(30, 64, 175));
         lblTotalYape = new JLabel("S/. 0.00");
@@ -145,7 +145,7 @@ public class subpanel_HistorialCaja extends JPanel {
         panelTotal.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(253, 224, 71), 2),
                 BorderFactory.createEmptyBorder(10, 15, 10, 15)));
-        JLabel lblTituloTotal = new JLabel("💰 Total");
+        JLabel lblTituloTotal = new JLabel("Total");
         lblTituloTotal.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTituloTotal.setForeground(new Color(133, 77, 14));
         lblTotalGeneral = new JLabel("S/. 0.00");

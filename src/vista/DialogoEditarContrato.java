@@ -221,14 +221,14 @@ public class DialogoEditarContrato extends JDialog {
                 // Si es adelantado, el primer pago es hoy
                 String infoPrimerPago;
                 if (adelantado) {
-                    infoPrimerPago = "<html><b>💰 PAGO ADELANTADO:</b> El cliente pagará <b>HOY</b> al guardar.<br>" +
-                            "📅 Próximo vencimiento: <b>" +
+                    infoPrimerPago = "<html><b>PAGO ADELANTADO:</b> El cliente pagara <b>HOY</b> al guardar.<br>" +
+                            "Proximo vencimiento: <b>" +
                             new java.text.SimpleDateFormat("dd/MM/yyyy").format(cal.getTime()) + "</b></html>";
                     pnlInfoPago.setBackground(new Color(254, 249, 195));
                     chkEjecutarPagoAdelantado.setVisible(true);
                     chkEjecutarPagoAdelantado.setBackground(new Color(254, 249, 195));
                 } else {
-                    infoPrimerPago = "<html>📅 <b>Primer vencimiento:</b> " +
+                    infoPrimerPago = "<html><b>Primer vencimiento:</b> " +
                             new java.text.SimpleDateFormat("dd/MM/yyyy").format(cal.getTime()) +
                             " (Día " + dia + " de cada mes)</html>";
                     pnlInfoPago.setBackground(new Color(240, 253, 244));
@@ -706,7 +706,7 @@ public class DialogoEditarContrato extends JDialog {
                 if (exitoFinal) {
                     String mensaje = "Contrato guardado exitosamente.";
                     if (pagoFinal) {
-                        mensaje += "\n✅ Primer pago adelantado registrado en caja.";
+                        mensaje += "\nPrimer pago adelantado registrado en caja.";
                     } else if (deudaFinal) {
                         mensaje += "\n⚠️ Primera factura creada como PENDIENTE.";
                     }

@@ -36,14 +36,14 @@ public class subpanel_Inventario extends JPanel {
         add(lblTitulo);
 
         // --- BARRA DE HERRAMIENTAS ---
-        
+
         // Buscador de Serial
         JTextField txtBuscar = new JTextField();
         txtBuscar.putClientProperty("JTextField.placeholderText", "Escribe el Serial...");
         txtBuscar.setBounds(30, 70, 250, 35);
         add(txtBuscar);
 
-        JButton btnBuscar = new JButton("🔍");
+        JButton btnBuscar = new JButton("Buscar");
         estilarBoton(btnBuscar, new Color(241, 245, 249), new Color(15, 23, 42));
         btnBuscar.setBounds(290, 70, 50, 35);
         add(btnBuscar);
@@ -54,7 +54,7 @@ public class subpanel_Inventario extends JPanel {
         lblEstado.setBounds(360, 70, 60, 35);
         add(lblEstado);
 
-        cmbFiltroEstado = new JComboBox<>(new String[]{"TODOS", "EN STOCK", "INSTALADO", "DAÑADO"});
+        cmbFiltroEstado = new JComboBox<>(new String[] { "TODOS", "EN STOCK", "INSTALADO", "DAÑADO" });
         cmbFiltroEstado.setBounds(420, 70, 150, 35);
         add(cmbFiltroEstado);
 
@@ -64,33 +64,36 @@ public class subpanel_Inventario extends JPanel {
         btnNuevo.setBounds(980, 70, 160, 35);
         btnNuevo.addActionListener(e -> accionNuevoEquipo());
         add(btnNuevo);
-        
+
         JButton btnEditar = new JButton("✏ Editar");
         estilarBoton(btnEditar, new Color(37, 99, 235), Color.WHITE);
         btnEditar.setBounds(860, 70, 100, 35);
         add(btnEditar);
 
         // --- TABLA ---
-        String[] cols = {"ID", "Serial / MAC", "Tipo / Modelo", "Costo (S/.)", "Ubicación", "Estado"};
+        String[] cols = { "ID", "Serial / MAC", "Tipo / Modelo", "Costo (S/.)", "Ubicación", "Estado" };
         modelo = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
-        
+
         tabla = new JTable(modelo);
         tabla.setRowHeight(35);
         tabla.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         tabla.getTableHeader().setBackground(new Color(248, 250, 252));
         tabla.setShowVerticalLines(false);
-        
+
         // RENDERER: Colores para el estado
         tabla.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 String estado = (String) value;
                 setFont(new Font("Segoe UI", Font.BOLD, 12));
-                
+
                 if (estado.equals("EN STOCK")) {
                     setForeground(new Color(22, 163, 74)); // Verde
                 } else if (estado.equals("INSTALADO")) {
@@ -111,9 +114,11 @@ public class subpanel_Inventario extends JPanel {
 
     private void cargarDatosSimulados() {
         // Ejemplo de lógica: Si instalacion_id es NULL -> Stock
-        modelo.addRow(new Object[]{"1", "SN-99887766", "ONU Huawei HG8145", "80.00", "Almacén Principal", "EN STOCK"});
-        modelo.addRow(new Object[]{"2", "SN-11223344", "Router TP-Link", "50.00", "Cliente: Juan Perez", "INSTALADO"});
-        modelo.addRow(new Object[]{"3", "SN-55555555", "Antena LiteBeam", "120.00", "Almacén (Averiado)", "DAÑADO"});
+        modelo.addRow(
+                new Object[] { "1", "SN-99887766", "ONU Huawei HG8145", "80.00", "Almacén Principal", "EN STOCK" });
+        modelo.addRow(
+                new Object[] { "2", "SN-11223344", "Router TP-Link", "50.00", "Cliente: Juan Perez", "INSTALADO" });
+        modelo.addRow(new Object[] { "3", "SN-55555555", "Antena LiteBeam", "120.00", "Almacén (Averiado)", "DAÑADO" });
     }
 
     private void accionNuevoEquipo() {

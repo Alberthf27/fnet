@@ -56,11 +56,28 @@ public class PanelPagos extends javax.swing.JPanel {
 
                                 System.out.println("Total pestanas: " + jTabbedPane2.getTabCount());
 
-                                // Cargar panel real solo cuando se seleccione
+                                // Cargar panel real cuando se seleccione (en hilo separado para evitar freeze)
                                 jTabbedPane2.addChangeListener(e -> {
                                         int idx = jTabbedPane2.getSelectedIndex();
                                         if (idx == 2 && jTabbedPane2.getComponentAt(idx) == placeholderYape) {
-                                                jTabbedPane2.setComponentAt(idx, new PanelSubirYape());
+                                                // Cargar en SwingWorker para no bloquear UI
+                                                new SwingWorker<PanelSubirYape, Void>() {
+                                                        @Override
+                                                        protected PanelSubirYape doInBackground() {
+                                                                return new PanelSubirYape();
+                                                        }
+
+                                                        @Override
+                                                        protected void done() {
+                                                                try {
+                                                                        jTabbedPane2.setComponentAt(2, get());
+                                                                } catch (Exception ex) {
+                                                                        ex.printStackTrace();
+                                                                        lblCargando.setText(
+                                                                                        "Error al cargar panel Yape");
+                                                                }
+                                                        }
+                                                }.execute();
                                         }
                                 });
                         }

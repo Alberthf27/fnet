@@ -86,7 +86,7 @@ public class subpanel_DirectorioClientes extends JPanel {
         });
         topPanel.add(cmbFiltro);
 
-        JButton btnBuscar = new JButton("🔍");
+        JButton btnBuscar = new JButton("Buscar");
         estilarBoton(btnBuscar, new Color(241, 245, 249), Color.BLACK);
         btnBuscar.setBounds(545, 10, 40, 30);
         btnBuscar.addActionListener(e -> buscar(txtBuscar.getText()));

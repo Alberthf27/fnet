@@ -92,13 +92,13 @@ public class subpanel_Caja extends JPanel {
 
         pnlBusqueda.add(txtBuscar);
 
-        JButton btnBuscar = new JButton("🔍");
+        JButton btnBuscar = new JButton("Buscar");
         btnBuscar.setBounds(420, 15, 50, 35);
         estilarBotonSimple(btnBuscar);
         btnBuscar.addActionListener(e -> buscarClientes(txtBuscar.getText()));
         pnlBusqueda.add(btnBuscar);
 
-        JButton btnAdelantar = new JButton("📅 Adelantar Mes");
+        JButton btnAdelantar = new JButton("Adelantar Mes");
         btnAdelantar.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnAdelantar.setBackground(new Color(255, 247, 237));
         btnAdelantar.setForeground(new Color(234, 88, 12));
@@ -207,9 +207,9 @@ public class subpanel_Caja extends JPanel {
         lblMetodo.setBounds(20, 180, 200, 20);
         pnlDerecho.add(lblMetodo);
 
-        btnEfectivo = crearBotonMetodo("💵 Efectivo", 20, 210);
-        btnYape = crearBotonMetodo("📱 Yape/Plin", 140, 210);
-        btnTransf = crearBotonMetodo("🏦 Banco", 260, 210);
+        btnEfectivo = crearBotonMetodo("Efectivo", 20, 210);
+        btnYape = crearBotonMetodo("Yape/Plin", 140, 210);
+        btnTransf = crearBotonMetodo("Banco", 260, 210);
 
         btnEfectivo.addActionListener(e -> seleccionarMetodo("EFECTIVO"));
         btnYape.addActionListener(e -> seleccionarMetodo("YAPE"));
@@ -409,12 +409,12 @@ public class subpanel_Caja extends JPanel {
             if (diferencia >= -0.01) {
                 lblVuelto.setText("S/. " + String.format("%.2f", diferencia));
                 lblVuelto.setForeground(new Color(22, 163, 74));
-                lblEstadoPago.setText("✅ PAGO COMPLETO");
+                lblEstadoPago.setText("PAGO COMPLETO");
                 lblEstadoPago.setForeground(new Color(22, 163, 74));
             } else {
                 lblVuelto.setText("Falta: " + String.format("%.2f", Math.abs(diferencia)));
                 lblVuelto.setForeground(new Color(220, 38, 38));
-                lblEstadoPago.setText("⚠️ PAGO INCOMPLETO");
+                lblEstadoPago.setText("PAGO INCOMPLETO");
                 lblEstadoPago.setForeground(new Color(220, 38, 38));
             }
         } catch (NumberFormatException e) {
@@ -546,7 +546,7 @@ public class subpanel_Caja extends JPanel {
                             System.err.println("Error generando boleta: " + ex.getMessage());
                         }
 
-                        JOptionPane.showMessageDialog(this, "✅ Pago exitoso. Boleta generada.");
+                        JOptionPane.showMessageDialog(this, "Pago exitoso. Boleta generada.");
                         cargarDeudasDelCliente(idSuscripcionActual);
                         txtRecibido.setText("");
                         lblVuelto.setText("---");

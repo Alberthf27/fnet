@@ -211,7 +211,7 @@ public class subpanel_Suscripciones extends JPanel {
         tabbedPane.setFocusable(false);
         tabbedPane.setBackground(Color.WHITE);
 
-        tabbedPane.addTab("📋 TODOS", scrollTabla);
+        tabbedPane.addTab("TODOS", scrollTabla);
 
         // Split Pane (Tablas | Detalle)
         splitPrincipal = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, panelDetalle);
@@ -504,7 +504,7 @@ public class subpanel_Suscripciones extends JPanel {
             case "TODOS":
                 // Una sola pestaña con todos
                 tabbedPane.removeAll();
-                tabbedPane.addTab("📋 TODOS (" + listaCache.size() + ")", crearTablaConDatos(listaCache));
+                tabbedPane.addTab("TODOS (" + listaCache.size() + ")", crearTablaConDatos(listaCache));
                 break;
 
             case "POR SECTOR":
@@ -514,7 +514,7 @@ public class subpanel_Suscripciones extends JPanel {
                 for (String sector : porSector.keySet()) {
                     List<Suscripcion> lista = porSector.get(sector);
                     String nombreTab = (sector.isEmpty() ? "SIN SECTOR" : sector) + " (" + lista.size() + ")";
-                    tabbedPane.addTab("📍 " + nombreTab, crearTablaConDatos(lista));
+                    tabbedPane.addTab(nombreTab, crearTablaConDatos(lista));
                 }
                 break;
 
@@ -530,8 +530,8 @@ public class subpanel_Suscripciones extends JPanel {
                         inalambrico.add(s);
                     }
                 }
-                tabbedPane.addTab("🔵 FIBRA (" + fibra.size() + ")", crearTablaConDatos(fibra));
-                tabbedPane.addTab("📡 INALÁMBRICO (" + inalambrico.size() + ")", crearTablaConDatos(inalambrico));
+                tabbedPane.addTab("FIBRA (" + fibra.size() + ")", crearTablaConDatos(fibra));
+                tabbedPane.addTab("INALAMBRICO (" + inalambrico.size() + ")", crearTablaConDatos(inalambrico));
                 break;
 
             case "SECTOR + TIPO":
@@ -546,7 +546,7 @@ public class subpanel_Suscripciones extends JPanel {
 
             default:
                 tabbedPane.removeAll();
-                tabbedPane.addTab("📋 TODOS", crearTablaConDatos(listaCache));
+                tabbedPane.addTab("TODOS", crearTablaConDatos(listaCache));
         }
 
         // Actualizar contador total
@@ -573,8 +573,8 @@ public class subpanel_Suscripciones extends JPanel {
         java.util.Map<String, List<Suscripcion>> mapa = new java.util.LinkedHashMap<>();
         for (Suscripcion s : lista) {
             String sector = s.getSector() != null && !s.getSector().isEmpty() ? s.getSector() : "SIN SECTOR";
-            String tipo = esFibra(s.getNombreServicio()) ? "🔵 FIBRA" : "📡 INALÁMBRICO";
-            String key = "📍 " + sector + " - " + tipo;
+            String tipo = esFibra(s.getNombreServicio()) ? "FIBRA" : "INALAMBRICO";
+            String key = sector + " - " + tipo;
             mapa.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
         }
         return mapa;
@@ -838,18 +838,30 @@ public class subpanel_Suscripciones extends JPanel {
         private String historialActual;
 
         // Obtiene las letras de los meses a mostrar:
-        // 5 meses pasados + mes actual + siguiente mes (para prepago)
-        // Muestra desde hace 5 meses hasta el próximo mes
+        // REGLA DE NEGOCIO:
+        // - Día 1-16: Mostrar 5 meses pasados + mes actual (el mes actual es el último)
+        // - Día 17-31: Mostrar 4 meses pasados + mes actual + próximo mes (el próximo
+        // mes es el último)
         private char[] obtenerLetrasMeses() {
             java.util.Calendar cal = java.util.Calendar.getInstance();
             int mesActual = cal.get(java.util.Calendar.MONTH);
+            int diaActual = cal.get(java.util.Calendar.DAY_OF_MONTH);
             char[] letras = new char[6];
             String iniciales = "EFMAMJJASOND";
 
-            // Mostrar: 4 meses atrás, mes actual, próximo mes
-            // Ejemplo en Diciembre: A S O N D E (Ago, Sep, Oct, Nov, Dic, Ene)
+            // Si estamos del día 17 en adelante, desplazamos un mes hacia adelante
+            // Esto hace que el "mes actual" para cobros sea el siguiente mes
+            int desplazamiento = (diaActual >= 17) ? 1 : 0;
+
+            // Calcular el mes de referencia (último mes a mostrar)
+            int mesReferencia = mesActual + desplazamiento;
+            if (mesReferencia > 11) {
+                mesReferencia -= 12;
+            }
+
+            // Mostrar 6 meses: desde 5 meses atrás hasta el mes de referencia
             for (int i = 0; i < 6; i++) {
-                int indiceMes = (mesActual - 4 + i); // Empezar 4 meses atrás
+                int indiceMes = (mesReferencia - 5 + i);
                 if (indiceMes < 0) {
                     indiceMes += 12;
                 } else if (indiceMes > 11) {

@@ -84,7 +84,7 @@ public class PanelBandejaEntrada extends JPanel {
         JPanel panelAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         panelAcciones.setBackground(COLOR_FONDO);
 
-        JButton btnRefrescar = crearBoton("🔄 Actualizar", e -> cargarAlertas());
+        JButton btnRefrescar = crearBoton("Actualizar", e -> cargarAlertas());
         JButton btnMarcarTodas = crearBoton("✓ Marcar todas como leídas", e -> marcarTodasComoLeidas());
 
         panelAcciones.add(btnMarcarTodas);
@@ -126,7 +126,7 @@ public class PanelBandejaEntrada extends JPanel {
         lblContador.setText(alertas.size() + " pendiente" + (alertas.size() != 1 ? "s" : ""));
 
         if (alertas.isEmpty()) {
-            JLabel lblVacio = new JLabel("✅ No hay alertas pendientes");
+            JLabel lblVacio = new JLabel("No hay alertas pendientes");
             lblVacio.setFont(FONT_NORMAL);
             lblVacio.setForeground(COLOR_TEXTO_SECUNDARIO);
             lblVacio.setAlignmentX(Component.CENTER_ALIGNMENT);

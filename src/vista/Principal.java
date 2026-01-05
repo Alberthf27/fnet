@@ -368,7 +368,7 @@ public class Principal extends javax.swing.JFrame {
 
     private void btn_usuariosActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_usuariosActionPerformed
         marcarBotonActivo(btn_usuarios);
-        MostrarPanel(new vista.PanelUsuarios());
+        MostrarPanel(new vista.PanelGestionUsuarios());
     }// GEN-LAST:event_btn_usuariosActionPerformed
 
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btn_salirActionPerformed

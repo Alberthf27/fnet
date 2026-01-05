@@ -142,12 +142,12 @@ public class subpanel_Instalaciones extends JPanel {
         y += 140;
 
         // BOTONES DE ACCIÓN
-        JButton btnFinalizar = new JButton("✅ FINALIZAR (Instalado)");
+        JButton btnFinalizar = new JButton("FINALIZAR (Instalado)");
         estilarBoton(btnFinalizar, new Color(22, 163, 74), Color.WHITE); // Verde
         btnFinalizar.setBounds(200, y, 320, 45);
         panelDetalle.add(btnFinalizar);
 
-        JButton btnReprogramar = new JButton("📅 Reprogramar");
+        JButton btnReprogramar = new JButton("Reprogramar");
         estilarBoton(btnReprogramar, new Color(234, 179, 8), Color.WHITE); // Amarillo
         btnReprogramar.setBounds(30, y, 150, 45);
         panelDetalle.add(btnReprogramar);
