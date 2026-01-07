@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class WhatsappService implements IWhatsAppService {
 
-    private final String apiUrl;
-    private final String apiKey;
-    private final String instanceName;
+    private String apiUrl;
+    private String apiKey;
+    private String instanceName;
     private final HttpClient httpClient;
 
     // Control de límites
@@ -35,20 +35,76 @@ public class WhatsappService implements IWhatsAppService {
     private static long ultimoEnvio = 0;
 
     public WhatsappService() {
-        // Leer variables de entorno
-        this.apiUrl = System.getenv("EVOLUTION_API_URL");
-        this.apiKey = System.getenv("EVOLUTION_API_KEY");
-        this.instanceName = System.getenv("EVOLUTION_INSTANCE_NAME");
+        // Intentar leer desde variables de entorno primero (para Railway)
+        String envUrl = System.getenv("EVOLUTION_API_URL");
+        String envKey = System.getenv("EVOLUTION_API_KEY");
+        String envInstance = System.getenv("EVOLUTION_INSTANCE_NAME");
 
-        // Validar configuración
+        // Si no hay variables de entorno, leer desde base de datos
+        if (envUrl == null || envKey == null || envInstance == null) {
+            try {
+                java.sql.Connection conn = bd.Conexion.getConexion();
+                String sql = "SELECT valor FROM configuracion_sistema WHERE clave = ?";
+
+                // Leer EVOLUTION_API_URL
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "EVOLUTION_API_URL");
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    this.apiUrl = rs.next() ? rs.getString("valor") : null;
+                }
+
+                // Leer EVOLUTION_API_KEY
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "EVOLUTION_API_KEY");
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    this.apiKey = rs.next() ? rs.getString("valor") : null;
+                }
+
+                // Leer EVOLUTION_INSTANCE_NAME
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "EVOLUTION_INSTANCE_NAME");
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    this.instanceName = rs.next() ? rs.getString("valor") : null;
+                }
+
+                conn.close();
+
+                if (apiUrl != null && apiKey != null && instanceName != null) {
+                    System.out.println("✅ Configuración WhatsApp cargada desde BD");
+                }
+
+            } catch (Exception e) {
+                System.err.println("⚠️ No se pudo leer configuración de BD: " + e.getMessage());
+                this.apiUrl = null;
+                this.apiKey = null;
+                this.instanceName = null;
+            }
+        } else {
+            // Usar variables de entorno
+            this.apiUrl = envUrl;
+            this.apiKey = envKey;
+            this.instanceName = envInstance;
+            System.out.println("✅ Configuración WhatsApp cargada desde variables de entorno");
+        }
+
+        // Validar configuración (no lanzar excepción, solo advertir)
         if (apiUrl == null || apiKey == null || instanceName == null) {
-            throw new IllegalStateException(
-                    "❌ Faltan variables de entorno: EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE_NAME");
+            System.err.println("⚠️ WhatsApp no configurado. Configure en tabla configuracion_sistema:");
+            System.err.println("   - EVOLUTION_API_URL: " + (apiUrl != null ? "✅" : "❌"));
+            System.err.println("   - EVOLUTION_API_KEY: " + (apiKey != null ? "✅" : "❌"));
+            System.err.println("   - EVOLUTION_INSTANCE_NAME: " + (instanceName != null ? "✅" : "❌"));
+            System.err.println("   ℹ️ El sistema funcionará sin notificaciones WhatsApp");
+
+            // Crear cliente HTTP de todos modos
+            this.httpClient = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            return;
         }
 
         // Crear cliente HTTP con timeout
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+        this.httpClient = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(10))
                 .build();
 
         System.out.println("✅ WhatsappService inicializado correctamente");
@@ -192,6 +248,61 @@ public class WhatsappService implements IWhatsAppService {
             return telefono.substring(0, 2) + "..." + telefono.substring(telefono.length() - 4);
         }
         return telefono;
+    }
+
+    /**
+     * Envía un archivo (PDF, imagen, etc.) por WhatsApp.
+     */
+    public boolean enviarArchivo(String telefono, String rutaArchivo, String caption) {
+        if (!estaHabilitado()) {
+            return false;
+        }
+
+        try {
+            java.nio.file.Path path = java.nio.file.Paths.get(rutaArchivo);
+            byte[] fileBytes = java.nio.file.Files.readAllBytes(path);
+            String base64File = java.util.Base64.getEncoder().encodeToString(fileBytes);
+            String nombreArchivo = path.getFileName().toString();
+            String telefonoNormalizado = normalizarTelefono(telefono);
+
+            // Formato Evolution API v2 - usar mediaMessage wrapper
+            String json = String.format(
+                    "{\"number\":\"%s\"," +
+                            "\"mediaMessage\":{" +
+                            "\"mediatype\":\"document\"," +
+                            "\"media\":\"%s\"," +
+                            "\"fileName\":\"%s\"," +
+                            "\"caption\":\"%s\"" +
+                            "}}",
+                    telefonoNormalizado, // SIN @s.whatsapp.net
+                    base64File,
+                    nombreArchivo,
+                    caption != null ? caption : "");
+
+            // Endpoint correcto: /message/send/ en lugar de /message/sendMedia/
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiUrl + "/message/send/" + instanceName))
+                    .header("Content-Type", "application/json")
+                    .header("apikey", apiKey)
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 || response.statusCode() == 201) {
+                System.out.println("✅ Archivo enviado a " + formatearTelefono(telefono));
+                return true;
+            } else {
+                System.out.println("❌ Error al enviar archivo: HTTP " + response.statusCode());
+                System.out.println("   URL: " + apiUrl + "/message/sendMedia/" + instanceName);
+                System.out.println("   Respuesta: " + response.body());
+                return false;
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error enviando archivo: " + e.getMessage());
+            return false;
+        }
     }
 
     /**

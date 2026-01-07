@@ -122,6 +122,8 @@ public class DialogoHistorial extends JDialog {
                 if (fila >= 0) {
                     int idFactura = (int) modelo.getValueAt(fila, 0);
                     String estado = modelo.getValueAt(fila, 5).toString();
+                    String periodo = modelo.getValueAt(fila, 1).toString();
+                    boolean esPagado = estado.contains("PAGADO");
 
                     if (col == 5) { // Click en Estado -> Alternar
                         alternarEstado(fila, idFactura);
@@ -131,19 +133,55 @@ public class DialogoHistorial extends JDialog {
                         int cellX = e.getX() - cellRect.x;
                         int btnWidth = 65; // Ancho de cada boton (60 + padding)
 
-                        if (cellX < btnWidth) {
-                            editarFactura(fila, idFactura);
-                        } else if (cellX < btnWidth * 2) {
-                            // Boleta - solo si NO es pendiente
-                            if (!estado.contains("PENDIENTE")) {
+                        if (esPagado) {
+                            // Para facturas PAGADAS: Boleta | Anular | Eliminar
+                            if (cellX < btnWidth) {
+                                // Botón BOLETA
                                 DialogoHistorial.this.imprimirBoleta(idFactura);
+                            } else if (cellX < btnWidth * 2) {
+                                // Botón ANULAR
+                                int confirm = JOptionPane.showConfirmDialog(
+                                        DialogoHistorial.this,
+                                        "¿Anular pago de " + periodo + "?\n\n" +
+                                                "Esto eliminará:\n" +
+                                                "• Registro de pago\n" +
+                                                "• Movimiento de caja\n" +
+                                                "• Revertirá factura a PENDIENTE\n\n" +
+                                                "Esta acción es solo para pruebas.",
+                                        "Confirmar Anulación",
+                                        JOptionPane.YES_NO_OPTION,
+                                        JOptionPane.WARNING_MESSAGE);
+
+                                if (confirm == JOptionPane.YES_OPTION) {
+                                    boolean exito = pagoDAO.anularPago(idFactura);
+                                    if (exito) {
+                                        JOptionPane.showMessageDialog(DialogoHistorial.this,
+                                                "Pago anulado exitosamente",
+                                                "Éxito",
+                                                JOptionPane.INFORMATION_MESSAGE);
+                                        cargarDatos(); // Refrescar tabla
+                                    } else {
+                                        JOptionPane.showMessageDialog(DialogoHistorial.this,
+                                                "Error al anular el pago",
+                                                "Error",
+                                                JOptionPane.ERROR_MESSAGE);
+                                    }
+                                }
                             } else {
+                                // Botón ELIMINAR
+                                eliminarFactura(fila, idFactura);
+                            }
+                        } else {
+                            // Para facturas PENDIENTES: Boleta (disabled) | Eliminar
+                            if (cellX < btnWidth) {
+                                // Botón BOLETA (deshabilitado)
                                 JOptionPane.showMessageDialog(DialogoHistorial.this,
                                         "Solo puede imprimir boletas de facturas PAGADAS",
                                         "Factura Pendiente", JOptionPane.WARNING_MESSAGE);
+                            } else {
+                                // Botón ELIMINAR
+                                eliminarFactura(fila, idFactura);
                             }
-                        } else {
-                            eliminarFactura(fila, idFactura);
                         }
                     }
                 }
@@ -556,41 +594,51 @@ public class DialogoHistorial extends JDialog {
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isS, boolean hasF, int row, int col) {
 
-            // Panel con tres botones visuales
+            // Panel con botones visuales
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 3, 5));
             panel.setBackground(isS ? new Color(219, 234, 254) : Color.WHITE);
 
             // Obtener el estado de la factura (columna 5)
             String estado = table.getValueAt(row, 5).toString();
             boolean esPendiente = estado.contains("PENDIENTE");
+            boolean esPagado = estado.contains("PAGADO");
 
-            // DESHABILITADO: Botón Editar
-            /*
-             * JButton btnEditar = new JButton("Editar");
-             * btnEditar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-             * btnEditar.setBackground(new Color(59, 130, 246));
-             * btnEditar.setForeground(Color.WHITE);
-             * btnEditar.setFocusPainted(false);
-             * btnEditar.setPreferredSize(new Dimension(60, 24));
-             * panel.add(btnEditar);
-             */
-
-            // Boton Boleta (para reimprimir) - DESHABILITADO si está pendiente
-            JButton btnBoleta = new JButton("Boleta");
-            btnBoleta.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            if (esPendiente) {
+            // Botón BOLETA (verde) - solo si está PAGADO
+            if (esPagado) {
+                JButton btnBoleta = new JButton("Boleta");
+                btnBoleta.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                btnBoleta.setBackground(new Color(22, 163, 74)); // Verde
+                btnBoleta.setForeground(Color.WHITE);
+                btnBoleta.setFocusPainted(false);
+                btnBoleta.setPreferredSize(new Dimension(60, 24));
+                btnBoleta.setToolTipText("Ver/Imprimir boleta");
+                panel.add(btnBoleta);
+            } else {
+                // Botón BOLETA deshabilitado si está pendiente
+                JButton btnBoleta = new JButton("Boleta");
+                btnBoleta.setFont(new Font("Segoe UI", Font.PLAIN, 10));
                 btnBoleta.setBackground(new Color(156, 163, 175)); // Gris
+                btnBoleta.setForeground(Color.WHITE);
+                btnBoleta.setFocusPainted(false);
+                btnBoleta.setPreferredSize(new Dimension(60, 24));
                 btnBoleta.setEnabled(false);
                 btnBoleta.setToolTipText("Solo disponible para facturas pagadas");
-            } else {
-                btnBoleta.setBackground(new Color(22, 163, 74)); // Verde
+                panel.add(btnBoleta);
             }
-            btnBoleta.setForeground(Color.WHITE);
-            btnBoleta.setFocusPainted(false);
-            btnBoleta.setPreferredSize(new Dimension(60, 24));
-            panel.add(btnBoleta);
 
-            // Boton Eliminar
+            // Botón ANULAR (naranja) - solo si está PAGADO
+            if (esPagado) {
+                JButton btnAnular = new JButton("Anular");
+                btnAnular.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                btnAnular.setBackground(new Color(245, 158, 11)); // Naranja
+                btnAnular.setForeground(Color.WHITE);
+                btnAnular.setFocusPainted(false);
+                btnAnular.setPreferredSize(new Dimension(60, 24));
+                btnAnular.setToolTipText("Anular pago (solo pruebas)");
+                panel.add(btnAnular);
+            }
+
+            // Botón ELIMINAR (rojo) - siempre visible
             JButton btnEliminar = new JButton("Eliminar");
             btnEliminar.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             btnEliminar.setBackground(new Color(239, 68, 68));

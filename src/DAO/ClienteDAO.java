@@ -571,12 +571,8 @@ public class ClienteDAO {
      * @return Map con datos del cliente o null si no existe
      */
     public java.util.Map<String, Object> buscarPorDNI(String dni) {
-        String sql = "SELECT c.id_cliente, c.dni_cliente, c.nombres, c.apellidos, c.telefono, " +
-                "s.id_suscripcion, serv.monto as monto_mensual " +
-                "FROM cliente c " +
-                "LEFT JOIN suscripcion s ON c.id_cliente = s.id_cliente AND s.activo = 1 " +
-                "LEFT JOIN servicio serv ON s.id_servicio = serv.id_servicio " +
-                "WHERE c.dni_cliente = ? AND c.activo = 1";
+        String sql = "SELECT id_cliente, dni_cliente, nombres, apellidos, telefono FROM cliente " +
+                "WHERE dni_cliente = ? AND activo = 1";
 
         try (Connection con = Conexion.getConexion();
                 PreparedStatement ps = con.prepareStatement(sql)) {
@@ -590,8 +586,6 @@ public class ClienteDAO {
                 cliente.put("nombres", rs.getString("nombres"));
                 cliente.put("apellidos", rs.getString("apellidos"));
                 cliente.put("telefono", rs.getString("telefono"));
-                cliente.put("id_suscripcion", rs.getObject("id_suscripcion")); // Puede ser null
-                cliente.put("monto_mensual", rs.getObject("monto_mensual")); // Puede ser null
                 return cliente;
             }
         } catch (SQLException e) {

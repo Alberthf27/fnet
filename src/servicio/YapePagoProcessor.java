@@ -3,11 +3,15 @@ package servicio;
 import DAO.ClienteDAO;
 import DAO.PagoDAO;
 import DAO.YapeConfigDAO;
+import bd.Conexion;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -22,6 +26,8 @@ public class YapePagoProcessor {
     private final ClienteDAO clienteDAO;
     private final PagoDAO pagoDAO;
     private final YapeConfigDAO yapeConfigDAO;
+    private final WhatsappService whatsappService;
+    private final BoletaPDFService pdfService;
     private final int idUsuarioSistema = 1; // Usuario "Sistema" para pagos automáticos
     private Date ultimaFechaProcesada;
     private Date nuevaUltimaFecha;
@@ -30,6 +36,8 @@ public class YapePagoProcessor {
         this.clienteDAO = new ClienteDAO();
         this.pagoDAO = new PagoDAO();
         this.yapeConfigDAO = new YapeConfigDAO();
+        this.whatsappService = new WhatsappService();
+        this.pdfService = new BoletaPDFService();
     }
 
     /**
@@ -149,14 +157,11 @@ public class YapePagoProcessor {
             return;
         }
 
-        // Registrar pago con monto mensual para división por meses
+        // Registrar pago
         int idCliente = (int) cliente.get("id_cliente");
         String nombreCliente = cliente.get("nombres") + " " + cliente.get("apellidos");
-        Double montoMensual = cliente.get("monto_mensual") != null
-                ? ((Number) cliente.get("monto_mensual")).doubleValue()
-                : null;
 
-        boolean exito = registrarPago(idCliente, nombreCliente, dni, monto, fechaOperacion, montoMensual);
+        boolean exito = registrarPago(idCliente, nombreCliente, dni, monto, fechaOperacion);
 
         if (exito) {
             resumen.pagosRegistrados++;
@@ -192,92 +197,84 @@ public class YapePagoProcessor {
     }
 
     /**
-     * Registra un pago automáticamente dividiéndolo por meses según el monto
-     * mensual del servicio.
+     * Registra un pago automáticamente distribuyéndolo entre múltiples facturas.
      */
     private boolean registrarPago(int idCliente, String nombreCliente, String dni,
-            double monto, Date fechaOperacion, Double montoMensual) {
+            double monto, Date fechaOperacion) {
         try {
-            // Si no hay monto mensual, usar lógica antigua (distribuir entre deudas)
-            if (montoMensual == null || montoMensual <= 0) {
-                System.out.println("   ⚠️ Cliente sin suscripción activa - usando distribución simple");
-                return registrarPagoSimple(idCliente, nombreCliente, dni, monto, fechaOperacion);
-            }
-
-            // Calcular número de meses a pagar
-            int mesesAPagar = (int) Math.floor(monto / montoMensual);
-            double sobrante = monto - (mesesAPagar * montoMensual);
-
-            if (mesesAPagar == 0) {
-                System.out.println(String.format("   ⚠️ Monto insuficiente (S/. %.2f) para un mes completo (S/. %.2f)",
-                        monto, montoMensual));
-                return false;
-            }
-
-            System.out.println(String.format("\\n   💰 Procesando pago de S/. %.2f (%d meses × S/. %.2f):",
-                    monto, mesesAPagar, montoMensual));
-
             // Buscar facturas pendientes del cliente (ordenadas por antigüedad)
             List<Object[]> deudasList = pagoDAO.buscarDeudasPorCliente(dni);
 
-            int facturasPagadas = 0;
-            int mesesRestantes = mesesAPagar;
-            StringBuilder resumen = new StringBuilder();
-
-            // 1. Pagar facturas pendientes primero
-            if (deudasList != null && !deudasList.isEmpty()) {
-                for (Object[] deuda : deudasList) {
-                    if (mesesRestantes <= 0)
-                        break;
-
-                    int idFactura = (int) deuda[0];
-                    String periodoMes = (String) deuda[4];
-
-                    // Pagar con el monto mensual
-                    boolean exito = pagoDAO.realizarCobro(idFactura, montoMensual, idUsuarioSistema, "YAPE");
-
-                    if (exito) {
-                        facturasPagadas++;
-                        mesesRestantes--;
-                        resumen.append(String.format("      ✅ %s - PAGADA: S/. %.2f\\n",
-                                periodoMes, montoMensual));
-                    } else {
-                        resumen.append(String.format("      ❌ Error pagando %s\\n", periodoMes));
-                    }
-                }
+            if (deudasList == null || deudasList.isEmpty()) {
+                System.out.println("   ℹ️ Cliente " + nombreCliente + " no tiene deudas pendientes");
+                return false;
             }
 
-            // 2. Si quedan meses por pagar, generar facturas adelantadas
-            if (mesesRestantes > 0) {
-                resumen.append(String.format("\\n      📅 Generando %d pago(s) adelantado(s):\\n", mesesRestantes));
+            double montoRestante = monto;
+            int facturasPagadas = 0;
+            StringBuilder resumen = new StringBuilder();
+            resumen.append("\n   💰 Distribuyendo pago de S/. ").append(String.format("%.2f", monto)).append(":\n");
 
-                // Obtener id_suscripcion del cliente
-                Integer idSuscripcion = obtenerIdSuscripcion(dni);
+            // Distribuir el pago entre las facturas pendientes (de más antigua a más
+            // reciente)
+            for (Object[] deuda : deudasList) {
+                if (montoRestante <= 0) {
+                    break; // Ya se distribuyó todo el monto
+                }
 
-                if (idSuscripcion != null) {
-                    for (int i = 0; i < mesesRestantes; i++) {
-                        // Generar factura adelantada
-                        boolean exito = generarFacturaAdelantada(idSuscripcion, montoMensual, i + 1);
-                        if (exito) {
-                            facturasPagadas++;
-                            resumen.append(String.format("      ✅ Mes +%d - ADELANTADO: S/. %.2f\\n",
-                                    i + 1, montoMensual));
-                        }
-                    }
+                int idFactura = (int) deuda[0];
+                String periodoMes = String.valueOf(deuda[3]); // índice 3, no 4
+
+                // Obtener monto total (índice 4, no 6)
+                double montoTotal = deuda[4] instanceof Integer
+                        ? ((Integer) deuda[4]).doubleValue()
+                        : (double) deuda[4];
+
+                // buscarDeudasPorCliente NO devuelve monto_pagado
+                // Necesitamos obtenerlo de la factura directamente
+                double montoPagado = obtenerMontoPagado(idFactura);
+
+                // Calcular monto PENDIENTE de esta factura
+                double montoPendiente = montoTotal - montoPagado;
+
+                if (montoPendiente <= 0) {
+                    continue; // Esta factura ya está pagada completamente
+                }
+
+                // Calcular cuánto pagar de esta factura (lo que quede pendiente o el monto
+                // restante)
+                double montoPagar = Math.min(montoRestante, montoPendiente);
+
+                // Realizar cobro parcial o total con método YAPE
+                boolean exito = pagoDAO.realizarCobro(idFactura, montoPagar, idUsuarioSistema, "YAPE");
+
+                if (exito) {
+                    facturasPagadas++;
+                    montoRestante -= montoPagar;
+
+                    String estado = (montoPagar >= montoPendiente) ? "PAGADA COMPLETA" : "PAGO PARCIAL";
+                    resumen.append(String.format("      ✅ %s - %s: S/. %.2f (Pendiente: S/. %.2f)\n",
+                            periodoMes, estado, montoPagar, montoPendiente));
                 } else {
-                    System.out.println("      ⚠️ No se pudo generar pagos adelantados (sin suscripción)");
+                    resumen.append(String.format("      ❌ Error pagando %s\n", periodoMes));
                 }
             }
 
             // Mostrar resumen
             System.out.println(resumen.toString());
 
-            if (sobrante > 0) {
-                System.out.println(String.format("   ℹ️ Sobrante de S/. %.2f (no alcanza para otro mes)", sobrante));
+            if (montoRestante > 0) {
+                System.out.println(
+                        String.format("   ℹ️ Sobrante de S/. %.2f (todas las deudas fueron pagadas)", montoRestante));
             }
 
             if (facturasPagadas > 0) {
-                crearNotificacionPago(nombreCliente, dni, monto - sobrante, fechaOperacion);
+                // Crear notificación de pago procesado
+                crearNotificacionPago(nombreCliente, dni, monto - montoRestante, fechaOperacion);
+
+                // Enviar notificación WhatsApp con PDF
+                enviarNotificacionWhatsApp(dni, nombreCliente, facturasPagadas, monto - montoRestante);
+
                 return true;
             }
 
@@ -288,6 +285,24 @@ public class YapePagoProcessor {
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * Obtiene el monto ya pagado de una factura desde la base de datos.
+     */
+    private double obtenerMontoPagado(int idFactura) {
+        try (java.sql.Connection conn = bd.Conexion.getConexion();
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "SELECT COALESCE(monto_pagado, 0) as monto_pagado FROM factura WHERE id_factura = ?")) {
+            ps.setInt(1, idFactura);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("monto_pagado");
+            }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo monto pagado: " + e.getMessage());
+        }
+        return 0.0;
     }
 
     /**
@@ -405,6 +420,134 @@ public class YapePagoProcessor {
 
         } catch (Exception e) {
             System.err.println("⚠️ Error creando notificación: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Envía notificación WhatsApp al cliente con confirmación de pago y PDF de
+     * boletas.
+     */
+    private void enviarNotificacionWhatsApp(String dni, String nombreCliente, int facturasPagadas, double montoTotal) {
+        try {
+            if (!whatsappService.estaHabilitado()) {
+                System.out.println("   ℹ️ WhatsApp no configurado - omitiendo notificación");
+                return;
+            }
+
+            // Obtener teléfono del cliente
+            Map<String, Object> cliente = clienteDAO.buscarPorDNI(dni);
+            if (cliente == null || cliente.get("telefono") == null) {
+                System.out.println("   ⚠️ Cliente sin teléfono registrado - no se puede enviar WhatsApp");
+                return;
+            }
+
+            String telefono = (String) cliente.get("telefono");
+
+            // Construir mensaje de confirmación
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+            String mensaje = String.format(
+                    "✅ *PAGO REGISTRADO EXITOSAMENTE*\\n\\n" +
+                            "Hola *%s*,\\n\\n" +
+                            "Tu pago por Yape ha sido procesado automáticamente:\\n\\n" +
+                            "💰 *Monto:* S/. %.2f\\n" +
+                            "📅 *Fecha:* %s\\n" +
+                            "📄 *Facturas pagadas:* %d\\n\\n" +
+                            "📎 Adjuntamos las boletas de pago en PDF.\\n\\n" +
+                            "Gracias por tu pago puntual! 🎉",
+                    nombreCliente,
+                    montoTotal,
+                    sdf.format(new Date()),
+                    facturasPagadas);
+
+            // Enviar mensaje
+            boolean enviado = whatsappService.enviarMensaje(telefono, mensaje);
+
+            if (enviado) {
+                System.out.println("   ✅ Notificación WhatsApp enviada a " + telefono);
+
+                // Generar y enviar PDFs de las facturas pagadas
+                enviarBoletasPDF(dni, telefono);
+            } else {
+                System.out.println("   ⚠️ No se pudo enviar notificación WhatsApp");
+            }
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error enviando notificación WhatsApp: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Genera y envía los PDFs de las boletas de las facturas pagadas recientemente.
+     */
+    private void enviarBoletasPDF(String dni, String telefono) {
+        try {
+            // Obtener facturas PAGADAS del cliente (no pendientes)
+            String sql = "SELECT f.id_factura FROM factura f " +
+                    "INNER JOIN cliente c ON f.id_cliente = c.id_cliente " +
+                    "WHERE c.dni = ? AND f.id_estado = 2 " + // 2 = PAGADO
+                    "ORDER BY f.fecha_pago DESC LIMIT 3";
+
+            List<Integer> facturasPagadas = new ArrayList<>();
+
+            try (Connection conn = Conexion.getConexion();
+                    PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, dni);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    facturasPagadas.add(rs.getInt("id_factura"));
+                }
+            }
+
+            if (facturasPagadas.isEmpty()) {
+                System.out.println("      ℹ️ No hay facturas pagadas para enviar PDF");
+                return;
+            }
+
+            // Generar y enviar PDFs
+            int pdfEnviados = 0;
+            for (int idFactura : facturasPagadas) {
+                // Regenerar PDF de la boleta
+                String rutaPDF = pdfService.regenerarBoletaDesdeFactura(idFactura);
+
+                if (rutaPDF != null) {
+                    System.out.println("      📄 PDF generado: " + rutaPDF);
+
+                    // Enviar PDF por WhatsApp
+                    boolean enviado = enviarPDFPorWhatsApp(telefono, rutaPDF);
+                    if (enviado) {
+                        pdfEnviados++;
+                        System.out.println("      ✅ PDF enviado por WhatsApp");
+                    } else {
+                        System.out.println("      ⚠️ No se pudo enviar PDF por WhatsApp");
+                    }
+                } else {
+                    System.out.println("      ⚠️ No se pudo generar PDF para factura #" + idFactura);
+                }
+            }
+
+            if (pdfEnviados > 0) {
+                System.out.println(String.format("      ✅ %d boleta(s) PDF enviada(s) por WhatsApp", pdfEnviados));
+            } else {
+                System.out.println("      ⚠️ No se pudo enviar ningún PDF");
+            }
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error generando/enviando boletas PDF: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Envía un archivo PDF por WhatsApp usando WhatsappService.
+     */
+    private boolean enviarPDFPorWhatsApp(String telefono, String rutaPDF) {
+        try {
+            // Delegar al WhatsappService que ya tiene la configuración correcta
+            return whatsappService.enviarArchivo(telefono, rutaPDF, "📄 Boleta de Pago");
+        } catch (Exception e) {
+            System.err.println("⚠️ Error enviando PDF por WhatsApp: " + e.getMessage());
+            return false;
         }
     }
 

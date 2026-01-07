@@ -68,31 +68,61 @@ public class BoletaPDFService {
     }
 
     /**
-     * Obtiene el siguiente número de boleta, incrementando el contador.
-     * El contador se guarda en un archivo para persistencia.
-     * Empieza desde 1 y aumenta con cada boleta.
+     * Obtiene el siguiente número de boleta desde la base de datos.
+     * Usa la tabla 'contador' para sincronización entre múltiples PCs.
+     * Thread-safe mediante transacciones SQL.
      */
     private synchronized int obtenerSiguienteNumeroBoleta() {
         int numero = 1;
-        File contadorFile = new File(CONTADOR_FILE);
+        java.sql.Connection conn = null;
 
-        // Leer número actual
-        if (contadorFile.exists()) {
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(contadorFile))) {
-                String linea = reader.readLine();
-                if (linea != null && !linea.isEmpty()) {
-                    numero = Integer.parseInt(linea.trim()) + 1;
+        try {
+            conn = bd.Conexion.getConexion();
+            conn.setAutoCommit(false); // Iniciar transacción
+
+            // Obtener y actualizar el contador en una sola operación atómica
+            String sqlUpdate = "UPDATE contador SET valor = valor + 1 WHERE nombre = 'boletas'";
+            String sqlSelect = "SELECT valor FROM contador WHERE nombre = 'boletas'";
+
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                // Actualizar contador
+                int rowsAffected = stmt.executeUpdate(sqlUpdate);
+
+                // Si no existe el registro, crearlo
+                if (rowsAffected == 0) {
+                    String sqlInsert = "INSERT INTO contador (nombre, valor, descripcion) VALUES ('boletas', 1, 'Contador de boletas de pago')";
+                    stmt.executeUpdate(sqlInsert);
+                    numero = 1;
+                } else {
+                    // Obtener el nuevo valor
+                    try (java.sql.ResultSet rs = stmt.executeQuery(sqlSelect)) {
+                        if (rs.next()) {
+                            numero = rs.getInt("valor");
+                        }
+                    }
                 }
-            } catch (Exception e) {
-                System.err.println("Error leyendo contador: " + e.getMessage());
             }
-        }
 
-        // Guardar nuevo número
-        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(contadorFile))) {
-            writer.println(numero);
+            conn.commit(); // Confirmar transacción
+
         } catch (Exception e) {
-            System.err.println("Error guardando contador: " + e.getMessage());
+            System.err.println("Error obteniendo número de boleta: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Revertir en caso de error
+                } catch (Exception ex) {
+                    System.err.println("Error en rollback: " + ex.getMessage());
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (Exception e) {
+                    System.err.println("Error cerrando conexión: " + e.getMessage());
+                }
+            }
         }
 
         return numero;
@@ -139,7 +169,7 @@ public class BoletaPDFService {
 
         // Márgenes para centrar contenido A6 en página A5 horizontal
         float margenHorizontal = Utilities.millimetersToPoints(52.5f); // centra 105mm en 210mm
-        float margenVertical = Utilities.millimetersToPoints(10); // mínimo arriba/abajo
+        float margenVertical = Utilities.millimetersToPoints(5); // REDUCIDO de 10 a 5mm
 
         Document documento = new Document(tamanoA5Landscape, margenHorizontal, margenHorizontal, margenVertical,
                 margenVertical);
@@ -193,15 +223,17 @@ public class BoletaPDFService {
 
             Paragraph fecha = new Paragraph("Fecha: " + fechaHoy, fuentePequena);
             fecha.setAlignment(Element.ALIGN_CENTER);
-            fecha.setSpacingAfter(5);
+            fecha.setSpacingAfter(2); // REDUCIDO de 5 a 2
             documento.add(fecha);
 
             // --- LÍNEA SEPARADORA ---
             agregarLineaSeparadora(documento);
 
             // --- DATOS DEL CLIENTE ---
-            documento.add(new Paragraph("DATOS DEL CLIENTE", fuenteSubtitulo));
-            documento.add(new Paragraph(" "));
+            Paragraph datosCliente = new Paragraph("DATOS DEL CLIENTE", fuenteSubtitulo);
+            datosCliente.setSpacingBefore(3);
+            datosCliente.setSpacingAfter(3);
+            documento.add(datosCliente);
 
             PdfPTable tablaCliente = new PdfPTable(2);
             tablaCliente.setWidthPercentage(100);
@@ -483,7 +515,9 @@ public class BoletaPDFService {
         int idEstado = (Integer) datos.get("idEstado");
         String formaPago = idEstado == 2 ? "PAGADO" : "PENDIENTE";
 
-        return generarYAbrirBoleta(
+        // CAMBIADO: usar generarBoleta en lugar de generarYAbrirBoleta
+        // para NO abrir el PDF automáticamente (solo generarlo para WhatsApp)
+        return generarBoleta(
                 numeroBoleta,
                 nombreCliente != null ? nombreCliente : "---",
                 codigoContrato != null ? codigoContrato : "---",

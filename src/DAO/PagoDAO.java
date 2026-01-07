@@ -64,7 +64,7 @@ public class PagoDAO {
             conn.setAutoCommit(false);
 
             // 1. Obtener monto total de la factura y monto ya pagado
-            String sqlConsulta = "SELECT monto, COALESCE(monto_pagado, 0) as monto_pagado FROM factura WHERE id_factura = ?";
+            String sqlConsulta = "SELECT monto_total, COALESCE(monto_pagado, 0) as monto_pagado FROM factura WHERE id_factura = ?";
             double montoTotal = 0;
             double montoPagadoAnterior = 0;
 
@@ -72,7 +72,7 @@ public class PagoDAO {
                 psConsulta.setInt(1, idFactura);
                 ResultSet rs = psConsulta.executeQuery();
                 if (rs.next()) {
-                    montoTotal = rs.getDouble("monto");
+                    montoTotal = rs.getDouble("monto_total");
                     montoPagadoAnterior = rs.getDouble("monto_pagado");
                 }
             }
@@ -84,33 +84,45 @@ public class PagoDAO {
             // 3. Actualizar factura (monto_pagado y estado si está completo)
             String sqlFactura;
             if (pagadoCompleto) {
-                sqlFactura = "UPDATE factura SET id_estado = 2, monto_pagado = ?, fecha_pago = NOW() WHERE id_factura = ?";
+                sqlFactura = "UPDATE factura SET id_estado = 2, monto_pagado = ?, fecha_pago = ? WHERE id_factura = ?";
             } else {
                 sqlFactura = "UPDATE factura SET monto_pagado = ? WHERE id_factura = ?";
             }
 
             try (PreparedStatement psFactura = conn.prepareStatement(sqlFactura)) {
                 psFactura.setDouble(1, nuevoMontoPagado);
-                psFactura.setInt(2, idFactura);
+                if (pagadoCompleto) {
+                    psFactura.setTimestamp(2, new java.sql.Timestamp(System.currentTimeMillis()));
+                    psFactura.setInt(3, idFactura);
+                } else {
+                    psFactura.setInt(2, idFactura);
+                }
                 psFactura.executeUpdate();
             }
 
             // 4. Registrar en tabla PAGO (usando columnas reales de la tabla)
-            String sqlPago = "INSERT INTO pago (monto, fecha_pago, metodo_pago, id_empleado) VALUES (?, NOW(), ?, ?)";
+            // Mapear método de pago a ID: EFECTIVO=1, YAPE=2
+            int idMetodo = "YAPE".equalsIgnoreCase(metodoPago) ? 2 : 1;
+
+            String sqlPago = "INSERT INTO pago (id_factura, monto, fecha_pago, metodo_pago, id_metodo, id_empleado) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement psPago = conn.prepareStatement(sqlPago)) {
-                psPago.setDouble(1, monto);
-                psPago.setString(2, metodoPago);
-                psPago.setInt(3, idUsuario);
+                psPago.setInt(1, idFactura);
+                psPago.setDouble(2, monto);
+                psPago.setTimestamp(3, new java.sql.Timestamp(System.currentTimeMillis()));
+                psPago.setString(4, metodoPago);
+                psPago.setInt(5, idMetodo);
+                psPago.setInt(6, idUsuario);
                 psPago.executeUpdate();
             }
 
             // 5. Registrar en movimiento_caja
             String sqlCaja = "INSERT INTO movimiento_caja (fecha, monto, descripcion, id_categoria, id_usuario) " +
-                    "VALUES (NOW(), ?, CONCAT('Cobro Factura #', ?), 1, ?)";
+                    "VALUES (?, ?, CONCAT('Cobro Factura #', ?), 1, ?)";
             try (PreparedStatement psCaja = conn.prepareStatement(sqlCaja)) {
-                psCaja.setDouble(1, monto);
-                psCaja.setInt(2, idFactura);
-                psCaja.setInt(3, idUsuario);
+                psCaja.setTimestamp(1, new java.sql.Timestamp(System.currentTimeMillis()));
+                psCaja.setDouble(2, monto);
+                psCaja.setInt(3, idFactura);
+                psCaja.setInt(4, idUsuario);
                 psCaja.executeUpdate();
             }
 
@@ -130,6 +142,61 @@ public class PagoDAO {
                 if (conn != null)
                     conn.close();
             } catch (Exception ex) {
+            }
+        }
+    }
+
+    /**
+     * Anula un pago, revirtiendo la factura a estado PENDIENTE.
+     * Elimina registros de pago y movimientos de caja asociados.
+     * SOLO PARA PRUEBAS - En producción considerar auditoría.
+     */
+    public boolean anularPago(int idFactura) {
+        Connection conn = null;
+        try {
+            conn = Conexion.getConexion();
+            conn.setAutoCommit(false);
+
+            // 1. Eliminar registros de pago
+            String sqlDeletePago = "DELETE FROM pago WHERE id_factura = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeletePago)) {
+                ps.setInt(1, idFactura);
+                ps.executeUpdate();
+            }
+
+            // 2. Revertir factura a PENDIENTE
+            String sqlRevertFactura = "UPDATE factura SET id_estado = 1, monto_pagado = 0, fecha_pago = NULL WHERE id_factura = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlRevertFactura)) {
+                ps.setInt(1, idFactura);
+                ps.executeUpdate();
+            }
+
+            // 3. Eliminar movimientos de caja
+            String sqlDeleteCaja = "DELETE FROM movimiento_caja WHERE descripcion LIKE CONCAT('Cobro Factura #', ?)";
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeleteCaja)) {
+                ps.setInt(1, idFactura);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (Exception e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (Exception ex) {
+                }
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (Exception e) {
+                }
             }
         }
     }
